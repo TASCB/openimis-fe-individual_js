@@ -1,6 +1,3 @@
-// Disabled due to consistency with other modules
-/* eslint-disable default-param-last */
-
 import {
   formatServerError,
   formatGraphQLError,
@@ -10,47 +7,46 @@ import {
   parseData,
   pageInfo,
   decodeId,
-} from '@openimis/fe-core';
-import _ from 'lodash';
-import {
-  REQUEST, SUCCESS, ERROR, CLEAR, SET,
-} from './util/action-type';
+} from "@openimis/fe-core";
+import _ from "lodash";
+import { REQUEST, SUCCESS, ERROR, CLEAR, SET } from "./util/action-type";
 
 export const ACTION_TYPE = {
-  MUTATION: 'INDIVIDUAL_MUTATION',
-  SEARCH_INDIVIDUALS: 'INDIVIDUAL_INDIVIDUALS',
-  SEARCH_GROUP_INDIVIDUALS: 'GROUP_INDIVIDUAL_GROUP_INDIVIDUALS',
-  SEARCH_GROUPS: 'GROUP_GROUPS',
-  GET_INDIVIDUAL: 'INDIVIDUAL_INDIVIDUAL',
-  GET_GROUP: 'GROUP_GROUP',
-  DELETE_INDIVIDUAL: 'INDIVIDUAL_DELETE_INDIVIDUAL',
-  UNDO_DELETE_INDIVIDUAL: 'INDIVIDUAL_UNDO_DELETE_INDIVIDUAL',
-  DELETE_GROUP_INDIVIDUAL: 'GROUP_INDIVIDUAL_DELETE_GROUP_INDIVIDUAL',
-  DELETE_GROUP: 'GROUP_DELETE_GROUP',
-  UPDATE_INDIVIDUAL: 'INDIVIDUAL_UPDATE_INDIVIDUAL',
-  UPDATE_GROUP_INDIVIDUAL: 'GROUP_INDIVIDUAL_UPDATE_GROUP_INDIVIDUAL',
-  CREATE_GROUP_INDIVIDUAL: 'GROUP_INDIVIDUAL_CREATE_GROUP_INDIVIDUAL',
-  UPDATE_GROUP: 'GROUP_UPDATE_GROUP',
-  CREATE_GROUP: 'CREATE_GROUP',
-  CREATE_GROUP_AND_MOVE_INDIVIDUAL: 'CREATE_GROUP_AND_MOVE_INDIVIDUAL',
-  GROUP_EXPORT: 'GROUP_EXPORT',
-  INDIVIDUAL_EXPORT: 'INDIVIDUAL_EXPORT',
-  GROUP_INDIVIDUAL_EXPORT: 'GROUP_INDIVIDUAL_EXPORT',
-  SEARCH_INDIVIDUAL_HISTORY: 'SEARCH_INDIVIDUAL_HISTORY',
-  SEARCH_GROUP_HISTORY: 'SEARCH_GROUP_HISTORY',
-  SET_GROUP_INDIVIDUAL: 'SET_GROUP_INDIVIDUAL',
-  GET_WORKFLOWS: 'GET_WORKFLOWS',
-  ENROLLMENT_SUMMARY: 'ENROLLMENT_SUMMARY',
-  CONFIRM_ENROLLMENT: 'CONFIRM_ENROLLMENT',
-  GET_INDIVIDUAL_UPLOAD_HISTORY: 'GET_INDIVIDUAL_UPLOAD_HISTORY',
-  SEARCH_GROUP_INDIVIDUAL_HISTORY: 'SEARCH_GROUP_INDIVIDUAL_HISTORY',
-  ENROLLMENT_GROUP_SUMMARY: 'ENROLLMENT_GROUP_SUMMARY',
-  CONFIRM_GROUP_ENROLLMENT: 'CONFIRM_GROUP_ENROLLMENT',
-  GET_PENDING_GROUPS_UPLOAD: 'GET_PENDING_GROUPS_UPLOAD',
-  RESOLVE_TASK: 'TASK_MANAGEMENT_RESOLVE_TASK',
-  API_ETL_SERVICES: 'API_ETL_SERVICES',
-  PULL_API_DATA: 'PULL_API_DATA',
-  FETCH_ACTIVE_MUTATIONS: 'FETCH_ACTIVE_MUTATIONS',
+  MUTATION: "INDIVIDUAL_MUTATION",
+  SEARCH_INDIVIDUALS: "INDIVIDUAL_INDIVIDUALS",
+  SEARCH_GROUP_INDIVIDUALS: "GROUP_INDIVIDUAL_GROUP_INDIVIDUALS",
+  SEARCH_GROUPS: "GROUP_GROUPS",
+  GET_INDIVIDUAL: "INDIVIDUAL_INDIVIDUAL",
+  GET_GROUP: "GROUP_GROUP",
+  DELETE_INDIVIDUAL: "INDIVIDUAL_DELETE_INDIVIDUAL",
+  UNDO_DELETE_INDIVIDUAL: "INDIVIDUAL_UNDO_DELETE_INDIVIDUAL",
+  DELETE_GROUP_INDIVIDUAL: "GROUP_INDIVIDUAL_DELETE_GROUP_INDIVIDUAL",
+  DELETE_GROUP: "GROUP_DELETE_GROUP",
+  UPDATE_INDIVIDUAL: "INDIVIDUAL_UPDATE_INDIVIDUAL",
+  UPDATE_GROUP_INDIVIDUAL: "GROUP_INDIVIDUAL_UPDATE_GROUP_INDIVIDUAL",
+  CREATE_GROUP_INDIVIDUAL: "GROUP_INDIVIDUAL_CREATE_GROUP_INDIVIDUAL",
+  UPDATE_GROUP: "GROUP_UPDATE_GROUP",
+  CREATE_GROUP: "CREATE_GROUP",
+  CREATE_GROUP_AND_MOVE_INDIVIDUAL: "CREATE_GROUP_AND_MOVE_INDIVIDUAL",
+  GROUP_EXPORT: "GROUP_EXPORT",
+  INDIVIDUAL_EXPORT: "INDIVIDUAL_EXPORT",
+  GROUP_INDIVIDUAL_EXPORT: "GROUP_INDIVIDUAL_EXPORT",
+  SEARCH_INDIVIDUAL_HISTORY: "SEARCH_INDIVIDUAL_HISTORY",
+  SEARCH_GROUP_HISTORY: "SEARCH_GROUP_HISTORY",
+  SET_GROUP_INDIVIDUAL: "SET_GROUP_INDIVIDUAL",
+  GET_WORKFLOWS: "GET_WORKFLOWS",
+  ENROLLMENT_SUMMARY: "ENROLLMENT_SUMMARY",
+  CONFIRM_ENROLLMENT: "CONFIRM_ENROLLMENT",
+  GET_INDIVIDUAL_UPLOAD_HISTORY: "GET_INDIVIDUAL_UPLOAD_HISTORY",
+  SEARCH_GROUP_INDIVIDUAL_HISTORY: "SEARCH_GROUP_INDIVIDUAL_HISTORY",
+  ENROLLMENT_GROUP_SUMMARY: "ENROLLMENT_GROUP_SUMMARY",
+  CONFIRM_GROUP_ENROLLMENT: "CONFIRM_GROUP_ENROLLMENT",
+  GET_PENDING_GROUPS_UPLOAD: "GET_PENDING_GROUPS_UPLOAD",
+  RESOLVE_TASK: "TASK_MANAGEMENT_RESOLVE_TASK",
+  API_ETL_SERVICES: "API_ETL_SERVICES",
+  PULLED_QUESTIONNAIRES: "PULLED_QUESTIONNAIRES",
+  PULL_API_DATA: "PULL_API_DATA",
+  FETCH_ACTIVE_MUTATIONS: "FETCH_ACTIVE_MUTATIONS",
 };
 
 function reducer(
@@ -150,10 +146,15 @@ function reducer(
     apiEtlServices: [],
     errorApiEtlServices: null,
 
+    fetchingPulledQ: false,
+    fetchedPulledQ: false,
+    pulledQ: [],
+    errorPulledQ: null,
+
     fetchingMutations: false,
     mutations: [],
   },
-  action,
+  action
 ) {
   switch (action.type) {
     case REQUEST(ACTION_TYPE.SEARCH_INDIVIDUALS):
@@ -233,11 +234,13 @@ function reducer(
     case SUCCESS(ACTION_TYPE.GET_PENDING_GROUPS_UPLOAD):
       return {
         ...state,
-        pendingGroups: parseData(action.payload.data.groupDataSource)?.map((i) => ({
-          ...i,
-          id: decodeId(i.id),
-        })),
-        pendingGroupPageInfo: pageInfo(action.payload.data.groupDataSource),
+        pendingGroups: parseData(action.payload.data.groupDataSource)?.map(
+          (i) => ({
+            ...i,
+            id: decodeId(i.id),
+          })
+        ),
+        pendingGroupsPageInfo: pageInfo(action.payload.data.groupDataSource),
         fetchingPendingGroups: false,
         fetchedPendingGroups: true,
         errorPendingGroups: formatGraphQLError(action.payload),
@@ -247,12 +250,16 @@ function reducer(
         ...state,
         fetchingIndividuals: false,
         fetchedIndividuals: true,
-        individuals: parseData(action.payload.data.individual)?.map((individual) => ({
-          ...individual,
-          id: decodeId(individual.id),
-        })),
+        individuals: parseData(action.payload.data.individual)?.map(
+          (individual) => ({
+            ...individual,
+            id: decodeId(individual.id),
+          })
+        ),
         individualsPageInfo: pageInfo(action.payload.data.individual),
-        individualsTotalCount: action.payload.data.individual ? action.payload.data.individual.totalCount : null,
+        individualsTotalCount: action.payload.data.individual
+          ? action.payload.data.individual.totalCount
+          : null,
         errorIndividuals: formatGraphQLError(action.payload),
       };
     case SUCCESS(ACTION_TYPE.SEARCH_INDIVIDUAL_HISTORY):
@@ -260,13 +267,18 @@ function reducer(
         ...state,
         fetchingIndividualHistory: false,
         fetchedIndividualHistory: true,
-        individualHistory: parseData(action.payload.data.individualHistory)?.map((individualHistory) => ({
+        individualHistory: parseData(
+          action.payload.data.individualHistory
+        )?.map((individualHistory) => ({
           ...individualHistory,
           id: decodeId(individualHistory.id),
         })),
-        individualHistoryPageInfo: pageInfo(action.payload.data.individualHistory),
+        individualHistoryPageInfo: pageInfo(
+          action.payload.data.individualHistory
+        ),
         individualHistoryTotalCount: action.payload.data.individualHistory
-          ? action.payload.data.individualHistory.totalCount : null,
+          ? action.payload.data.individualHistory.totalCount
+          : null,
         errorIndividualHistory: formatGraphQLError(action.payload),
       };
     case SUCCESS(ACTION_TYPE.SEARCH_GROUP_INDIVIDUALS):
@@ -274,25 +286,27 @@ function reducer(
         ...state,
         fetchingGroupIndividuals: false,
         fetchedGroupIndividuals: true,
-        groupIndividuals: parseData(action.payload.data.groupIndividual)?.map((groupIndividual) => {
-          const response = ({
-            ...groupIndividual,
-            id: decodeId(groupIndividual.id),
-          });
-          if (response?.individual?.id) {
-            response.individual = ({
-              ...response.individual,
-              id: decodeId(response.individual.id),
-            });
+        groupIndividuals: parseData(action.payload.data.groupIndividual)?.map(
+          (groupIndividual) => {
+            const response = {
+              ...groupIndividual,
+              id: decodeId(groupIndividual.id),
+            };
+            if (response?.individual?.id) {
+              response.individual = {
+                ...response.individual,
+                id: decodeId(response.individual.id),
+              };
+            }
+            if (response?.group?.id) {
+              response.group = {
+                ...response.group,
+                id: decodeId(response.group.id),
+              };
+            }
+            return response;
           }
-          if (response?.group?.id) {
-            response.group = ({
-              ...response.group,
-              id: decodeId(response.group.id),
-            });
-          }
-          return response;
-        }),
+        ),
         groupIndividualsPageInfo: pageInfo(action.payload.data.groupIndividual),
         groupIndividualsTotalCount: action.payload.data.groupIndividual
           ? action.payload.data.groupIndividual.totalCount
@@ -309,7 +323,9 @@ function reducer(
           id: decodeId(group.id),
         })),
         groupsPageInfo: pageInfo(action.payload.data.group),
-        groupsTotalCount: action.payload.data.group ? action.payload.data.group.totalCount : null,
+        groupsTotalCount: action.payload.data.group
+          ? action.payload.data.group.totalCount
+          : null,
         errorGroups: formatGraphQLError(action.payload),
       };
     case SUCCESS(ACTION_TYPE.SEARCH_GROUP_HISTORY):
@@ -317,13 +333,16 @@ function reducer(
         ...state,
         fetchingGroupHistory: false,
         fetchedGroupHistory: true,
-        groupHistory: parseData(action.payload.data.groupHistory)?.map((groupHistory) => ({
-          ...groupHistory,
-          id: decodeId(groupHistory.id),
-        })),
+        groupHistory: parseData(action.payload.data.groupHistory)?.map(
+          (groupHistory) => ({
+            ...groupHistory,
+            id: decodeId(groupHistory.id),
+          })
+        ),
         groupHistoryPageInfo: pageInfo(action.payload.data.groupHistory),
         groupHistoryTotalCount: action.payload.data.groupHistory
-          ? action.payload.data.groupHistory.totalCount : null,
+          ? action.payload.data.groupHistory.totalCount
+          : null,
         errorGroupHistory: formatGraphQLError(action.payload),
       };
     case SUCCESS(ACTION_TYPE.GET_INDIVIDUAL):
@@ -331,10 +350,12 @@ function reducer(
         ...state,
         fetchingIndividual: false,
         fetchedIndividual: true,
-        individual: parseData(action.payload.data.individual).map((individual) => ({
-          ...individual,
-          id: decodeId(individual.id),
-        }))?.[0],
+        individual: parseData(action.payload.data.individual).map(
+          (individual) => ({
+            ...individual,
+            id: decodeId(individual.id),
+          })
+        )?.[0],
         errorIndividual: null,
       };
     case SUCCESS(ACTION_TYPE.GET_GROUP):
@@ -444,7 +465,9 @@ function reducer(
         fetchingIndividualsExport: false,
         fetchedIndividualsExport: true,
         individualExport: action.payload.data.individualExport,
-        individualExportPageInfo: pageInfo(action.payload.data.individualExportPageInfo),
+        individualExportPageInfo: pageInfo(
+          action.payload.data.individualExportPageInfo
+        ),
         errorIndividualExport: formatGraphQLError(action.payload),
       };
     case SUCCESS(ACTION_TYPE.GROUP_INDIVIDUAL_EXPORT):
@@ -453,7 +476,9 @@ function reducer(
         fetchingGroupIndividualsExport: false,
         fetchedGroupIndividualsExport: true,
         groupIndividualExport: action.payload.data.groupIndividualExport,
-        groupIndividualExportPageInfo: pageInfo(action.payload.data.groupIndividualExportPageInfo),
+        groupIndividualExportPageInfo: pageInfo(
+          action.payload.data.groupIndividualExportPageInfo
+        ),
         errorGroupIndividualExport: formatGraphQLError(action.payload),
       };
     case ERROR(ACTION_TYPE.INDIVIDUAL_EXPORT):
@@ -605,12 +630,20 @@ function reducer(
         ...state,
         fetchingIndividualDataUploadHistory: false,
         fetchedIndividualDataUploadHistory: true,
-        individualDataUploadHistory: parseData(action.payload.data.individualDataUploadHistory)?.map((data) => ({
-          ...data,
-          id: decodeId(data.id),
-          dataUpload: { ...data.dataUpload, error: JSON.parse(data.dataUpload.error) },
-        })) || [],
-        individualDataUploadHistoryPageInfo: pageInfo(action.payload.data.individualDataUploadHistory),
+        individualDataUploadHistory:
+          parseData(action.payload.data.individualDataUploadHistory)?.map(
+            (data) => ({
+              ...data,
+              id: decodeId(data.id),
+              dataUpload: {
+                ...data.dataUpload,
+                error: JSON.parse(data.dataUpload.error),
+              },
+            })
+          ) || [],
+        individualDataUploadHistoryPageInfo: pageInfo(
+          action.payload.data.individualDataUploadHistory
+        ),
         errorIndividualDataUploadHistory: formatGraphQLError(action.payload),
       };
     case ERROR(ACTION_TYPE.GET_INDIVIDUAL_UPLOAD_HISTORY):
@@ -635,13 +668,20 @@ function reducer(
         fetchingGroupIndividualHistory: false,
         fetchedGroupIndividualHistory: true,
         // eslint-disable-next-line max-len
-        groupIndividualHistory: parseData(action.payload.data.groupIndividualHistory)?.map((groupIndividualHistory) => ({
+        groupIndividualHistory: parseData(
+          action.payload.data.groupIndividualHistory
+        )?.map((groupIndividualHistory) => ({
           ...groupIndividualHistory,
           id: decodeId(groupIndividualHistory.id),
         })),
         // eslint-disable-next-line max-len
-        groupIndividualHistoryTotalCount: action.payload.data.groupIndividualHistory ? action.payload.data.groupIndividualHistory.totalCount : null,
-        groupIndividualHistoryPageInfo: pageInfo(action.payload.data.groupIndividualHistoryPageInfo),
+        groupIndividualHistoryTotalCount: action.payload.data
+          .groupIndividualHistory
+          ? action.payload.data.groupIndividualHistory.totalCount
+          : null,
+        groupIndividualHistoryPageInfo: pageInfo(
+          action.payload.data.groupIndividualHistoryPageInfo
+        ),
         errorGroupIndividualHistory: formatGraphQLError(action.payload),
       };
     case ERROR(ACTION_TYPE.SEARCH_GROUP_INDIVIDUAL_HISTORY):
@@ -664,7 +704,8 @@ function reducer(
         fetchingApiEtlServices: false,
         fetchedApiEtlServices: true,
         apiEtlServices: action.payload.data.etlServicesByServiceName
-          ? action.payload.data.etlServicesByServiceName.etlServices : [],
+          ? action.payload.data.etlServicesByServiceName.etlServices
+          : [],
         errorApiEtlServices: formatGraphQLError(action.payload),
       };
     case ERROR(ACTION_TYPE.API_ETL_SERVICES):
@@ -672,6 +713,28 @@ function reducer(
         ...state,
         fetchingApiEtlServices: false,
         errorApiEtlServices: formatServerError(action.payload),
+      };
+    case REQUEST(ACTION_TYPE.PULLED_QUESTIONNAIRES):
+      return {
+        ...state,
+        fetchingPulledQ: true,
+        fetchedPulledQ: false,
+        pulledQ: [],
+        errorPulledQ: null,
+      };
+    case SUCCESS(ACTION_TYPE.PULLED_QUESTIONNAIRES):
+      return {
+        ...state,
+        fetchingPulledQ: false,
+        fetchedPulledQ: true,
+        pulledQ: action.payload.data.pulledQuestionnaires || [],
+        errorPulledQ: formatGraphQLError(action.payload),
+      };
+    case ERROR(ACTION_TYPE.PULLED_QUESTIONNAIRES):
+      return {
+        ...state,
+        fetchingPulledQ: false,
+        errorPulledQ: formatServerError(action.payload),
       };
     case REQUEST(ACTION_TYPE.FETCH_ACTIVE_MUTATIONS):
       return {
@@ -681,11 +744,17 @@ function reducer(
     case SUCCESS(ACTION_TYPE.FETCH_ACTIVE_MUTATIONS): {
       const mutations = parseData(action.payload.data.mutationLogs);
       const MUTATION_RECEIVED_STATUS = 0;
-      const activeMutations = mutations.filter((mutation) => mutation.status === MUTATION_RECEIVED_STATUS);
+      const activeMutations = mutations.filter(
+        (mutation) => mutation.status === MUTATION_RECEIVED_STATUS
+      );
       return {
         ...state,
         fetchingMutations: false,
-        mutations: _.unionBy(activeMutations, state.mutations, 'clientMutationId'),
+        mutations: _.unionBy(
+          activeMutations,
+          state.mutations,
+          "clientMutationId"
+        ),
       };
     }
     case ERROR(ACTION_TYPE.FETCH_ACTIVE_MUTATIONS):
@@ -698,29 +767,33 @@ function reducer(
     case ERROR(ACTION_TYPE.MUTATION):
       return dispatchMutationErr(state, action);
     case SUCCESS(ACTION_TYPE.DELETE_INDIVIDUAL):
-      return dispatchMutationResp(state, 'deleteIndividual', action);
+      return dispatchMutationResp(state, "deleteIndividual", action);
     case SUCCESS(ACTION_TYPE.UNDO_DELETE_INDIVIDUAL):
-      return dispatchMutationResp(state, 'undoDeleteIndividual', action);
+      return dispatchMutationResp(state, "undoDeleteIndividual", action);
     case SUCCESS(ACTION_TYPE.UPDATE_INDIVIDUAL):
-      return dispatchMutationResp(state, 'updateIndividual', action);
+      return dispatchMutationResp(state, "updateIndividual", action);
     case SUCCESS(ACTION_TYPE.DELETE_GROUP_INDIVIDUAL):
-      return dispatchMutationResp(state, 'removeIndividualFromGroup', action);
+      return dispatchMutationResp(state, "removeIndividualFromGroup", action);
     case SUCCESS(ACTION_TYPE.UPDATE_GROUP_INDIVIDUAL):
-      return dispatchMutationResp(state, 'editIndividualInGroup', action);
+      return dispatchMutationResp(state, "editIndividualInGroup", action);
     case SUCCESS(ACTION_TYPE.CREATE_GROUP_INDIVIDUAL):
-      return dispatchMutationResp(state, 'creteGroupIndividual', action);
+      return dispatchMutationResp(state, "creteGroupIndividual", action);
     case SUCCESS(ACTION_TYPE.DELETE_GROUP):
-      return dispatchMutationResp(state, 'deleteGroup', action);
+      return dispatchMutationResp(state, "deleteGroup", action);
     case SUCCESS(ACTION_TYPE.UPDATE_GROUP):
-      return dispatchMutationResp(state, 'updateGroup', action);
+      return dispatchMutationResp(state, "updateGroup", action);
     case SUCCESS(ACTION_TYPE.CREATE_GROUP):
-      return dispatchMutationResp(state, 'createGroup', action);
+      return dispatchMutationResp(state, "createGroup", action);
     case SUCCESS(ACTION_TYPE.CREATE_GROUP_AND_MOVE_INDIVIDUAL):
-      return dispatchMutationResp(state, 'createGroupAndMoveIndividual', action);
+      return dispatchMutationResp(
+        state,
+        "createGroupAndMoveIndividual",
+        action
+      );
     case SUCCESS(ACTION_TYPE.RESOLVE_TASK):
-      return dispatchMutationResp(state, 'resolveTask', action);
+      return dispatchMutationResp(state, "resolveTask", action);
     case SUCCESS(ACTION_TYPE.PULL_API_DATA):
-      return dispatchMutationResp(state, 'etlServiceMutation', action);
+      return dispatchMutationResp(state, "etlServiceMutation", action);
     default:
       return state;
   }

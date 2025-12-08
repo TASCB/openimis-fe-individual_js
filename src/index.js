@@ -3,7 +3,7 @@
 /* eslint-disable import/prefer-default-export */
 import React from 'react';
 import flatten from 'flat';
-import { FormattedMessage } from '@openimis/fe-core';
+import { FormattedMessage, decodeId } from '@openimis/fe-core';
 import { Person, People } from '@material-ui/icons';
 import MenuIcon from '@material-ui/icons/Menu';
 import messages_en from './translations/en.json';
@@ -13,6 +13,8 @@ import IndividualPage from './pages/IndividualPage';
 import EnrollmentPage from './pages/EnrollmentPage';
 import GroupsPage from './pages/GroupsPage';
 import GroupPage from './pages/GroupPage';
+import EligibleIndividualsReport from './reports/EligibleIndividualsReport';
+import EligibleHouseholdsReport from './reports/EligibleHouseholdsReport';
 import {
 	IndividualsListTabLabel,
 	IndividualsListTabPanel,
@@ -100,8 +102,94 @@ const { BenefitPlansListTabLabel, BenefitPlansListTabPanel } =
 	getBenefitPlansListTab();
 
 const DEFAULT_CONFIG = {
-	'translations': [{ key: 'en', messages: flatten(messages_en) }],
-	'reducers': [{ key: 'individual', reducer }],
+	'translations': [
+		{
+			key: 'en',
+			messages: flatten(messages_en),
+		},
+	],
+	'reducers': [
+		{
+			key: 'individual',
+			reducer,
+		},
+	],
+	'reports': [
+		{
+			key: 'eligible_households_report',
+			component: EligibleHouseholdsReport,
+			isValid: (values) =>
+				[values.region, values.district, values.ward, values.village].every(
+					(k) => k === null || k !== undefined
+				),
+			getParams: (values) => {
+				const params = {};
+				if (values.pmtClass) {
+					Object.assign(params, {
+						pmt_class: values.pmtClass,
+					});
+				}
+				if (values.region) {
+					Object.assign(params, {
+						region_id: decodeId(values.region.id),
+					});
+				}
+				if (values.district) {
+					Object.assign(params, {
+						district_id: decodeId(values.district.id),
+					});
+				}
+				if (values.ward) {
+					Object.assign(params, {
+						ward_id: decodeId(values.ward.id),
+					});
+				}
+				if (values.village) {
+					Object.assign(params, {
+						village_id: decodeId(values.village.id),
+					});
+				}
+				return params;
+			},
+		},
+		{
+			key: 'eligible_individuals_report',
+			component: EligibleIndividualsReport,
+			isValid: (values) =>
+				[values.region, values.district, values.ward, values.village].every(
+					(k) => k === null || k !== undefined
+				),
+			getParams: (values) => {
+				const params = {};
+				if (values.pmtClass) {
+					Object.assign(params, {
+						pmt_class: values.pmtClass,
+					});
+				}
+				if (values.region) {
+					Object.assign(params, {
+						region_id: decodeId(values.region.id),
+					});
+				}
+				if (values.district) {
+					Object.assign(params, {
+						district_id: decodeId(values.district.id),
+					});
+				}
+				if (values.ward) {
+					Object.assign(params, {
+						ward_id: decodeId(values.ward.id),
+					});
+				}
+				if (values.village) {
+					Object.assign(params, {
+						village_id: decodeId(values.village.id),
+					});
+				}
+				return params;
+			},
+		},
+	],
 	'core.Router': [
 		{ path: ROUTE_INDIVIDUALS, component: IndividualsPage },
 		{ path: ROUTE_GROUPS, component: GroupsPage },

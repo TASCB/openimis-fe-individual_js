@@ -814,12 +814,12 @@ export function confirmPullingDataFromApiEtl(
     return graphql(
       mutation.payload,
       [
-        REQUEST(ACTION_TYPE.MUTATION),
-        SUCCESS(ACTION_TYPE.PULL_API_DATA),
-        ERROR(ACTION_TYPE.MUTATION),
+        REQUEST(ACTION_TYPE.PULL_API_DATA_PAA),
+        SUCCESS(ACTION_TYPE.PULL_API_DATA_PAA),
+        ERROR(ACTION_TYPE.PULL_API_DATA_PAA),
       ],
       {
-        actionType: ACTION_TYPE.PULL_API_DATA,
+        actionType: ACTION_TYPE.PULL_API_DATA_PAA,
         clientMutationId: mutation.clientMutationId,
         clientMutationLabel,
         requestedDateTime,
@@ -850,12 +850,12 @@ export function confirmPullingDataFromApiEtl(
   return graphql(
     mutation.payload,
     [
-      REQUEST(ACTION_TYPE.MUTATION),
-      SUCCESS(ACTION_TYPE.PULL_API_DATA),
-      ERROR(ACTION_TYPE.MUTATION),
+      REQUEST(ACTION_TYPE.PULL_API_DATA_LEGACY),
+      SUCCESS(ACTION_TYPE.PULL_API_DATA_LEGACY),
+      ERROR(ACTION_TYPE.PULL_API_DATA_LEGACY),
     ],
     {
-      actionType: ACTION_TYPE.PULL_API_DATA,
+      actionType: ACTION_TYPE.PULL_API_DATA_LEGACY,
       clientMutationId: mutation.clientMutationId,
       clientMutationLabel,
       requestedDateTime,

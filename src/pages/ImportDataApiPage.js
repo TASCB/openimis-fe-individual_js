@@ -91,13 +91,13 @@ const styles = (theme) => {
         {
           backgroundColor: `${headerBG} !important`,
           color: `${headerColor} !important`,
-          fontWeight: (theme?.table?.title?.fontWeight ?? 700) + " !important",
+          fontWeight: `${theme?.table?.title?.fontWeight ?? 700} !important`,
         },
       "& thead.MuiTableHead-root > tr.MuiTableRow-root > th.MuiTableCell-stickyHeader":
         {
           backgroundColor: `${headerBG} !important`,
           color: `${headerColor} !important`,
-          fontWeight: (theme?.table?.title?.fontWeight ?? 700) + " !important",
+          fontWeight: `${theme?.table?.title?.fontWeight ?? 700} !important`,
         },
     },
 
@@ -113,7 +113,7 @@ const API_WORKFLOW_HEADERS = [
   "ImportPageAPI.triggerImport",
 ];
 
-const ImportDataApiPage = ({
+function ImportDataApiPage({
   intl,
   classes,
 
@@ -127,6 +127,8 @@ const ImportDataApiPage = ({
   mutations = [],
   fetchingApiEtlServices,
   apiEtlServices = [],
+  submittingLegacyEtl,
+  submittingPaaEtl,
   errorApiEtlServices,
 
   // actions
@@ -134,7 +136,7 @@ const ImportDataApiPage = ({
   confirmPullingDataFromApiEtl,
   fetchApiEtlServices,
   fetchMutationByLabel,
-}) => {
+}) {
   // ---- Region/District (ETL control)
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [selectedDistrict, setSelectedDistrict] = useState(null);
@@ -147,6 +149,9 @@ const ImportDataApiPage = ({
   // API services confirm dialog
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
   const [serviceToPullData, setServiceToPullData] = useState(null);
+  // lock UI while any ETL/mutation is running
+  const isSubmitting =
+    submittingLegacyEtl || submittingPaaEtl || submittingMutation;
 
   // Initial loads
   useEffect(() => {
@@ -154,9 +159,9 @@ const ImportDataApiPage = ({
       fetchPulledQuestionnaires();
     }
     fetchApiEtlServices();
-    fetchMutationByLabel(
-      formatMessage(intl, "individual", "ImportPageAPI.confirmPullingData")
-    );
+    // fetchMutationByLabel(
+    //   formatMessage(intl, "individual", "ImportPageAPI.confirmPullingData")
+    // );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -230,12 +235,17 @@ const ImportDataApiPage = ({
     setOpenConfirmDialog(true);
   };
   const handleConfirmServicePull = () => {
-    const label = formatMessage(
-      intl,
-      "individual",
-      "ImportPageAPI.confirmPullingData"
-    );
+    if (!serviceToPullData) return;
+
+    // Guard: don’t allow double submit
+    if (submittingLegacyEtl || submittingPaaEtl) {
+      console.warn("ETL already in progress, ignoring duplicate request");
+      return;
+    }
+
+    const label = `etl_${serviceToPullData}_${Date.now()}`;
     confirmPullingDataFromApiEtl(serviceToPullData, label);
+
     setOpenConfirmDialog(false);
     setServiceToPullData(null);
   };
@@ -514,7 +524,7 @@ const ImportDataApiPage = ({
             </Paper>
           </Grid>
 
-          {/* ====== SECTION 3: Pulled Questionnaires History (styled like API table) ====== */}
+          {/* ====== SECTION 3: Pulled Questionnaires History ====== */}
           <Grid item xs={12}>
             <Paper className={classes.tablePaper}>
               <div className={classes.tableHeaderBar}>
@@ -658,30 +668,39 @@ const ImportDataApiPage = ({
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenConfirmDialog(false)} color="primary">
+          <Button
+            onClick={() => setOpenConfirmDialog(false)}
+            color="primary"
+            disabled={isSubmitting}
+          >
             {formatMessage(
               intl,
               "individual",
               "ImportPageAPI.confirmPullingData.cancel"
             )}
           </Button>
+
           <Button
             onClick={handleConfirmServicePull}
             color="primary"
             variant="contained"
             autoFocus
+            disabled={isSubmitting}
+            startIcon={isSubmitting ? <CircularProgress size={18} /> : null}
           >
-            {formatMessage(
-              intl,
-              "individual",
-              "ImportPageAPI.confirmPullingData.confirm"
-            )}
+            {isSubmitting
+              ? formatMessage(intl, "individual", "ImportDataApiPage.importing")
+              : formatMessage(
+                  intl,
+                  "individual",
+                  "ImportPageAPI.confirmPullingData.confirm"
+                )}
           </Button>
         </DialogActions>
       </Dialog>
     </>
   );
-};
+}
 
 const mapStateToProps = (state) => ({
   pulledQ: state.individual?.pulledQ,
@@ -692,6 +711,9 @@ const mapStateToProps = (state) => ({
   submittingMutation: state.individual?.submittingMutation,
   mutation: state.individual?.mutation,
   mutations: state.individual?.mutations,
+
+  submittingLegacyEtl: state.individual?.submittingLegacyEtl,
+  submittingPaaEtl: state.individual?.submittingPaaEtl,
 
   fetchingApiEtlServices: state.individual?.fetchingApiEtlServices,
   apiEtlServices: state.individual?.apiEtlServices,

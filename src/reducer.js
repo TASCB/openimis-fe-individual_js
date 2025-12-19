@@ -46,12 +46,17 @@ export const ACTION_TYPE = {
   API_ETL_SERVICES: "API_ETL_SERVICES",
   PULLED_QUESTIONNAIRES: "PULLED_QUESTIONNAIRES",
   PULL_API_DATA: "PULL_API_DATA",
+  PULL_API_DATA_PAA: "PULL_API_DATA_PAA",
+  PULL_API_DATA_LEGACY: "PULL_API_DATA_LEGACY",
   FETCH_ACTIVE_MUTATIONS: "FETCH_ACTIVE_MUTATIONS",
 };
 
 function reducer(
   state = {
-    submittingMutation: false,
+    submittingLegacyEtl: false,
+    legacyEtlMutation: null,
+    submittingPaaEtl: false,
+    paaEtlMutation: null,
     mutation: {},
     fetchingIndividuals: false,
     errorIndividuals: null,
@@ -794,6 +799,55 @@ function reducer(
       return dispatchMutationResp(state, "resolveTask", action);
     case SUCCESS(ACTION_TYPE.PULL_API_DATA):
       return dispatchMutationResp(state, "etlServiceMutation", action);
+
+    // ----- Legacy ETL -----
+    case REQUEST(ACTION_TYPE.PULL_API_DATA_LEGACY):
+      return {
+        ...state,
+        submittingLegacyEtl: true,
+        legacyEtlMutation: null,
+      };
+
+    case ERROR(ACTION_TYPE.PULL_API_DATA_LEGACY):
+      return {
+        ...state,
+        submittingLegacyEtl: false,
+        legacyEtlMutation: { error: action.payload || action.error || action },
+      };
+
+    case SUCCESS(ACTION_TYPE.PULL_API_DATA_LEGACY): {
+      const next = dispatchMutationResp(state, "etlServiceMutation", action);
+      return {
+        ...next,
+        submittingLegacyEtl: false,
+        legacyEtlMutation: next.mutation,
+      };
+    }
+
+    // ----- PAA ETL -----
+    case REQUEST(ACTION_TYPE.PULL_API_DATA_PAA):
+      return {
+        ...state,
+        submittingPaaEtl: true,
+        paaEtlMutation: null,
+      };
+
+    case ERROR(ACTION_TYPE.PULL_API_DATA_PAA):
+      return {
+        ...state,
+        submittingPaaEtl: false,
+        paaEtlMutation: { error: action.payload || action.error || action },
+      };
+
+    case SUCCESS(ACTION_TYPE.PULL_API_DATA_PAA): {
+      const next = dispatchMutationResp(state, "paaBasedEtl", action);
+      return {
+        ...next,
+        submittingPaaEtl: false,
+        paaEtlMutation: next.mutation,
+      };
+    }
+
     default:
       return state;
   }

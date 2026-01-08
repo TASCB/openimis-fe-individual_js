@@ -157,6 +157,38 @@ export function fetchPulledQuestionnaires(
     ACTION_TYPE.PULLED_QUESTIONNAIRES
   );
 }
+const AVAILABLE_QUESTIONNAIRES_PROJECTION = () => [
+  "identity",
+  "id",
+  "title",
+  "version",
+  "variable",
+  "lastEntryDate",
+  "matchingScore",
+  "matchingStrategy"
+];
+
+export function fetchAvailableQuestionnaires(
+  districtCode = null,
+  regionCode = null,
+  districtName = null,
+  showAll = false
+) {
+  // Build filter arguments
+  const filters = [];
+  if (districtCode) filters.push(`districtCode: "${districtCode}"`);
+  if (regionCode) filters.push(`regionCode: "${regionCode}"`);
+  if (districtName) filters.push(`districtName: "${districtName}"`);
+  if (showAll) filters.push(`showAll: ${showAll}`);
+
+  const payload = formatQuery(
+    "availableQuestionnaires",
+    filters,
+    AVAILABLE_QUESTIONNAIRES_PROJECTION()
+  );
+
+  return graphql(payload, ACTION_TYPE.AVAILABLE_QUESTIONNAIRES);
+}
 
 export function fetchIndividualEnrollmentSummary(params) {
   const payload = formatQuery(

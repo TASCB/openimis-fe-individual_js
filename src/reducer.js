@@ -45,6 +45,7 @@ export const ACTION_TYPE = {
   RESOLVE_TASK: "TASK_MANAGEMENT_RESOLVE_TASK",
   API_ETL_SERVICES: "API_ETL_SERVICES",
   PULLED_QUESTIONNAIRES: "PULLED_QUESTIONNAIRES",
+  AVAILABLE_QUESTIONNAIRES: "AVAILABLE_QUESTIONNAIRES",
   PULL_API_DATA: "PULL_API_DATA",
   PULL_API_DATA_PAA: "PULL_API_DATA_PAA",
   PULL_API_DATA_LEGACY: "PULL_API_DATA_LEGACY",
@@ -155,6 +156,11 @@ function reducer(
     fetchedPulledQ: false,
     pulledQ: [],
     errorPulledQ: null,
+
+    availableQuestionnaires: [],
+    fetchingQuestionnaires: false,
+    fetchedQuestionnaires: false,
+    errorQuestionnaires: null,
 
     fetchingMutations: false,
     mutations: [],
@@ -824,7 +830,35 @@ function reducer(
       };
     }
 
-    // ----- PAA ETL -----
+    // ============================================================
+    // Available Questionnaires (PAA-filtered)
+    // ============================================================
+
+    case REQUEST(ACTION_TYPE.AVAILABLE_QUESTIONNAIRES):
+      return {
+        ...state,
+        fetchingQuestionnaires: true,
+        fetchedQuestionnaires: false,
+        errorQuestionnaires: null,
+      };
+
+    case SUCCESS(ACTION_TYPE.AVAILABLE_QUESTIONNAIRES):
+      return {
+        ...state,
+        fetchingQuestionnaires: false,
+        fetchedQuestionnaires: true,
+        availableQuestionnaires: action.payload?.data?.availableQuestionnaires || [],
+        errorQuestionnaires: null,
+      };
+
+    case ERROR(ACTION_TYPE.AVAILABLE_QUESTIONNAIRES):
+      return {
+        ...state,
+        fetchingQuestionnaires: false,
+        fetchedQuestionnaires: true,
+        availableQuestionnaires: [],
+        errorQuestionnaires: action.payload,
+      };
     case REQUEST(ACTION_TYPE.PULL_API_DATA_PAA):
       return {
         ...state,

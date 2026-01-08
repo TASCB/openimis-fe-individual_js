@@ -20,6 +20,10 @@ import {
   TableHead,
   TableRow,
   Tooltip,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from "@material-ui/core";
 import { withStyles, withTheme } from "@material-ui/core/styles";
 
@@ -46,6 +50,7 @@ import {
   confirmPullingDataFromApiEtl,
   fetchApiEtlServices,
   fetchMutationByLabel,
+  fetchAvailableQuestionnaires,
 } from "../actions";
 
 /** Styles aligned to openIMIS theme */
@@ -130,13 +135,20 @@ function ImportDataApiPage({
   submittingLegacyEtl,
   submittingPaaEtl,
   errorApiEtlServices,
+  fetchingQuestionnaires,
+  availableQuestionnaires = [],
+  errorQuestionnaires,
 
   // actions
   fetchPulledQuestionnaires,
   confirmPullingDataFromApiEtl,
   fetchApiEtlServices,
   fetchMutationByLabel,
+  fetchAvailableQuestionnaires,
 }) {
+  // NEW: Questionnaire selection for PAA-based import ✅
+  const [selectedQuestionnaire, setSelectedQuestionnaire] = useState(null);
+  const [questionnaireSearchTerm, setQuestionnaireSearchTerm] = useState("");
   // ---- Region/District (ETL control)
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [selectedDistrict, setSelectedDistrict] = useState(null);
@@ -198,6 +210,21 @@ function ImportDataApiPage({
     );
   }, [serviceToPullData, fetchMutationByLabel, intl]);
 
+  // NEW: Fetch questionnaires when district is selected ✅
+  useEffect(() => {
+    if (selectedDistrict && selectedRegion) {
+      fetchAvailableQuestionnaires(
+        selectedDistrict.code,
+        selectedRegion.code,
+        selectedDistrict.name,
+        false  // showAll = false (only show matching questionnaires)
+      );
+      // Reset selections when district changes
+      setSelectedQuestionnaire(null);
+      setQuestionnaireSearchTerm("");
+    }
+  }, [selectedDistrict, selectedRegion, fetchAvailableQuestionnaires]);
+
   // --- Handlers (ETL PAA)
   const handleRegionChange = (region) => {
     setSelectedRegion(region);
@@ -205,7 +232,27 @@ function ImportDataApiPage({
   };
   const handleDistrictChange = (district) => setSelectedDistrict(district);
 
-  const handleTriggerPAAImport = () => {
+  // const handleTriggerPAAImport = () => {
+  //   if (!selectedRegion || !selectedDistrict) return;
+
+  //   const params = {
+  //     paaName: selectedDistrict.name,
+  //     regionCode: selectedRegion.code,
+  //     districtCode: selectedDistrict.code,
+  //     dryRun,
+  //   };
+  //   if (manualQuestionnaireId.trim()) {
+  //     params.questionnaireId = manualQuestionnaireId.trim();
+  //   }
+  //   const mutationLabel = `paa_etl_${selectedDistrict.code}_${Date.now()}`;
+  //   // nameOfService ignored for PAA-based ETL (kept for compatibility)
+  //   confirmPullingDataFromApiEtl(
+  //     "SurveySolutionService",
+  //     mutationLabel,
+  //     params
+  //   );
+  // };
+const handleTriggerPAAImport = () => {
     if (!selectedRegion || !selectedDistrict) return;
 
     const params = {
@@ -214,18 +261,23 @@ function ImportDataApiPage({
       districtCode: selectedDistrict.code,
       dryRun,
     };
-    if (manualQuestionnaireId.trim()) {
+
+    // NEW: Pass selected questionnaire if chosen ✅
+    if (selectedQuestionnaire) {
+      params.questionnaireId = selectedQuestionnaire;
+    } else if (manualQuestionnaireId.trim()) {
+      // Fallback to manual entry
       params.questionnaireId = manualQuestionnaireId.trim();
     }
+    // If neither, backend will auto-detect (existing behavior)
+
     const mutationLabel = `paa_etl_${selectedDistrict.code}_${Date.now()}`;
-    // nameOfService ignored for PAA-based ETL (kept for compatibility)
     confirmPullingDataFromApiEtl(
       "SurveySolutionService",
       mutationLabel,
       params
     );
   };
-
   const canTriggerPAAImport =
     !!selectedRegion && !!selectedDistrict && !submittingMutation;
 
@@ -372,6 +424,7 @@ function ImportDataApiPage({
           </Grid>
 
           {/* ====== SECTION 2: ETL Controls (Region/District) ====== */}
+{/* ====== SECTION 2: PAA-Based Import with Questionnaire Selection ====== */}
           <Grid item xs={12}>
             <Paper className={classes.paper}>
               <div className={classes.headerBar}>
@@ -386,12 +439,17 @@ function ImportDataApiPage({
 
               <Divider />
 
+              {/* Region and District Pickers */}
               <Grid container spacing={3} className={classes.formRow}>
                 {/* Region Picker */}
                 <Grid item xs={12} md={4}>
                   <PublishedComponent
                     pubRef="location.LocationPicker"
-                    onChange={handleRegionChange}
+                    onChange={(region) => {
+                      setSelectedRegion(region);
+                      setSelectedDistrict(null);  // Reset district when region changes
+                      setSelectedQuestionnaire(null);  // Reset questionnaire
+                    }}
                     value={selectedRegion}
                     locationLevel={0}
                     label={formatMessage(
@@ -407,7 +465,10 @@ function ImportDataApiPage({
                 <Grid item xs={12} md={4}>
                   <PublishedComponent
                     pubRef="location.LocationPicker"
-                    onChange={handleDistrictChange}
+                    onChange={(district) => {
+                      setSelectedDistrict(district);
+                      setSelectedQuestionnaire(null);  // Reset questionnaire when district changes
+                    }}
                     value={selectedDistrict}
                     parentLocation={selectedRegion}
                     locationLevel={1}
@@ -420,13 +481,173 @@ function ImportDataApiPage({
                   />
                 </Grid>
 
-                {/* Trigger PAA Import */}
-                <Grid item xs={12} md={4} className={classes.actionsRow}>
+                {/* Spacer for alignment */}
+                <Grid item xs={12} md={4} />
+              </Grid>
+
+              {/* NEW: Questionnaire Selection Section ✅ */}
+              {selectedDistrict && (
+                <>
+                  <Grid container spacing={3} className={classes.formRow}>
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle1" style={{ fontWeight: 500, marginTop: 16 }}>
+                        {formatMessage(
+                          intl,
+                          "individual",
+                          "ImportDataApiPage.selectQuestionnaire.title"
+                        )}
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        {formatMessage(
+                          intl,
+                          "individual",
+                          "ImportDataApiPage.selectQuestionnaire.subtitle"
+                        )}
+                      </Typography>
+                    </Grid>
+                  </Grid>
+
+                  {/* Questionnaire Dropdown */}
+                  <Grid container spacing={3} className={classes.formRow}>
+                    <Grid item xs={12} md={8}>
+                      <FormControl fullWidth>
+                        <InputLabel id="questionnaire-select-label">
+                          {formatMessage(
+                            intl,
+                            "individual",
+                            "ImportDataApiPage.questionnaire"
+                          )}
+                        </InputLabel>
+                        <Select
+                          labelId="questionnaire-select-label"
+                          value={selectedQuestionnaire || ""}
+                          onChange={(e) => setSelectedQuestionnaire(e.target.value)}
+                          disabled={fetchingQuestionnaires}
+                        >
+                          <MenuItem value="">
+                            <em>
+                              {formatMessage(
+                                intl,
+                                "individual",
+                                "ImportDataApiPage.questionnaire.autoDetect"
+                              )}
+                            </em>
+                          </MenuItem>
+
+                          {/* Filter questionnaires by search term */}
+                          {availableQuestionnaires
+                            .filter(q =>
+                              !questionnaireSearchTerm ||
+                              q.title.toLowerCase().includes(questionnaireSearchTerm.toLowerCase())
+                            )
+                            .map((q) => (
+                              <MenuItem key={q.identity} value={q.identity}>
+                                <div style={{ width: '100%' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontWeight: 500 }}>
+                                      {q.title}
+                                    </span>
+                                    <span style={{
+                                      fontSize: '0.75rem',
+                                      color: q.matchingScore >= 2 ? '#4caf50' : '#ff9800',
+                                      marginLeft: 8
+                                    }}>
+                                      v{q.version}
+                                    </span>
+                                  </div>
+                                  <div style={{ fontSize: '0.75rem', color: '#757575' }}>
+                                    {q.identity}
+                                    {q.matchingScore > 0 && (
+                                      <span style={{ marginLeft: 8 }}>
+                                        • Score: {q.matchingScore}/3 ({q.matchingStrategy})
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </MenuItem>
+                            ))}
+                        </Select>
+
+                        {/* Loading state */}
+                        {fetchingQuestionnaires && (
+                          <div style={{ display: 'flex', alignItems: 'center', marginTop: 8 }}>
+                            <CircularProgress size={16} style={{ marginRight: 8 }} />
+                            <Typography variant="caption" color="textSecondary">
+                              {formatMessage(
+                                intl,
+                                "individual",
+                                "ImportDataApiPage.loadingQuestionnaires"
+                              )}
+                            </Typography>
+                          </div>
+                        )}
+
+                        {/* Error state */}
+                        {errorQuestionnaires && !fetchingQuestionnaires && (
+                          <Typography variant="caption" color="error" style={{ marginTop: 8 }}>
+                            {formatMessage(
+                              intl,
+                              "individual",
+                              "ImportDataApiPage.errorLoadingQuestionnaires"
+                            )}
+                          </Typography>
+                        )}
+
+                        {/* No questionnaires found */}
+                        {!fetchingQuestionnaires && availableQuestionnaires.length === 0 && (
+                          <Typography variant="caption" color="textSecondary" style={{ marginTop: 8 }}>
+                            {formatMessage(
+                              intl,
+                              "individual",
+                              "ImportDataApiPage.noQuestionnairesFound"
+                            )}
+                          </Typography>
+                        )}
+
+                        {/* Helper text */}
+                        {selectedQuestionnaire && (
+                          <Typography variant="caption" color="textSecondary" style={{ marginTop: 8 }}>
+                            {formatMessage(
+                              intl,
+                              "individual",
+                              "ImportDataApiPage.questionnaireSelected"
+                            )}
+                          </Typography>
+                        )}
+                      </FormControl>
+                    </Grid>
+
+                    {/* Search Box */}
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label={formatMessage(
+                          intl,
+                          "individual",
+                          "ImportDataApiPage.searchQuestionnaires"
+                        )}
+                        value={questionnaireSearchTerm}
+                        onChange={(e) => setQuestionnaireSearchTerm(e.target.value)}
+                        placeholder={formatMessage(
+                          intl,
+                          "individual",
+                          "ImportDataApiPage.searchQuestionnaires.placeholder"
+                        )}
+                        disabled={fetchingQuestionnaires || availableQuestionnaires.length === 0}
+                      />
+                    </Grid>
+                  </Grid>
+                </>
+              )}
+
+              {/* Trigger Import Button */}
+              <Grid container spacing={3} className={classes.formRow}>
+                <Grid item xs={12} md={4}>
                   <Button
                     variant="contained"
                     color="primary"
                     onClick={handleTriggerPAAImport}
-                    disabled={!canTriggerPAAImport}
+                    disabled={!selectedRegion || !selectedDistrict || submittingMutation}
                     fullWidth
                     startIcon={
                       submittingMutation ? <CircularProgress size={20} /> : null
@@ -447,7 +668,7 @@ function ImportDataApiPage({
                 </Grid>
               </Grid>
 
-              {/* Advanced Options */}
+              {/* Advanced Options - Keep existing */}
               <Grid container spacing={2} className={classes.formRow}>
                 <Grid item xs={12}>
                   <FormControlLabel
@@ -514,11 +735,11 @@ function ImportDataApiPage({
                 )}
               </Grid>
 
-              {/* Mutation error (safely rendered) */}
+              {/* Mutation error */}
               {!!mutation?.error && (
                 <Typography color="error" style={{ marginTop: 16 }}>
                   {formatMessage(intl, "individual", "ImportDataApiPage.error")}
-                  : {formatErr(mutation.error)}
+                  : {mutation.error?.message || JSON.stringify(mutation.error)}
                 </Typography>
               )}
             </Paper>
@@ -718,6 +939,10 @@ const mapStateToProps = (state) => ({
   fetchingApiEtlServices: state.individual?.fetchingApiEtlServices,
   apiEtlServices: state.individual?.apiEtlServices,
   errorApiEtlServices: state.individual?.errorApiEtlServices,
+
+  fetchingQuestionnaires: state.individual?.fetchingQuestionnaires,
+  availableQuestionnaires: state.individual?.availableQuestionnaires || [],
+  errorQuestionnaires: state.individual?.errorQuestionnaires,
 });
 
 const mapDispatchToProps = (dispatch) =>
@@ -728,6 +953,7 @@ const mapDispatchToProps = (dispatch) =>
       confirmPullingDataFromApiEtl,
       fetchApiEtlServices,
       fetchMutationByLabel,
+      fetchAvailableQuestionnaires,
     },
     dispatch
   );

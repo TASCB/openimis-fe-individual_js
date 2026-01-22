@@ -123,6 +123,8 @@ const PULLED_QUESTIONNAIRES_PROJECTION = () => [
   "paaName",
   "numberOfHouseholds",
   "datePulled",
+  "status",
+  "errorMessage",
 ];
 
 export function fetchApiEtlServices() {
@@ -148,6 +150,8 @@ export function fetchPulledQuestionnaires(
         paaName
         numberOfHouseholds
         datePulled
+        status
+        errorMessage
       }
     }
   `;
@@ -823,7 +827,7 @@ export function confirmPullingDataFromApiEtl(
   clientMutationLabel,
   extraParams = {}
 ) {
-  // For PAA-based ETL, use the new mutation
+  // For PAA-based ETL, new mutation
   if (extraParams.paaName && extraParams.districtCode) {
     let mutationInput = `paaName: "${extraParams.paaName}", districtCode: "${extraParams.districtCode}"`;
 

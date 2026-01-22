@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { connect } from "react-redux";
-import { bindActionCreators } from "redux";
+import React, { useState, useEffect } from 'react';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 
 // Material-UI v4 (grouped)
 import {
@@ -24,15 +24,15 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-} from "@material-ui/core";
-import { withStyles, withTheme } from "@material-ui/core/styles";
+} from '@material-ui/core';
+import { withStyles, withTheme } from '@material-ui/core/styles';
 
 // Dialogs (direct paths for MUI v4)
-import Dialog from "@material-ui/core/Dialog";
-import DialogActions from "@material-ui/core/DialogActions";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogContentText from "@material-ui/core/DialogContentText";
-import DialogTitle from "@material-ui/core/DialogTitle";
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
 
 // openIMIS core
 import {
@@ -42,8 +42,8 @@ import {
   journalize,
   formatMessage,
   ProgressOrError,
-} from "@openimis/fe-core";
-import { injectIntl } from "react-intl";
+} from '@openimis/fe-core';
+import { injectIntl } from 'react-intl';
 
 import {
   fetchPulledQuestionnaires,
@@ -51,54 +51,50 @@ import {
   fetchApiEtlServices,
   fetchMutationByLabel,
   fetchAvailableQuestionnaires,
-} from "../actions";
+} from '../actions';
 
-/** Styles aligned to openIMIS theme */
 const styles = (theme) => {
-  const headerBG =
-    theme?.table?.header?.backgroundColor ??
-    (theme.palette?.action?.hover || "#e0f2f1");
-  const headerColor =
-    theme?.table?.header?.color ?? theme.palette?.text?.primary;
-  const bodyBG =
-    theme?.table?.backgroundColor ??
-    theme?.paper?.background ??
-    theme.palette?.background?.paper;
+  const headerBG = theme?.table?.header?.backgroundColor
+    ?? (theme.palette?.action?.hover || '#e0f2f1');
+  const headerColor = theme?.table?.header?.color ?? theme.palette?.text?.primary;
+  const bodyBG = theme?.table?.backgroundColor
+    ?? theme?.paper?.background
+    ?? theme.palette?.background?.paper;
 
   return {
     page: theme.page,
     paper: { ...theme.paper, padding: theme.spacing(2) },
     headerBar: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
       marginBottom: theme.spacing(1),
     },
     sectionTitle: { fontWeight: 600 },
     formRow: { marginTop: theme.spacing(1) },
-    actionsRow: { display: "flex", alignItems: "flex-end" },
-    tablePaper: { ...theme.paper, padding: 0, overflow: "hidden" },
+    actionsRow: { display: 'flex', alignItems: 'flex-end' },
+    tablePaper: { ...theme.paper, padding: 0, overflow: 'hidden' },
     tableHeaderBar: { padding: theme.spacing(2) },
     tableWrapper: { padding: theme.spacing(2), paddingTop: 0 },
-    loadingBox: { textAlign: "center", padding: theme.spacing(3) },
+    loadingBox: { textAlign: 'center', padding: theme.spacing(3) },
     helperText: { color: theme.palette.text.secondary },
 
-    /** openIMIS table header styles (used by TableHead/TableRow) */
+    /** table header styles (used by TableHead/TableRow) */
     header: theme.table?.header,
     headerTitle: theme.table?.title,
 
     /**
-     * ✅ Hard override the header background for BOTH normal & sticky headers.
-     * We use a high-specificity selector + !important to beat MUI defaults.
+     * override the header background for BOTH normal & sticky headers.
+     * We use a high-specificity selector.
      */
     tealHead: {
-      "& thead.MuiTableHead-root > tr.MuiTableRow-root > th.MuiTableCell-root":
+      '& thead.MuiTableHead-root > tr.MuiTableRow-root > th.MuiTableCell-root':
         {
           backgroundColor: `${headerBG} !important`,
           color: `${headerColor} !important`,
           fontWeight: `${theme?.table?.title?.fontWeight ?? 700} !important`,
         },
-      "& thead.MuiTableHead-root > tr.MuiTableRow-root > th.MuiTableCell-stickyHeader":
+      '& thead.MuiTableHead-root > tr.MuiTableRow-root > th.MuiTableCell-stickyHeader':
         {
           backgroundColor: `${headerBG} !important`,
           color: `${headerColor} !important`,
@@ -114,8 +110,8 @@ const styles = (theme) => {
 };
 
 const API_WORKFLOW_HEADERS = [
-  "ImportPageAPI.apiSelection",
-  "ImportPageAPI.triggerImport",
+  'ImportPageAPI.apiSelection',
+  'ImportPageAPI.triggerImport',
 ];
 
 function ImportDataApiPage({
@@ -146,24 +142,27 @@ function ImportDataApiPage({
   fetchMutationByLabel,
   fetchAvailableQuestionnaires,
 }) {
-  // NEW: Questionnaire selection for PAA-based import ✅
+  // Questionnaire selection for PAA-based import
   const [selectedQuestionnaire, setSelectedQuestionnaire] = useState(null);
-  const [questionnaireSearchTerm, setQuestionnaireSearchTerm] = useState("");
+  const [questionnaireSearchTerm, setQuestionnaireSearchTerm] = useState('');
   // ---- Region/District (ETL control)
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [selectedDistrict, setSelectedDistrict] = useState(null);
 
   // Advanced options
-  const [manualQuestionnaireId, setManualQuestionnaireId] = useState("");
+  const [manualQuestionnaireId, setManualQuestionnaireId] = useState('');
   const [dryRun, setDryRun] = useState(false);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
   // API services confirm dialog
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
   const [serviceToPullData, setServiceToPullData] = useState(null);
+
+  // PAA Import confirm dialog
+  const [openPAAConfirmDialog, setOpenPAAConfirmDialog] = useState(false);
+
   // lock UI while any ETL/mutation is running
-  const isSubmitting =
-    submittingLegacyEtl || submittingPaaEtl || submittingMutation;
+  const isSubmitting = submittingLegacyEtl || submittingPaaEtl || submittingMutation;
 
   // Initial loads
   useEffect(() => {
@@ -182,7 +181,7 @@ function ImportDataApiPage({
     if (selectedRegion || selectedDistrict) {
       fetchPulledQuestionnaires(
         selectedRegion?.code || null,
-        selectedDistrict?.code || null
+        selectedDistrict?.code || null,
       );
     }
   }, [selectedRegion, selectedDistrict, fetchPulledQuestionnaires]);
@@ -192,7 +191,7 @@ function ImportDataApiPage({
     if (mutation?.clientMutationId && !submittingMutation && !mutation?.error) {
       fetchPulledQuestionnaires(
         selectedRegion?.code || null,
-        selectedDistrict?.code || null
+        selectedDistrict?.code || null,
       );
     }
   }, [
@@ -206,24 +205,49 @@ function ImportDataApiPage({
   // Keep mutation-by-label in sync (used for disabling API “Send” button)
   useEffect(() => {
     fetchMutationByLabel(
-      formatMessage(intl, "individual", "ImportPageAPI.confirmPullingData")
+      formatMessage(intl, 'individual', 'ImportPageAPI.confirmPullingData'),
     );
   }, [serviceToPullData, fetchMutationByLabel, intl]);
 
-  // NEW: Fetch questionnaires when district is selected ✅
+  // Fetch questionnaires when district is selected
   useEffect(() => {
     if (selectedDistrict && selectedRegion) {
       fetchAvailableQuestionnaires(
         selectedDistrict.code,
         selectedRegion.code,
         selectedDistrict.name,
-        false  // showAll = false (only show matching questionnaires)
+        false, // showAll = false (only show matching questionnaires)
       );
       // Reset selections when district changes
       setSelectedQuestionnaire(null);
-      setQuestionnaireSearchTerm("");
+      setQuestionnaireSearchTerm('');
     }
   }, [selectedDistrict, selectedRegion, fetchAvailableQuestionnaires]);
+
+  // Auto-refresh pulled questionnaires every 5 seconds if any import is running
+  useEffect(() => {
+    const hasRunningImports = pulledQ && pulledQ.some((item) => item.status === 'running');
+
+    if (!hasRunningImports) {
+      return; // No polling needed
+    }
+
+    // Poll every 5 seconds
+    const intervalId = setInterval(() => {
+      fetchPulledQuestionnaires(
+        selectedRegion?.code || null,
+        selectedDistrict?.code || null,
+      );
+    }, 5000); // 5 seconds
+
+    // Cleanup on unmount or when no more running imports
+    return () => clearInterval(intervalId);
+  }, [
+    pulledQ,
+    selectedRegion,
+    selectedDistrict,
+    fetchPulledQuestionnaires,
+  ]);
 
   // --- Handlers (ETL PAA)
   const handleRegionChange = (region) => {
@@ -232,28 +256,22 @@ function ImportDataApiPage({
   };
   const handleDistrictChange = (district) => setSelectedDistrict(district);
 
-  // const handleTriggerPAAImport = () => {
-  //   if (!selectedRegion || !selectedDistrict) return;
-
-  //   const params = {
-  //     paaName: selectedDistrict.name,
-  //     regionCode: selectedRegion.code,
-  //     districtCode: selectedDistrict.code,
-  //     dryRun,
-  //   };
-  //   if (manualQuestionnaireId.trim()) {
-  //     params.questionnaireId = manualQuestionnaireId.trim();
-  //   }
-  //   const mutationLabel = `paa_etl_${selectedDistrict.code}_${Date.now()}`;
-  //   // nameOfService ignored for PAA-based ETL (kept for compatibility)
-  //   confirmPullingDataFromApiEtl(
-  //     "SurveySolutionService",
-  //     mutationLabel,
-  //     params
-  //   );
-  // };
-const handleTriggerPAAImport = () => {
+  const handleTriggerPAAImport = () => {
     if (!selectedRegion || !selectedDistrict) return;
+
+    // Open confirmation dialog instead of directly executing
+    setOpenPAAConfirmDialog(true);
+  };
+
+  // Handler for confirmed PAA import
+  const handleConfirmPAAImport = () => {
+    if (!selectedRegion || !selectedDistrict) return;
+
+    // Guard: don't allow double submit
+    if (submittingLegacyEtl || submittingPaaEtl || submittingMutation) {
+      console.warn('ETL already in progress, ignoring duplicate request');
+      return;
+    }
 
     const params = {
       paaName: selectedDistrict.name,
@@ -262,7 +280,7 @@ const handleTriggerPAAImport = () => {
       dryRun,
     };
 
-    // NEW: Pass selected questionnaire if chosen ✅
+    // Pass selected questionnaire if chosen
     if (selectedQuestionnaire) {
       params.questionnaireId = selectedQuestionnaire;
     } else if (manualQuestionnaireId.trim()) {
@@ -273,13 +291,15 @@ const handleTriggerPAAImport = () => {
 
     const mutationLabel = `paa_etl_${selectedDistrict.code}_${Date.now()}`;
     confirmPullingDataFromApiEtl(
-      "SurveySolutionService",
+      'SurveySolutionService',
       mutationLabel,
-      params
+      params,
     );
+
+    // Close dialog
+    setOpenPAAConfirmDialog(false);
   };
-  const canTriggerPAAImport =
-    !!selectedRegion && !!selectedDistrict && !submittingMutation;
+  const canTriggerPAAImport = !!selectedRegion && !!selectedDistrict && !submittingMutation;
 
   // --- Handlers (API services)
   const openServiceConfirm = (etlService) => {
@@ -291,7 +311,7 @@ const handleTriggerPAAImport = () => {
 
     // Guard: don’t allow double submit
     if (submittingLegacyEtl || submittingPaaEtl) {
-      console.warn("ETL already in progress, ignoring duplicate request");
+      console.warn('ETL already in progress, ignoring duplicate request');
       return;
     }
 
@@ -304,8 +324,8 @@ const handleTriggerPAAImport = () => {
 
   // Helper: safe error to text
   const formatErr = (err) => {
-    if (!err) return "";
-    if (typeof err === "string") return err;
+    if (!err) return '';
+    if (typeof err === 'string') return err;
     if (err.message) return err.message;
     try {
       return JSON.stringify(err);
@@ -313,11 +333,71 @@ const handleTriggerPAAImport = () => {
       return String(err);
     }
   };
+  // Helper: render status badge with color
+  const renderStatusBadge = (status, errorMessage) => {
+    const statusConfig = {
+      running: {
+        color: '#2196f3', // Blue
+        bgcolor: '#e3f2fd',
+        icon: <CircularProgress size={16} style={{ marginRight: 4 }} />,
+        label: formatMessage(intl, 'individual', 'ImportDataApiPage.status.running'),
+      },
+      completed: {
+        color: '#4caf50', // Green
+        bgcolor: '#e8f5e9',
+        icon: '✓',
+        label: formatMessage(intl, 'individual', 'ImportDataApiPage.status.completed'),
+      },
+      failed: {
+        color: '#f44336', // Red
+        bgcolor: '#ffebee',
+        icon: '✗',
+        label: formatMessage(intl, 'individual', 'ImportDataApiPage.status.failed'),
+      },
+      cancelled: {
+        color: '#9e9e9e', // Gray
+        bgcolor: '#f5f5f5',
+        icon: '⊘',
+        label: formatMessage(intl, 'individual', 'ImportDataApiPage.status.cancelled'),
+      },
+    };
 
+    const config = statusConfig[status] || statusConfig.completed;
+
+    return (
+      <Tooltip
+        title={
+          status === 'failed' && errorMessage
+            ? errorMessage
+            : config.label
+        }
+      >
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            padding: '4px 12px',
+            borderRadius: '12px',
+            fontSize: '0.75rem',
+            fontWeight: 500,
+            backgroundColor: config.bgcolor,
+            color: config.color,
+          }}
+        >
+          {typeof config.icon === 'string' ? (
+            <span style={{ marginRight: 4 }}>{config.icon}</span>
+          ) : (
+            config.icon
+          )}
+          {config.label}
+        </span>
+      </Tooltip>
+    );
+  };
   return (
     <>
       <Helmet
-        title={formatMessage(intl, "individual", "ImportDataApiPage.title")}
+        title={formatMessage(intl, 'individual', 'ImportDataApiPage.title')}
       />
       <div className={classes.page}>
         <Grid container spacing={2}>
@@ -328,8 +408,8 @@ const handleTriggerPAAImport = () => {
                 <Typography variant="h6" className={classes.sectionTitle}>
                   {formatMessage(
                     intl,
-                    "individual",
-                    "ImportPageAPI.ImportPage"
+                    'individual',
+                    'ImportPageAPI.ImportPage',
                   )}
                 </Typography>
               </div>
@@ -344,7 +424,7 @@ const handleTriggerPAAImport = () => {
                     <TableRow className={classes.headerTitle}>
                       {API_WORKFLOW_HEADERS.map((h) => (
                         <TableCell key={h}>
-                          {formatMessage(intl, "individual", h)}
+                          {formatMessage(intl, 'individual', h)}
                         </TableCell>
                       ))}
                     </TableRow>
@@ -369,26 +449,24 @@ const handleTriggerPAAImport = () => {
                           <Tooltip
                             title={formatMessage(
                               intl,
-                              "individual",
-                              "ImportPageAPI.triggerImport"
+                              'individual',
+                              'ImportPageAPI.triggerImport',
                             )}
                           >
                             <span>
                               <Button
                                 variant="contained"
                                 color="primary"
-                                onClick={() =>
-                                  openServiceConfirm(etl.nameOfService)
-                                }
+                                onClick={() => openServiceConfirm(etl.nameOfService)}
                                 disabled={
-                                  Array.isArray(mutations) &&
-                                  mutations.length > 0
+                                  Array.isArray(mutations)
+                                  && mutations.length > 0
                                 }
                               >
                                 {formatMessage(
                                   intl,
-                                  "individual",
-                                  "ImportPageAPI.triggerImport"
+                                  'individual',
+                                  'ImportPageAPI.triggerImport',
                                 )}
                               </Button>
                             </span>
@@ -397,9 +475,9 @@ const handleTriggerPAAImport = () => {
                       </TableRow>
                     ))}
 
-                    {(!apiEtlServices || apiEtlServices.length === 0) &&
-                      !fetchingApiEtlServices &&
-                      !errorApiEtlServices && (
+                    {(!apiEtlServices || apiEtlServices.length === 0)
+                      && !fetchingApiEtlServices
+                      && !errorApiEtlServices && (
                         <TableRow>
                           <TableCell colSpan={2}>
                             <Typography
@@ -410,29 +488,29 @@ const handleTriggerPAAImport = () => {
                             >
                               {formatMessage(
                                 intl,
-                                "individual",
-                                "ImportDataApiPage.noHistoryData"
+                                'individual',
+                                'ImportDataApiPage.noHistoryData',
                               )}
                             </Typography>
                           </TableCell>
                         </TableRow>
-                      )}
+                    )}
                   </TableBody>
                 </Table>
               </TableContainer>
             </Paper>
           </Grid>
 
-          {/* ====== SECTION 2: ETL Controls (Region/District) ====== */}
-{/* ====== SECTION 2: PAA-Based Import with Questionnaire Selection ====== */}
+
+          {/* ====== SECTION 2: PAA-Based Import with Questionnaire Selection ====== */}
           <Grid item xs={12}>
             <Paper className={classes.paper}>
               <div className={classes.headerBar}>
                 <Typography variant="h6" className={classes.sectionTitle}>
                   {formatMessage(
                     intl,
-                    "individual",
-                    "ImportDataApiPage.importControls.title"
+                    'individual',
+                    'ImportDataApiPage.importControls.title',
                   )}
                 </Typography>
               </div>
@@ -447,15 +525,15 @@ const handleTriggerPAAImport = () => {
                     pubRef="location.LocationPicker"
                     onChange={(region) => {
                       setSelectedRegion(region);
-                      setSelectedDistrict(null);  // Reset district when region changes
-                      setSelectedQuestionnaire(null);  // Reset questionnaire
+                      setSelectedDistrict(null); // Reset district when region changes
+                      setSelectedQuestionnaire(null); // Reset questionnaire
                     }}
                     value={selectedRegion}
                     locationLevel={0}
                     label={formatMessage(
                       intl,
-                      "individual",
-                      "ImportDataApiPage.region"
+                      'individual',
+                      'ImportDataApiPage.region',
                     )}
                     required
                   />
@@ -467,15 +545,15 @@ const handleTriggerPAAImport = () => {
                     pubRef="location.LocationPicker"
                     onChange={(district) => {
                       setSelectedDistrict(district);
-                      setSelectedQuestionnaire(null);  // Reset questionnaire when district changes
+                      setSelectedQuestionnaire(null); // Reset questionnaire when district changes
                     }}
                     value={selectedDistrict}
                     parentLocation={selectedRegion}
                     locationLevel={1}
                     label={formatMessage(
                       intl,
-                      "individual",
-                      "ImportDataApiPage.district"
+                      'individual',
+                      'ImportDataApiPage.district',
                     )}
                     required
                   />
@@ -485,7 +563,7 @@ const handleTriggerPAAImport = () => {
                 <Grid item xs={12} md={4} />
               </Grid>
 
-              {/* NEW: Questionnaire Selection Section ✅ */}
+              {/* Questionnaire Selection Section */}
               {selectedDistrict && (
                 <>
                   <Grid container spacing={3} className={classes.formRow}>
@@ -493,15 +571,15 @@ const handleTriggerPAAImport = () => {
                       <Typography variant="subtitle1" style={{ fontWeight: 500, marginTop: 16 }}>
                         {formatMessage(
                           intl,
-                          "individual",
-                          "ImportDataApiPage.selectQuestionnaire.title"
+                          'individual',
+                          'ImportDataApiPage.selectQuestionnaire.title',
                         )}
                       </Typography>
                       <Typography variant="caption" color="textSecondary">
                         {formatMessage(
                           intl,
-                          "individual",
-                          "ImportDataApiPage.selectQuestionnaire.subtitle"
+                          'individual',
+                          'ImportDataApiPage.selectQuestionnaire.subtitle',
                         )}
                       </Typography>
                     </Grid>
@@ -514,13 +592,13 @@ const handleTriggerPAAImport = () => {
                         <InputLabel id="questionnaire-select-label">
                           {formatMessage(
                             intl,
-                            "individual",
-                            "ImportDataApiPage.questionnaire"
+                            'individual',
+                            'ImportDataApiPage.questionnaire',
                           )}
                         </InputLabel>
                         <Select
                           labelId="questionnaire-select-label"
-                          value={selectedQuestionnaire || ""}
+                          value={selectedQuestionnaire || ''}
                           onChange={(e) => setSelectedQuestionnaire(e.target.value)}
                           disabled={fetchingQuestionnaires}
                         >
@@ -528,18 +606,16 @@ const handleTriggerPAAImport = () => {
                             <em>
                               {formatMessage(
                                 intl,
-                                "individual",
-                                "ImportDataApiPage.questionnaire.autoDetect"
+                                'individual',
+                                'ImportDataApiPage.questionnaire.autoDetect',
                               )}
                             </em>
                           </MenuItem>
 
                           {/* Filter questionnaires by search term */}
                           {availableQuestionnaires
-                            .filter(q =>
-                              !questionnaireSearchTerm ||
-                              q.title.toLowerCase().includes(questionnaireSearchTerm.toLowerCase())
-                            )
+                            .filter((q) => !questionnaireSearchTerm
+                              || q.title.toLowerCase().includes(questionnaireSearchTerm.toLowerCase()))
                             .map((q) => (
                               <MenuItem key={q.identity} value={q.identity}>
                                 <div style={{ width: '100%' }}>
@@ -550,16 +626,23 @@ const handleTriggerPAAImport = () => {
                                     <span style={{
                                       fontSize: '0.75rem',
                                       color: q.matchingScore >= 2 ? '#4caf50' : '#ff9800',
-                                      marginLeft: 8
-                                    }}>
-                                      v{q.version}
+                                      marginLeft: 8,
+                                    }}
+                                    >
+                                      v
+                                      {q.version}
                                     </span>
                                   </div>
                                   <div style={{ fontSize: '0.75rem', color: '#757575' }}>
                                     {q.identity}
                                     {q.matchingScore > 0 && (
                                       <span style={{ marginLeft: 8 }}>
-                                        • Score: {q.matchingScore}/3 ({q.matchingStrategy})
+                                        • Score:
+                                        {' '}
+                                        {q.matchingScore}
+                                        /5 (
+                                        {q.matchingStrategy}
+                                        )
                                       </span>
                                     )}
                                   </div>
@@ -575,8 +658,8 @@ const handleTriggerPAAImport = () => {
                             <Typography variant="caption" color="textSecondary">
                               {formatMessage(
                                 intl,
-                                "individual",
-                                "ImportDataApiPage.loadingQuestionnaires"
+                                'individual',
+                                'ImportDataApiPage.loadingQuestionnaires',
                               )}
                             </Typography>
                           </div>
@@ -587,8 +670,8 @@ const handleTriggerPAAImport = () => {
                           <Typography variant="caption" color="error" style={{ marginTop: 8 }}>
                             {formatMessage(
                               intl,
-                              "individual",
-                              "ImportDataApiPage.errorLoadingQuestionnaires"
+                              'individual',
+                              'ImportDataApiPage.errorLoadingQuestionnaires',
                             )}
                           </Typography>
                         )}
@@ -598,8 +681,8 @@ const handleTriggerPAAImport = () => {
                           <Typography variant="caption" color="textSecondary" style={{ marginTop: 8 }}>
                             {formatMessage(
                               intl,
-                              "individual",
-                              "ImportDataApiPage.noQuestionnairesFound"
+                              'individual',
+                              'ImportDataApiPage.noQuestionnairesFound',
                             )}
                           </Typography>
                         )}
@@ -609,8 +692,8 @@ const handleTriggerPAAImport = () => {
                           <Typography variant="caption" color="textSecondary" style={{ marginTop: 8 }}>
                             {formatMessage(
                               intl,
-                              "individual",
-                              "ImportDataApiPage.questionnaireSelected"
+                              'individual',
+                              'ImportDataApiPage.questionnaireSelected',
                             )}
                           </Typography>
                         )}
@@ -623,15 +706,15 @@ const handleTriggerPAAImport = () => {
                         fullWidth
                         label={formatMessage(
                           intl,
-                          "individual",
-                          "ImportDataApiPage.searchQuestionnaires"
+                          'individual',
+                          'ImportDataApiPage.searchQuestionnaires',
                         )}
                         value={questionnaireSearchTerm}
                         onChange={(e) => setQuestionnaireSearchTerm(e.target.value)}
                         placeholder={formatMessage(
                           intl,
-                          "individual",
-                          "ImportDataApiPage.searchQuestionnaires.placeholder"
+                          'individual',
+                          'ImportDataApiPage.searchQuestionnaires.placeholder',
                         )}
                         disabled={fetchingQuestionnaires || availableQuestionnaires.length === 0}
                       />
@@ -647,44 +730,46 @@ const handleTriggerPAAImport = () => {
                     variant="contained"
                     color="primary"
                     onClick={handleTriggerPAAImport}
-                    disabled={!selectedRegion || !selectedDistrict || submittingMutation}
+                    disabled={
+                      !selectedRegion
+                      || !selectedDistrict
+                      || (Array.isArray(mutations) && mutations.length > 0)
+                    }
                     fullWidth
                     startIcon={
-                      submittingMutation ? <CircularProgress size={20} /> : null
+                      isSubmitting ? <CircularProgress size={20} /> : null
                     }
                   >
-                    {submittingMutation
+                    {isSubmitting
                       ? formatMessage(
-                          intl,
-                          "individual",
-                          "ImportDataApiPage.importing"
-                        )
+                        intl,
+                        'individual',
+                        'ImportDataApiPage.importing',
+                      )
                       : formatMessage(
-                          intl,
-                          "individual",
-                          "ImportDataApiPage.triggerImport"
-                        )}
+                        intl,
+                        'individual',
+                        'ImportDataApiPage.triggerImport',
+                      )}
                   </Button>
                 </Grid>
               </Grid>
 
-              {/* Advanced Options - Keep existing */}
+              {/* Advanced Options */}
               <Grid container spacing={2} className={classes.formRow}>
                 <Grid item xs={12}>
                   <FormControlLabel
-                    control={
+                    control={(
                       <Checkbox
                         checked={showAdvancedOptions}
-                        onChange={(e) =>
-                          setShowAdvancedOptions(e.target.checked)
-                        }
+                        onChange={(e) => setShowAdvancedOptions(e.target.checked)}
                         color="primary"
                       />
-                    }
+                    )}
                     label={formatMessage(
                       intl,
-                      "individual",
-                      "ImportDataApiPage.showAdvancedOptions"
+                      'individual',
+                      'ImportDataApiPage.showAdvancedOptions',
                     )}
                   />
                 </Grid>
@@ -696,38 +781,36 @@ const handleTriggerPAAImport = () => {
                         fullWidth
                         label={formatMessage(
                           intl,
-                          "individual",
-                          "ImportDataApiPage.manualQuestionnaireId"
+                          'individual',
+                          'ImportDataApiPage.manualQuestionnaireId',
                         )}
                         value={manualQuestionnaireId}
-                        onChange={(e) =>
-                          setManualQuestionnaireId(e.target.value)
-                        }
+                        onChange={(e) => setManualQuestionnaireId(e.target.value)}
                         placeholder="GUID$version (e.g., 12345678-1234-1234-1234-123456789012$3)"
-                        helperText={
+                        helperText={(
                           <span className={classes.helperText}>
                             {formatMessage(
                               intl,
-                              "individual",
-                              "ImportDataApiPage.manualQuestionnaireId.help"
+                              'individual',
+                              'ImportDataApiPage.manualQuestionnaireId.help',
                             )}
                           </span>
-                        }
+                        )}
                       />
                     </Grid>
                     <Grid item xs={12} md={6}>
                       <FormControlLabel
-                        control={
+                        control={(
                           <Checkbox
                             checked={dryRun}
                             onChange={(e) => setDryRun(e.target.checked)}
                             color="primary"
                           />
-                        }
+                        )}
                         label={formatMessage(
                           intl,
-                          "individual",
-                          "ImportDataApiPage.dryRun"
+                          'individual',
+                          'ImportDataApiPage.dryRun',
                         )}
                       />
                     </Grid>
@@ -738,8 +821,10 @@ const handleTriggerPAAImport = () => {
               {/* Mutation error */}
               {!!mutation?.error && (
                 <Typography color="error" style={{ marginTop: 16 }}>
-                  {formatMessage(intl, "individual", "ImportDataApiPage.error")}
-                  : {mutation.error?.message || JSON.stringify(mutation.error)}
+                  {formatMessage(intl, 'individual', 'ImportDataApiPage.error')}
+                  :
+                  {' '}
+                  {mutation.error?.message || JSON.stringify(mutation.error)}
                 </Typography>
               )}
             </Paper>
@@ -752,8 +837,8 @@ const handleTriggerPAAImport = () => {
                 <Typography variant="h6" className={classes.sectionTitle}>
                   {formatMessage(
                     intl,
-                    "individual",
-                    "ImportDataApiPage.pulledQuestionnaires.title"
+                    'individual',
+                    'ImportDataApiPage.pulledQuestionnaires.title',
                   )}
                 </Typography>
               </div>
@@ -769,22 +854,29 @@ const handleTriggerPAAImport = () => {
                       <TableCell>
                         {formatMessage(
                           intl,
-                          "individual",
-                          "ImportDataApiPage.table.paaName"
+                          'individual',
+                          'ImportDataApiPage.table.paaName',
                         )}
                       </TableCell>
                       <TableCell>
                         {formatMessage(
                           intl,
-                          "individual",
-                          "ImportDataApiPage.table.numberOfHouseholds"
+                          'individual',
+                          'ImportDataApiPage.table.numberOfHouseholds',
                         )}
                       </TableCell>
                       <TableCell>
                         {formatMessage(
                           intl,
-                          "individual",
-                          "ImportDataApiPage.table.datePulled"
+                          'individual',
+                          'ImportDataApiPage.table.datePulled',
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {formatMessage(
+                          intl,
+                          'individual',
+                          'ImportDataApiPage.table.status',
                         )}
                       </TableCell>
                     </TableRow>
@@ -802,8 +894,8 @@ const handleTriggerPAAImport = () => {
                             >
                               {formatMessage(
                                 intl,
-                                "individual",
-                                "ImportDataApiPage.loadingHistory"
+                                'individual',
+                                'ImportDataApiPage.loadingHistory',
                               )}
                             </Typography>
                           </div>
@@ -817,26 +909,31 @@ const handleTriggerPAAImport = () => {
                           <Typography color="error">
                             {formatMessage(
                               intl,
-                              "individual",
-                              "ImportDataApiPage.errorLoadingHistory"
+                              'individual',
+                              'ImportDataApiPage.errorLoadingHistory',
                             )}
-                            : {formatErr(errorPulledQ)}
+                            :
+                            {' '}
+                            {formatErr(errorPulledQ)}
                           </Typography>
                         </TableCell>
                       </TableRow>
                     )}
 
-                    {!fetchingPulledQ &&
-                      Array.isArray(pulledQ) &&
-                      pulledQ.length > 0 &&
-                      pulledQ.map((item, idx) => (
-                        <TableRow key={`${item.paaName || "row"}_${idx}`}>
+                    {!fetchingPulledQ
+                      && Array.isArray(pulledQ)
+                      && pulledQ.length > 0
+                      && pulledQ.map((item, idx) => (
+                        <TableRow key={`${item.paaName || 'row'}_${idx}`}>
                           <TableCell>{item.paaName}</TableCell>
                           <TableCell>{item.numberOfHouseholds || 0}</TableCell>
                           <TableCell>
                             {item.datePulled
                               ? new Date(item.datePulled).toLocaleDateString()
-                              : ""}
+                              : ''}
+                          </TableCell>
+                          <TableCell>
+                            {renderStatusBadge(item.status || 'completed', item.errorMessage)}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -852,8 +949,8 @@ const handleTriggerPAAImport = () => {
                           >
                             {formatMessage(
                               intl,
-                              "individual",
-                              "ImportDataApiPage.noHistoryData"
+                              'individual',
+                              'ImportDataApiPage.noHistoryData',
                             )}
                           </Typography>
                         </TableCell>
@@ -875,16 +972,16 @@ const handleTriggerPAAImport = () => {
         <DialogTitle>
           {formatMessage(
             intl,
-            "individual",
-            "ImportPageAPI.confirmPullingData.title"
+            'individual',
+            'ImportPageAPI.confirmPullingData.title',
           )}
         </DialogTitle>
         <DialogContent>
           <DialogContentText>
             {formatMessage(
               intl,
-              "individual",
-              "ImportPageAPI.confirmPullingData.message"
+              'individual',
+              'ImportPageAPI.confirmPullingData.message',
             )}
           </DialogContentText>
         </DialogContent>
@@ -896,8 +993,8 @@ const handleTriggerPAAImport = () => {
           >
             {formatMessage(
               intl,
-              "individual",
-              "ImportPageAPI.confirmPullingData.cancel"
+              'individual',
+              'ImportPageAPI.confirmPullingData.cancel',
             )}
           </Button>
 
@@ -910,12 +1007,78 @@ const handleTriggerPAAImport = () => {
             startIcon={isSubmitting ? <CircularProgress size={18} /> : null}
           >
             {isSubmitting
-              ? formatMessage(intl, "individual", "ImportDataApiPage.importing")
+              ? formatMessage(intl, 'individual', 'ImportDataApiPage.importing')
               : formatMessage(
-                  intl,
-                  "individual",
-                  "ImportPageAPI.confirmPullingData.confirm"
-                )}
+                intl,
+                'individual',
+                'ImportPageAPI.confirmPullingData.confirm',
+              )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* Confirm dialog for PAA Import trigger */}
+      <Dialog
+        open={openPAAConfirmDialog}
+        onClose={() => setOpenPAAConfirmDialog(false)}
+      >
+        <DialogTitle>
+          {formatMessage(
+            intl,
+            'individual',
+            'ImportPageAPI.confirmPullingData.title',
+          )}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {formatMessage(
+              intl,
+              'individual',
+              'ImportPageAPI.confirmPullingData.message',
+            )}
+          </DialogContentText>
+          {selectedDistrict && (
+            <Typography variant="body2" style={{ marginTop: 16 }}>
+              <strong>District:</strong>
+              {' '}
+              {selectedDistrict.name}
+            </Typography>
+          )}
+          {selectedQuestionnaire && (
+            <Typography variant="body2">
+              <strong>Questionnaire:</strong>
+              {' '}
+              {selectedQuestionnaire}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setOpenPAAConfirmDialog(false)}
+            color="primary"
+            disabled={isSubmitting}
+          >
+            {formatMessage(
+              intl,
+              'individual',
+              'ImportPageAPI.confirmPullingData.cancel',
+            )}
+          </Button>
+
+          <Button
+            onClick={handleConfirmPAAImport}
+            color="primary"
+            variant="contained"
+            autoFocus
+            disabled={isSubmitting}
+            startIcon={isSubmitting ? <CircularProgress size={18} /> : null}
+          >
+            {isSubmitting
+              ? formatMessage(intl, 'individual', 'ImportDataApiPage.importing')
+              : formatMessage(
+                intl,
+                'individual',
+                'ImportPageAPI.confirmPullingData.confirm',
+              )}
           </Button>
         </DialogActions>
       </Dialog>
@@ -945,25 +1108,24 @@ const mapStateToProps = (state) => ({
   errorQuestionnaires: state.individual?.errorQuestionnaires,
 });
 
-const mapDispatchToProps = (dispatch) =>
-  bindActionCreators(
-    {
-      journalize,
-      fetchPulledQuestionnaires,
-      confirmPullingDataFromApiEtl,
-      fetchApiEtlServices,
-      fetchMutationByLabel,
-      fetchAvailableQuestionnaires,
-    },
-    dispatch
-  );
+const mapDispatchToProps = (dispatch) => bindActionCreators(
+  {
+    journalize,
+    fetchPulledQuestionnaires,
+    confirmPullingDataFromApiEtl,
+    fetchApiEtlServices,
+    fetchMutationByLabel,
+    fetchAvailableQuestionnaires,
+  },
+  dispatch,
+);
 
 export default withModulesManager(
   injectIntl(
     withTheme(
       withStyles(styles)(
-        connect(mapStateToProps, mapDispatchToProps)(ImportDataApiPage)
-      )
-    )
-  )
+        connect(mapStateToProps, mapDispatchToProps)(ImportDataApiPage),
+      ),
+    ),
+  ),
 );

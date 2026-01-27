@@ -186,9 +186,26 @@ function ImportDataApiPage({
     }
   }, [selectedRegion, selectedDistrict, fetchPulledQuestionnaires]);
 
-  // Refresh history after successful PAA import
+  // // Refresh history after successful PAA import
+  // useEffect(() => {
+  //   if (mutation?.clientMutationId && !submittingMutation && !mutation?.error) {
+  //     fetchPulledQuestionnaires(
+  //       selectedRegion?.code || null,
+  //       selectedDistrict?.code || null,
+  //     );
+  //   }
+  // }, [
+  //   mutation,
+  //   submittingMutation,
+  //   fetchPulledQuestionnaires,
+  //   selectedRegion,
+  //   selectedDistrict,
+  // ]);
   useEffect(() => {
-    if (mutation?.clientMutationId && !submittingMutation && !mutation?.error) {
+    const label = mutation?.clientMutationLabel || '';
+    const isEtl = label.startsWith('paa_etl_') || label.startsWith('etl_');
+
+    if (isEtl && mutation?.clientMutationId && !submittingMutation && !mutation?.error) {
       fetchPulledQuestionnaires(
         selectedRegion?.code || null,
         selectedDistrict?.code || null,
@@ -638,9 +655,8 @@ function ImportDataApiPage({
                                     {q.matchingScore > 0 && (
                                       <span style={{ marginLeft: 8 }}>
                                         • Score:
-                                        {' '}
                                         {q.matchingScore}
-                                        /5 (
+                                        (
                                         {q.matchingStrategy}
                                         )
                                       </span>
@@ -858,6 +874,7 @@ function ImportDataApiPage({
                           'ImportDataApiPage.table.paaName',
                         )}
                       </TableCell>
+
                       <TableCell>
                         {formatMessage(
                           intl,
@@ -865,6 +882,15 @@ function ImportDataApiPage({
                           'ImportDataApiPage.table.numberOfHouseholds',
                         )}
                       </TableCell>
+
+                      <TableCell>
+                        {formatMessage(
+                          intl,
+                          'individual',
+                          'ImportDataApiPage.table.numberOfMembers',
+                        )}
+                      </TableCell>
+
                       <TableCell>
                         {formatMessage(
                           intl,
@@ -872,6 +898,7 @@ function ImportDataApiPage({
                           'ImportDataApiPage.table.datePulled',
                         )}
                       </TableCell>
+
                       <TableCell>
                         {formatMessage(
                           intl,
@@ -883,15 +910,13 @@ function ImportDataApiPage({
                   </TableHead>
 
                   <TableBody>
+                    {/* Loading */}
                     {fetchingPulledQ && (
                       <TableRow>
-                        <TableCell colSpan={3}>
+                        <TableCell colSpan={5}>
                           <div className={classes.loadingBox}>
                             <CircularProgress />
-                            <Typography
-                              variant="body2"
-                              style={{ marginTop: 8 }}
-                            >
+                            <Typography variant="body2" style={{ marginTop: 8 }}>
                               {formatMessage(
                                 intl,
                                 'individual',
@@ -903,64 +928,74 @@ function ImportDataApiPage({
                       </TableRow>
                     )}
 
+                    {/* Error */}
                     {!!errorPulledQ && !fetchingPulledQ && (
                       <TableRow>
-                        <TableCell colSpan={3}>
+                        <TableCell colSpan={5}>
                           <Typography color="error">
                             {formatMessage(
                               intl,
                               'individual',
                               'ImportDataApiPage.errorLoadingHistory',
                             )}
-                            :
-                            {' '}
+                            :{' '}
                             {formatErr(errorPulledQ)}
                           </Typography>
                         </TableCell>
                       </TableRow>
                     )}
 
+                    {/* Data rows */}
                     {!fetchingPulledQ
+                      && !errorPulledQ
                       && Array.isArray(pulledQ)
                       && pulledQ.length > 0
                       && pulledQ.map((item, idx) => (
                         <TableRow key={`${item.paaName || 'row'}_${idx}`}>
                           <TableCell>{item.paaName}</TableCell>
                           <TableCell>{item.numberOfHouseholds || 0}</TableCell>
+                          <TableCell>{item.numberOfMembers || 0}</TableCell>
                           <TableCell>
                             {item.datePulled
                               ? new Date(item.datePulled).toLocaleDateString()
                               : ''}
                           </TableCell>
                           <TableCell>
-                            {renderStatusBadge(item.status || 'completed', item.errorMessage)}
+                            {renderStatusBadge(
+                              item.status || 'completed',
+                              item.errorMessage,
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
 
-                    {!fetchingPulledQ && (!pulledQ || pulledQ.length === 0) && (
-                      <TableRow>
-                        <TableCell colSpan={3}>
-                          <Typography
-                            variant="body2"
-                            color="textSecondary"
-                            align="center"
-                            style={{ padding: 20 }}
-                          >
-                            {formatMessage(
-                              intl,
-                              'individual',
-                              'ImportDataApiPage.noHistoryData',
-                            )}
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
+                    {/* Empty */}
+                    {!fetchingPulledQ
+                      && !errorPulledQ
+                      && (!pulledQ || pulledQ.length === 0) && (
+                        <TableRow>
+                          <TableCell colSpan={5}>
+                            <Typography
+                              variant="body2"
+                              color="textSecondary"
+                              align="center"
+                              style={{ padding: 20 }}
+                            >
+                              {formatMessage(
+                                intl,
+                                'individual',
+                                'ImportDataApiPage.noHistoryData',
+                              )}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
                     )}
                   </TableBody>
                 </Table>
               </TableContainer>
             </Paper>
           </Grid>
+
         </Grid>
       </div>
 

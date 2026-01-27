@@ -373,7 +373,7 @@ function reducer(
       return {
         ...state,
         fetchingGroup: false,
-        fetchedIGroup: true,
+        fetchedGroup: true,
         group: parseData(action.payload.data.group).map((group) => ({
           ...group,
           id: decodeId(group.id),
@@ -733,14 +733,30 @@ function reducer(
         pulledQ: [],
         errorPulledQ: null,
       };
-    case SUCCESS(ACTION_TYPE.PULLED_QUESTIONNAIRES):
+    case SUCCESS(ACTION_TYPE.PULLED_QUESTIONNAIRES): {
+      const rows =
+        action.payload?.data?.pulledQuestionnaires ??
+        action.payload?.data?.data?.pulledQuestionnaires ??
+        [];
+
       return {
         ...state,
         fetchingPulledQ: false,
         fetchedPulledQ: true,
-        pulledQ: action.payload.data.pulledQuestionnaires || [],
+        pulledQ: (rows || []).map((r) => ({
+          ...r,
+          // normalize: backend might send snake_case in some paths/older code
+          paaName: r.paaName ?? r.paa_name,
+          numberOfHouseholds: r.numberOfHouseholds ?? r.number_of_households,
+          numberOfMembers: r.numberOfMembers ?? r.number_of_members,
+          datePulled: r.datePulled ?? r.date_pulled,
+          errorMessage: r.errorMessage ?? r.error_message,
+          status: r.status,
+        })),
         errorPulledQ: formatGraphQLError(action.payload),
       };
+    }
+
     case ERROR(ACTION_TYPE.PULLED_QUESTIONNAIRES):
       return {
         ...state,

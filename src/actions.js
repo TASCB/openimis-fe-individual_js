@@ -1,3 +1,4 @@
+/* eslint-disable no-tabs */
 import {
   decodeId,
   graphql,
@@ -8,58 +9,62 @@ import {
   formatGQLString,
   graphqlWithVariables,
   prepareMutation,
-} from "@openimis/fe-core";
-import { ACTION_TYPE } from "./reducer";
-import { CLEAR, ERROR, REQUEST, SET, SUCCESS } from "./util/action-type";
-import { ACCEPT, APPROVED, FAILED, REJECT } from "./constants";
+} from '@openimis/fe-core';
+import { ACTION_TYPE } from './reducer';
+import {
+  CLEAR, ERROR, REQUEST, SET, SUCCESS,
+} from './util/action-type';
+import {
+  ACCEPT, APPROVED, FAILED, REJECT,
+} from './constants';
 
-const WORKFLOWS_FULL_PROJECTION = () => ["name", "group"];
+const WORKFLOWS_FULL_PROJECTION = () => ['name', 'group'];
 
 const ENROLLMENT_SUMMARY_FULL_PROJECTION = () => [
-  "totalNumberOfIndividuals",
-  "numberOfSelectedIndividuals",
-  "numberOfIndividualsAssignedToProgramme",
-  "numberOfIndividualsNotAssignedToProgramme",
-  "numberOfIndividualsAssignedToSelectedProgramme",
-  "numberOfIndividualsToUpload",
+  'totalNumberOfIndividuals',
+  'numberOfSelectedIndividuals',
+  'numberOfIndividualsAssignedToProgramme',
+  'numberOfIndividualsNotAssignedToProgramme',
+  'numberOfIndividualsAssignedToSelectedProgramme',
+  'numberOfIndividualsToUpload',
 ];
 
 const ENROLLMENT_GROUP_SUMMARY_FULL_PROJECTION = () => [
-  "totalNumberOfGroups",
-  "numberOfSelectedGroups",
-  "numberOfGroupsAssignedToProgramme",
-  "numberOfGroupsNotAssignedToProgramme",
-  "numberOfGroupsAssignedToSelectedProgramme",
-  "numberOfGroupsToUpload",
+  'totalNumberOfGroups',
+  'numberOfSelectedGroups',
+  'numberOfGroupsAssignedToProgramme',
+  'numberOfGroupsNotAssignedToProgramme',
+  'numberOfGroupsAssignedToSelectedProgramme',
+  'numberOfGroupsToUpload',
 ];
 
 export function fetchWorkflows() {
   const payload = formatQuery(
-    "workflow",
+    'workflow',
     ['group: "individual"'],
-    WORKFLOWS_FULL_PROJECTION()
+    WORKFLOWS_FULL_PROJECTION(),
   );
   return graphql(payload, ACTION_TYPE.GET_WORKFLOWS);
 }
 
 const INDIVIDUAL_FULL_PROJECTION = (mm, withGroupIndividuals = false) => {
   const fields = [
-    "id",
-    "isDeleted",
-    "dateCreated",
-    "dateUpdated",
-    "firstName",
-    "lastName",
-    "dob",
-    "jsonExt",
-    "version",
-    "userUpdated {username}",
-    `location${mm.getProjection("location.Location.FlatProjection")}`,
+    'id',
+    'isDeleted',
+    'dateCreated',
+    'dateUpdated',
+    'firstName',
+    'lastName',
+    'dob',
+    'jsonExt',
+    'version',
+    'userUpdated {username}',
+    `location${mm.getProjection('location.Location.FlatProjection')}`,
   ];
 
   if (withGroupIndividuals) {
     fields.push(
-      "groupindividuals (isDeleted: false) { edges { node { group { id } } } }"
+      'groupindividuals (isDeleted: false) { edges { node { group { id } } } }',
     );
   }
 
@@ -67,88 +72,89 @@ const INDIVIDUAL_FULL_PROJECTION = (mm, withGroupIndividuals = false) => {
 };
 
 const GROUP_INDIVIDUAL_FULL_PROJECTION = [
-  "id",
-  "individual {id, firstName, lastName, dob}",
-  "group {id, code}",
-  "role",
-  "recipientType",
-  "isDeleted",
-  "dateCreated",
-  "dateUpdated",
-  "jsonExt",
+  'id',
+  'individual {id, firstName, lastName, dob}',
+  'group {id, code}',
+  'role',
+  'recipientType',
+  'isDeleted',
+  'dateCreated',
+  'dateUpdated',
+  'jsonExt',
 ];
 
 const GROUP_FULL_PROJECTION = (mm) => [
-  "id",
-  "code",
-  "isDeleted",
-  "head {firstName, lastName, uuid}",
-  "dateCreated",
-  "dateUpdated",
-  "jsonExt",
-  "version",
-  "userUpdated {username}",
-  `location${mm.getProjection("location.Location.FlatProjection")}`,
+  'id',
+  'code',
+  'isDeleted',
+  'head {firstName, lastName, uuid}',
+  'dateCreated',
+  'dateUpdated',
+  'jsonExt',
+  'version',
+  'userUpdated {username}',
+  `location${mm.getProjection('location.Location.FlatProjection')}`,
 ];
 
 const GROUP_INDIVIDUAL_HISTORY_FULL_PROJECTION = [
-  "id",
-  "individual {id, firstName, lastName, dob}",
-  "group {id}",
-  "role",
-  "recipientType",
-  "isDeleted",
-  "dateCreated",
-  "dateUpdated",
-  "jsonExt",
-  "version",
+  'id',
+  'individual {id, firstName, lastName, dob}',
+  'group {id}',
+  'role',
+  'recipientType',
+  'isDeleted',
+  'dateCreated',
+  'dateUpdated',
+  'jsonExt',
+  'version',
 ];
 
-const GROUP_HISTORY_FULL_PROJECTION = (mm) =>
-  GROUP_FULL_PROJECTION(mm).filter(
-    (item) => item !== "head {firstName, lastName}"
-  );
+const GROUP_HISTORY_FULL_PROJECTION = (mm) => GROUP_FULL_PROJECTION(mm).filter(
+  (item) => item !== 'head {firstName, lastName}',
+);
 
 const UPLOAD_HISTORY_FULL_PROJECTION = () => [
-  "id",
-  "uuid",
-  "workflow",
-  "dataUpload {uuid, dateCreated, dateUpdated, sourceName, sourceType, status, error }",
-  "userCreated {username}",
+  'id',
+  'uuid',
+  'workflow',
+  'dataUpload {uuid, dateCreated, dateUpdated, sourceName, sourceType, status, error }',
+  'userCreated {username}',
 ];
 
-const API_ETL_PROJECTION = () => ["etlServices{nameOfService}"];
+const API_ETL_PROJECTION = () => ['etlServices{nameOfService}'];
 
 const PULLED_QUESTIONNAIRES_PROJECTION = () => [
-  "paaName",
-  "numberOfHouseholds",
-  "datePulled",
-  "status",
-  "errorMessage",
+  'paaName',
+  'numberOfHouseholds',
+  'numberOfMembers',
+  'datePulled',
+  'status',
+  'errorMessage',
 ];
 
 export function fetchApiEtlServices() {
   const payload = formatQuery(
-    "etlServicesByServiceName",
+    'etlServicesByServiceName',
     [],
-    API_ETL_PROJECTION()
+    API_ETL_PROJECTION(),
   );
-  return graphql(payload, "API_ETL_SERVICES");
+  return graphql(payload, ACTION_TYPE.API_ETL_SERVICES);
 }
 
 /**
- * Patched: send a fully-formed GraphQL document via graphqlWithVariables.
+ * Send a fully-formed GraphQL document via graphqlWithVariables.
  * This avoids any malformed-string issues and supports optional filters.
  */
 export function fetchPulledQuestionnaires(
   regionCode = null,
-  districtCode = null
+  districtCode = null,
 ) {
   const query = `
     query PulledQuestionnaires($regionCode: String, $districtCode: String) {
       pulledQuestionnaires(regionCode: $regionCode, districtCode: $districtCode) {
         paaName
         numberOfHouseholds
+        numberOfMembers
         datePulled
         status
         errorMessage
@@ -158,27 +164,26 @@ export function fetchPulledQuestionnaires(
   return graphqlWithVariables(
     query,
     { regionCode, districtCode },
-    ACTION_TYPE.PULLED_QUESTIONNAIRES
+    ACTION_TYPE.PULLED_QUESTIONNAIRES,
   );
 }
 const AVAILABLE_QUESTIONNAIRES_PROJECTION = () => [
-  "identity",
-  "id",
-  "title",
-  "version",
-  "variable",
-  "lastEntryDate",
-  "matchingScore",
-  "matchingStrategy"
+  'identity',
+  'id',
+  'title',
+  'version',
+  'variable',
+  'lastEntryDate',
+  'matchingScore',
+  'matchingStrategy',
 ];
 
 export function fetchAvailableQuestionnaires(
   districtCode = null,
   regionCode = null,
   districtName = null,
-  showAll = false
+  showAll = false,
 ) {
-  // Build filter arguments
   const filters = [];
   if (districtCode) filters.push(`districtCode: "${districtCode}"`);
   if (regionCode) filters.push(`regionCode: "${regionCode}"`);
@@ -186,9 +191,9 @@ export function fetchAvailableQuestionnaires(
   if (showAll) filters.push(`showAll: ${showAll}`);
 
   const payload = formatQuery(
-    "availableQuestionnaires",
+    'availableQuestionnaires',
     filters,
-    AVAILABLE_QUESTIONNAIRES_PROJECTION()
+    AVAILABLE_QUESTIONNAIRES_PROJECTION(),
   );
 
   return graphql(payload, ACTION_TYPE.AVAILABLE_QUESTIONNAIRES);
@@ -196,95 +201,95 @@ export function fetchAvailableQuestionnaires(
 
 export function fetchIndividualEnrollmentSummary(params) {
   const payload = formatQuery(
-    "individualEnrollmentSummary",
+    'individualEnrollmentSummary',
     params,
-    ENROLLMENT_SUMMARY_FULL_PROJECTION()
+    ENROLLMENT_SUMMARY_FULL_PROJECTION(),
   );
   return graphql(payload, ACTION_TYPE.ENROLLMENT_SUMMARY);
 }
 
 export function fetchGroupEnrollmentSummary(params) {
   const payload = formatQuery(
-    "groupEnrollmentSummary",
+    'groupEnrollmentSummary',
     params,
-    ENROLLMENT_GROUP_SUMMARY_FULL_PROJECTION()
+    ENROLLMENT_GROUP_SUMMARY_FULL_PROJECTION(),
   );
   return graphql(payload, ACTION_TYPE.ENROLLMENT_GROUP_SUMMARY);
 }
 
 export function fetchIndividuals(mm, params) {
   const payload = formatPageQueryWithCount(
-    "individual",
+    'individual',
     params,
-    INDIVIDUAL_FULL_PROJECTION(mm)
+    INDIVIDUAL_FULL_PROJECTION(mm),
   );
   return graphql(payload, ACTION_TYPE.SEARCH_INDIVIDUALS);
 }
 
 export function fetchGroupIndividuals(params) {
   const payload = formatPageQueryWithCount(
-    "groupIndividual",
+    'groupIndividual',
     params,
-    GROUP_INDIVIDUAL_FULL_PROJECTION
+    GROUP_INDIVIDUAL_FULL_PROJECTION,
   );
   return graphql(payload, ACTION_TYPE.SEARCH_GROUP_INDIVIDUALS);
 }
 
 export function fetchGroups(mm, params) {
   const payload = formatPageQueryWithCount(
-    "group",
+    'group',
     params,
-    GROUP_FULL_PROJECTION(mm)
+    GROUP_FULL_PROJECTION(mm),
   );
   return graphql(payload, ACTION_TYPE.SEARCH_GROUPS);
 }
 
 export function fetchIndividual(mm, params) {
   const payload = formatPageQuery(
-    "individual",
+    'individual',
     params,
-    INDIVIDUAL_FULL_PROJECTION(mm, true)
+    INDIVIDUAL_FULL_PROJECTION(mm, true),
   );
   return graphql(payload, ACTION_TYPE.GET_INDIVIDUAL);
 }
 
 export function fetchIndividualHistory(mm, params) {
   const payload = formatPageQueryWithCount(
-    "individualHistory",
+    'individualHistory',
     params,
-    INDIVIDUAL_FULL_PROJECTION(mm)
+    INDIVIDUAL_FULL_PROJECTION(mm),
   );
   return graphql(payload, ACTION_TYPE.SEARCH_INDIVIDUAL_HISTORY);
 }
 
 export function fetchGroup(mm, params) {
-  const payload = formatPageQuery("group", params, GROUP_FULL_PROJECTION(mm));
+  const payload = formatPageQuery('group', params, GROUP_FULL_PROJECTION(mm));
   return graphql(payload, ACTION_TYPE.GET_GROUP);
 }
 
 export function fetchGroupHistory(mm, params) {
   const payload = formatPageQueryWithCount(
-    "groupHistory",
+    'groupHistory',
     params,
-    GROUP_HISTORY_FULL_PROJECTION(mm)
+    GROUP_HISTORY_FULL_PROJECTION(mm),
   );
   return graphql(payload, ACTION_TYPE.SEARCH_GROUP_HISTORY);
 }
 
 export function fetchGroupIndividualHistory(params) {
   const payload = formatPageQueryWithCount(
-    "groupIndividualHistory",
+    'groupIndividualHistory',
     params,
-    GROUP_INDIVIDUAL_HISTORY_FULL_PROJECTION
+    GROUP_INDIVIDUAL_HISTORY_FULL_PROJECTION,
   );
   return graphql(payload, ACTION_TYPE.SEARCH_GROUP_INDIVIDUAL_HISTORY);
 }
 
 export function fetchUploadHistory(params) {
   const payload = formatPageQueryWithCount(
-    "individualDataUploadHistory",
+    'individualDataUploadHistory',
     params,
-    UPLOAD_HISTORY_FULL_PROJECTION()
+    UPLOAD_HISTORY_FULL_PROJECTION(),
   );
   return graphql(payload, ACTION_TYPE.GET_INDIVIDUAL_UPLOAD_HISTORY);
 }
@@ -292,9 +297,9 @@ export function fetchUploadHistory(params) {
 export function deleteIndividual(individual, clientMutationLabel) {
   const individualUuids = `ids: ["${individual?.id}"]`;
   const mutation = formatMutation(
-    "deleteIndividual",
+    'deleteIndividual',
     individualUuids,
-    clientMutationLabel
+    clientMutationLabel,
   );
   const requestedDateTime = new Date();
   return graphql(
@@ -309,16 +314,16 @@ export function deleteIndividual(individual, clientMutationLabel) {
       clientMutationId: mutation.clientMutationId,
       clientMutationLabel,
       requestedDateTime,
-    }
+    },
   );
 }
 
 export function undoDeleteIndividual(individual, clientMutationLabel) {
   const individualUuids = `ids: ["${individual?.id}"]`;
   const mutation = formatMutation(
-    "undoDeleteIndividual",
+    'undoDeleteIndividual',
     individualUuids,
-    clientMutationLabel
+    clientMutationLabel,
   );
   const requestedDateTime = new Date();
   return graphql(
@@ -333,16 +338,16 @@ export function undoDeleteIndividual(individual, clientMutationLabel) {
       clientMutationId: mutation.clientMutationId,
       clientMutationLabel,
       requestedDateTime,
-    }
+    },
   );
 }
 
 export function deleteGroupIndividual(groupIndividual, clientMutationLabel) {
   const groupIndividualUuids = `ids: ["${groupIndividual?.id}"]`;
   const mutation = formatMutation(
-    "removeIndividualFromGroup",
+    'removeIndividualFromGroup',
     groupIndividualUuids,
-    clientMutationLabel
+    clientMutationLabel,
   );
   const requestedDateTime = new Date();
   return graphql(
@@ -357,16 +362,16 @@ export function deleteGroupIndividual(groupIndividual, clientMutationLabel) {
       clientMutationId: mutation.clientMutationId,
       clientMutationLabel,
       requestedDateTime,
-    }
+    },
   );
 }
 
 export function deleteGroup(group, clientMutationLabel) {
   const groupUuids = `ids: ["${group?.id}"]`;
   const mutation = formatMutation(
-    "deleteGroup",
+    'deleteGroup',
     groupUuids,
-    clientMutationLabel
+    clientMutationLabel,
   );
   const requestedDateTime = new Date();
   return graphql(
@@ -381,98 +386,99 @@ export function deleteGroup(group, clientMutationLabel) {
       clientMutationId: mutation.clientMutationId,
       clientMutationLabel,
       requestedDateTime,
-    }
+    },
   );
 }
 
 function dateTimeToDate(date) {
-  return date.split("T")[0];
+  return date.split('T')[0];
 }
 
 function formatGroupGQL(group, groupIndividualId = null) {
   return `
-	  ${group?.id ? `id: "${group.id}"` : ""}
-	  ${group?.location ? `locationId: ${decodeId(group.location.id)}` : ""}
-	  ${groupIndividualId ? `groupIndividualId: "${groupIndividualId}"` : ""}`;
+	  ${group?.id ? `id: "${group.id}"` : ''}
+	  ${group?.location ? `locationId: ${decodeId(group.location.id)}` : ''}
+	  // eslint-disable-next-line no-tabs
+	  ${groupIndividualId ? `groupIndividualId: "${groupIndividualId}"` : ''}`;
 }
 
 function formatCreateGroupGQL(group) {
   return `
-	  ${group?.code ? `code: "${group.code}"` : ""}
-	  ${group?.location ? `locationId: ${decodeId(group.location.id)}` : ""}
-	  ${"individualsData: []"}
+	  ${group?.code ? `code: "${group.code}"` : ''}
+	  ${group?.location ? `locationId: ${decodeId(group.location.id)}` : ''}
+	  ${'individualsData: []'}
 	`;
 }
 
 function formatIndividualGQL(individual) {
   return `
-	  ${individual?.id ? `id: "${individual.id}"` : ""}
+	  ${individual?.id ? `id: "${individual.id}"` : ''}
 	  ${
-      individual?.firstName
-        ? `firstName: "${formatGQLString(individual.firstName)}"`
-        : ""
-    }
+  individual?.firstName
+    ? `firstName: "${formatGQLString(individual.firstName)}"`
+    : ''
+}
 	  ${
-      individual?.lastName
-        ? `lastName: "${formatGQLString(individual.lastName)}"`
-        : ""
-    }
-	  ${individual?.jsonExt ? `jsonExt: ${JSON.stringify(individual.jsonExt)}` : ""}
-	  ${individual?.dob ? `dob: "${dateTimeToDate(individual.dob)}"` : ""}
+  individual?.lastName
+    ? `lastName: "${formatGQLString(individual.lastName)}"`
+    : ''
+}
+	  ${individual?.jsonExt ? `jsonExt: ${JSON.stringify(individual.jsonExt)}` : ''}
+	  ${individual?.dob ? `dob: "${dateTimeToDate(individual.dob)}"` : ''}
 	  ${
-      individual?.location
-        ? `locationId: ${decodeId(individual.location.id)}`
-        : ""
-    }
+  individual?.location
+    ? `locationId: ${decodeId(individual.location.id)}`
+    : ''
+}
 	`;
 }
 
 function formatGroupIndividualGQL(groupIndividual) {
   return `
-	  ${groupIndividual?.id ? `id: "${groupIndividual.id}"` : ""}
-	  ${groupIndividual?.role ? `role: ${groupIndividual.role}` : ""}
+	  ${groupIndividual?.id ? `id: "${groupIndividual.id}"` : ''}
+	  ${groupIndividual?.role ? `role: ${groupIndividual.role}` : ''}
 	  ${
-      groupIndividual?.recipientType
-        ? `recipientType: ${groupIndividual.recipientType}`
-        : ""
-    }
+  groupIndividual?.recipientType
+    ? `recipientType: ${groupIndividual.recipientType}`
+    : ''
+}
 	  ${
-      groupIndividual?.individual.id
-        ? `individualId: "${groupIndividual.individual.id}"`
-        : ""
-    }
-	  ${groupIndividual?.group.id ? `groupId: "${groupIndividual.group.id}"` : ""}`;
+  groupIndividual?.individual.id
+    ? `individualId: "${groupIndividual.individual.id}"`
+    : ''
+}
+	  ${groupIndividual?.group.id ? `groupId: "${groupIndividual.group.id}"` : ''}`;
 }
 
 function formatCreateGroupIndividualGQL(groupIndividual) {
   return `
-	  ${groupIndividual?.id ? `id: "${groupIndividual.id}"` : ""}
-	  ${groupIndividual?.role ? `role: ${groupIndividual.role}` : ""}
+	  ${groupIndividual?.id ? `id: "${groupIndividual.id}"` : ''}
+	  ${groupIndividual?.role ? `role: ${groupIndividual.role}` : ''}
 	  ${
-      groupIndividual?.recipientType
-        ? `recipientType: ${groupIndividual.recipientType}`
-        : ""
-    }
+  groupIndividual?.recipientType
+    ? `recipientType: ${groupIndividual.recipientType}`
+    : ''
+}
 	  ${
-      groupIndividual?.individual.id
-        ? `individualId: "${groupIndividual.individual.id}"`
-        : ""
-    }
-	  ${groupIndividual?.group.id ? `groupId: "${groupIndividual.group.id}"` : ""}`;
+  groupIndividual?.individual.id
+    ? `individualId: "${groupIndividual.individual.id}"`
+    : ''
+}
+	  ${groupIndividual?.group.id ? `groupId: "${groupIndividual.group.id}"` : ''}`;
 }
 
 function formatConfirmEnrollmentGQL(params) {
   return `
-	  ${params?.customFilters ? `customFilters: ${params.customFilters}` : ""}
-	  ${params?.benefitPlanId ? `benefitPlanId: ${params.benefitPlanId}` : ""}
-	  ${params?.status ? `status: ${params.status}` : ""}`;
+	  ${params?.customFilters ? `customFilters: ${params.customFilters}` : ''}
+	  ${params?.benefitPlanId ? `benefitPlanId: ${params.benefitPlanId}` : ''}
+	  ${params?.status ? `status: ${params.status}` : ''}`;
 }
 
 export function updateIndividual(individual, clientMutationLabel) {
   const mutation = formatMutation(
-    "updateIndividual",
+    'updateIndividual',
     formatIndividualGQL(individual),
-    clientMutationLabel
+    clientMutationLabel,
   );
   const requestedDateTime = new Date();
   return graphql(
@@ -487,16 +493,16 @@ export function updateIndividual(individual, clientMutationLabel) {
       clientMutationId: mutation.clientMutationId,
       clientMutationLabel,
       requestedDateTime,
-    }
+    },
   );
 }
 
 export function confirmEnrollment(params, clientMutationLabel) {
   // eslint-disable-next-line max-len
   const mutation = formatMutation(
-    "confirmIndividualEnrollment",
+    'confirmIndividualEnrollment',
     formatConfirmEnrollmentGQL(params),
-    clientMutationLabel
+    clientMutationLabel,
   );
   const requestedDateTime = new Date();
   return graphql(
@@ -511,16 +517,16 @@ export function confirmEnrollment(params, clientMutationLabel) {
       clientMutationId: mutation.clientMutationId,
       clientMutationLabel,
       requestedDateTime,
-    }
+    },
   );
 }
 
 export function confirmGroupEnrollment(params, clientMutationLabel) {
   // eslint-disable-next-line max-len
   const mutation = formatMutation(
-    "confirmGroupEnrollment",
+    'confirmGroupEnrollment',
     formatConfirmEnrollmentGQL(params),
-    clientMutationLabel
+    clientMutationLabel,
   );
   const requestedDateTime = new Date();
   return graphql(
@@ -535,15 +541,15 @@ export function confirmGroupEnrollment(params, clientMutationLabel) {
       clientMutationId: mutation.clientMutationId,
       clientMutationLabel,
       requestedDateTime,
-    }
+    },
   );
 }
 
 export function updateGroupIndividual(groupIndividual, clientMutationLabel) {
   const mutation = formatMutation(
-    "editIndividualInGroup",
+    'editIndividualInGroup',
     formatGroupIndividualGQL(groupIndividual),
-    clientMutationLabel
+    clientMutationLabel,
   );
   const requestedDateTime = new Date();
   return graphql(
@@ -558,15 +564,15 @@ export function updateGroupIndividual(groupIndividual, clientMutationLabel) {
       clientMutationId: mutation.clientMutationId,
       clientMutationLabel,
       requestedDateTime,
-    }
+    },
   );
 }
 
 export function creteGroupIndividual(groupIndividual, clientMutationLabel) {
   const mutation = formatMutation(
-    "addIndividualToGroup",
+    'addIndividualToGroup',
     formatCreateGroupIndividualGQL(groupIndividual),
-    clientMutationLabel
+    clientMutationLabel,
   );
   const requestedDateTime = new Date();
   return graphql(
@@ -581,19 +587,19 @@ export function creteGroupIndividual(groupIndividual, clientMutationLabel) {
       clientMutationId: mutation.clientMutationId,
       clientMutationLabel,
       requestedDateTime,
-    }
+    },
   );
 }
 
 export function createGroupAndMoveIndividual(
   group,
   individualIds,
-  clientMutationLabel
+  clientMutationLabel,
 ) {
   const mutation = formatMutation(
-    "createGroupAndMoveIndividual",
+    'createGroupAndMoveIndividual',
     formatGroupGQL(group, individualIds),
-    clientMutationLabel
+    clientMutationLabel,
   );
   const requestedDateTime = new Date();
   return graphql(
@@ -608,15 +614,15 @@ export function createGroupAndMoveIndividual(
       clientMutationId: mutation.clientMutationId,
       clientMutationLabel,
       requestedDateTime,
-    }
+    },
   );
 }
 
 export function updateGroup(group, clientMutationLabel) {
   const mutation = formatMutation(
-    "updateGroup",
+    'updateGroup',
     formatGroupGQL(group),
-    clientMutationLabel
+    clientMutationLabel,
   );
   const requestedDateTime = new Date();
   return graphql(
@@ -631,15 +637,15 @@ export function updateGroup(group, clientMutationLabel) {
       clientMutationId: mutation.clientMutationId,
       clientMutationLabel,
       requestedDateTime,
-    }
+    },
   );
 }
 
 export function createGroup(group, clientMutationLabel) {
   const mutation = formatMutation(
-    "createGroup",
+    'createGroup',
     formatCreateGroupGQL(group),
-    clientMutationLabel
+    clientMutationLabel,
   );
   const requestedDateTime = new Date();
   return graphql(
@@ -654,7 +660,7 @@ export function createGroup(group, clientMutationLabel) {
       clientMutationId: mutation.clientMutationId,
       clientMutationLabel,
       requestedDateTime,
-    }
+    },
   );
 }
 
@@ -663,17 +669,17 @@ export function fetchPendingGroupUploads(variables) {
     `
 		query (
 		  $upload_Id: ID, $group_Id_Isnull: Boolean
-		  ${variables.after ? ",$after: String" : ""} 
-		  ${variables.before ? ",$before: String" : ""}
-		  ${variables.pageSize ? ",$pageSize: Int" : ""}
-		  ${variables.isDeleted !== undefined ? ",$isDeleted: Boolean" : ""}
+		  ${variables.after ? ',$after: String' : ''} 
+		  ${variables.before ? ',$before: String' : ''}
+		  ${variables.pageSize ? ',$pageSize: Int' : ''}
+		  ${variables.isDeleted !== undefined ? ',$isDeleted: Boolean' : ''}
 		) {
 		  groupDataSource(
 			upload_Id: $upload_Id, group_Id_Isnull:$group_Id_Isnull, 
-			${variables.isDeleted !== undefined ? ",isDeleted: $isDeleted" : ""}
-			${variables.before ? ",before:$before, last:$pageSize" : ""}
-			${!variables.before ? ",first:$pageSize" : ""}
-			${variables.after ? ",after:$after" : ""}
+			${variables.isDeleted !== undefined ? ',isDeleted: $isDeleted' : ''}
+			${variables.before ? ',before:$before, last:$pageSize' : ''}
+			${!variables.before ? ',first:$pageSize' : ''}
+			${variables.after ? ',after:$after' : ''}
 		  )
 		  {
 			totalCount
@@ -690,7 +696,7 @@ export function fetchPendingGroupUploads(variables) {
 		}
 	  `,
     variables,
-    ACTION_TYPE.GET_PENDING_GROUPS_UPLOAD
+    ACTION_TYPE.GET_PENDING_GROUPS_UPLOAD,
   );
 }
 
@@ -698,15 +704,15 @@ export const formatTaskResolveGQL = (
   task,
   user,
   approveOrFail,
-  additionalData
+  additionalData,
 ) => `
-	${task?.id ? `id: "${task.id}"` : ""}
+	${task?.id ? `id: "${task.id}"` : ''}
 	${
-    user && approveOrFail
-      ? `businessStatus: "{\\"${user.id}\\": \\"${approveOrFail}\\"}"`
-      : ""
-  }
-	${additionalData ? `additionalData: "${additionalData}"` : ""}
+  user && approveOrFail
+    ? `businessStatus: "{\\"${user.id}\\": \\"${approveOrFail}\\"}"`
+    : ''
+}
+	${additionalData ? `additionalData: "${additionalData}"` : ''}
 	`;
 
 export function resolveTask(
@@ -714,19 +720,19 @@ export function resolveTask(
   clientMutationLabel,
   user,
   approveOrFail,
-  additionalData = null
+  additionalData = null,
 ) {
-  const mutationType = "resolveTask";
+  const mutationType = 'resolveTask';
   const mutationInput = formatTaskResolveGQL(
     task,
     user,
     approveOrFail,
-    additionalData
+    additionalData,
   );
   const mutation = formatMutation(
     mutationType,
     mutationInput,
-    clientMutationLabel
+    clientMutationLabel,
   );
   const requestedDateTime = new Date();
 
@@ -735,8 +741,8 @@ export function resolveTask(
   const mutation2 = prepareMutation(
     `mutation ($clientMutationLabel:String, $clientMutationId: String, $id:UUID!, 
 		$businessStatus: JSONString!, ${
-      additionalData ? "$additionalData: JSONString!" : ""
-    }
+  additionalData ? '$additionalData: JSONString!' : ''
+}
 	  ) {
 		resolveTask(
 		input: {
@@ -745,7 +751,7 @@ export function resolveTask(
 	
 		  id: $id
 		  businessStatus: $businessStatus
-		  ${additionalData ? "additionalData: $additionalData" : ""}
+		  ${additionalData ? 'additionalData: $additionalData' : ''}
 				}
 			  ) {
 				clientMutationId
@@ -767,7 +773,7 @@ export function resolveTask(
               [userId]: { [approveOrFail]: additionalData },
             });
           default:
-            throw new Error("Invalid approveOrFail value");
+            throw new Error('Invalid approveOrFail value');
         }
       })(),
       // eslint-disable-next-line max-len
@@ -790,14 +796,14 @@ export function resolveTask(
               [userId]: { [approveOrFail]: additionalData },
             });
           default:
-            throw new Error("Invalid approveOrFail value");
+            throw new Error('Invalid approveOrFail value');
         }
       })(),
       // eslint-disable-next-line max-len
       additionalData: additionalData
         ? JSON.stringify({ entries: additionalData, decision: additionalData })
         : undefined,
-    }
+    },
   );
 
   // eslint-disable-next-line no-param-reassign
@@ -809,23 +815,23 @@ export function resolveTask(
       ...mutation2.variables.input,
     },
     [
-      "TASK_MANAGEMENT_MUTATION_REQ",
-      "TASK_MANAGEMENT_MUTATION_RESP",
-      "TASK_MANAGEMENT_MUTATION_ERR",
+      'TASK_MANAGEMENT_MUTATION_REQ',
+      'TASK_MANAGEMENT_MUTATION_RESP',
+      'TASK_MANAGEMENT_MUTATION_ERR',
     ],
     {
       requestedDateTime,
       clientMutationId: mutation.clientMutationId,
       clientMutationLabel,
       userId: user.id,
-    }
+    },
   );
 }
 
 export function confirmPullingDataFromApiEtl(
   nameOfService,
   clientMutationLabel,
-  extraParams = {}
+  extraParams = {},
 ) {
   // For PAA-based ETL, new mutation
   if (extraParams.paaName && extraParams.districtCode) {
@@ -842,9 +848,9 @@ export function confirmPullingDataFromApiEtl(
     }
 
     const mutation = formatMutation(
-      "paaBasedEtl",
+      'paaBasedEtl',
       mutationInput,
-      clientMutationLabel
+      clientMutationLabel,
     );
     const requestedDateTime = new Date();
     return graphql(
@@ -859,7 +865,7 @@ export function confirmPullingDataFromApiEtl(
         clientMutationId: mutation.clientMutationId,
         clientMutationLabel,
         requestedDateTime,
-      }
+      },
     );
   }
 
@@ -878,9 +884,9 @@ export function confirmPullingDataFromApiEtl(
   }
 
   const mutation = formatMutation(
-    "etlServiceMutation",
+    'etlServiceMutation',
     mutationInput,
-    clientMutationLabel
+    clientMutationLabel,
   );
   const requestedDateTime = new Date();
   return graphql(
@@ -895,35 +901,35 @@ export function confirmPullingDataFromApiEtl(
       clientMutationId: mutation.clientMutationId,
       clientMutationLabel,
       requestedDateTime,
-    }
+    },
   );
 }
 
 export function fetchMutationByLabel(clientMutationLabel) {
   const MUTATION_RECEIVED_STATUS = 0;
   const payload = formatPageQuery(
-    "mutationLogs",
+    'mutationLogs',
     [
       `clientMutationLabel: "${clientMutationLabel}", status: ${MUTATION_RECEIVED_STATUS}`,
     ],
     [
-      "id",
-      "status",
-      "error",
-      "clientMutationId",
-      "clientMutationLabel",
-      "clientMutationDetails",
-      "requestDateTime",
-      "jsonExt",
-      "autogeneratedCode",
-    ]
+      'id',
+      'status',
+      'error',
+      'clientMutationId',
+      'clientMutationLabel',
+      'clientMutationDetails',
+      'requestDateTime',
+      'jsonExt',
+      'autogeneratedCode',
+    ],
   );
   return graphql(payload, ACTION_TYPE.FETCH_ACTIVE_MUTATIONS);
 }
 
 export function downloadGroups(params) {
   const payload = `{groupExport${
-    !!params && params.length ? `(${params.join(",")})` : ""
+    !!params && params.length ? `(${params.join(',')})` : ''
   }}`;
   alert(payload);
   return graphql(payload, ACTION_TYPE.GROUP_EXPORT);
@@ -931,14 +937,14 @@ export function downloadGroups(params) {
 
 export function downloadIndividuals(params) {
   const payload = `{individualExport${
-    !!params && params.length ? `(${params.join(",")})` : ""
+    !!params && params.length ? `(${params.join(',')})` : ''
   }}`;
   return graphql(payload, ACTION_TYPE.INDIVIDUAL_EXPORT);
 }
 
 export function downloadGroupIndividuals(params) {
   const payload = `{groupIndividualExport${
-    !!params && params.length ? `(${params.join(",")})` : ""
+    !!params && params.length ? `(${params.join(',')})` : ''
   }}`;
   return graphql(payload, ACTION_TYPE.GROUP_INDIVIDUAL_EXPORT);
 }

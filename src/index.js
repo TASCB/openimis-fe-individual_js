@@ -4,11 +4,12 @@
 import flatten from 'flat';
 import { FormattedMessage } from '@openimis/fe-core';
 import React from 'react';
-import { Person, People } from '@material-ui/icons';
+import { Person, People, Block } from '@material-ui/icons';
 import MenuIcon from '@material-ui/icons/Menu';
 import messages_en from './translations/en.json';
 import reducer from './reducer';
 import IndividualsPage from './pages/IndividualsPage';
+import NonConsentedHouseholdsPage from './pages/NonConsentedHouseholdsPage';
 import IndividualPage from './pages/IndividualPage';
 import EnrollmentPage from './pages/EnrollmentPage';
 import GroupsPage from './pages/GroupsPage';
@@ -65,6 +66,7 @@ import { BenefitsGroupTabLabel, BenefitsGroupTabPanel } from './components/Benef
 import ImportDataApiPage from './pages/ImportDataApiPage';
 
 const ROUTE_INDIVIDUALS = 'individuals';
+const ROUTE_NON_CONSENTED = 'non-consented';
 const ROUTE_INDIVIDUAL = 'individuals/individual';
 const ROUTE_INDIVIDUAL_FROM_GROUP = 'groups/group/individuals/individual';
 const ROUTE_GROUPS = 'groups';
@@ -82,6 +84,7 @@ const DEFAULT_CONFIG = {
   reducers: [{ key: 'individual', reducer }],
   'core.Router': [
     { path: ROUTE_INDIVIDUALS, component: IndividualsPage },
+    { path: ROUTE_NON_CONSENTED, component: NonConsentedHouseholdsPage },
     { path: ROUTE_GROUPS, component: GroupsPage },
     { path: ROUTE_ENROLLMENT, component: EnrollmentPage },
     { path: ROUTE_GROUP_ENROLLMENT, component: EnrollmentGroupPage },
@@ -97,6 +100,13 @@ const DEFAULT_CONFIG = {
       route: `/${ROUTE_INDIVIDUALS}`,
       filter: (rights) => rights.includes(RIGHT_INDIVIDUAL_SEARCH),
       id: 'individual.individuals',
+    },
+    {
+      text: <FormattedMessage module={INDIVIDUAL_MODULE_NAME} id="menu.nonConsentedHouseholds" />,
+      icon: <Block />,
+      route: `/${ROUTE_NON_CONSENTED}`,
+      filter: (rights) => rights.includes(RIGHT_INDIVIDUAL_SEARCH),
+      id: 'individual.nonConsentedHouseholds',
     },
     {
       text: <FormattedMessage module={INDIVIDUAL_MODULE_NAME} id="menu.groups" />,

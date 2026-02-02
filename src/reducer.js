@@ -14,6 +14,7 @@ import { REQUEST, SUCCESS, ERROR, CLEAR, SET } from "./util/action-type";
 export const ACTION_TYPE = {
   MUTATION: "INDIVIDUAL_MUTATION",
   SEARCH_INDIVIDUALS: "INDIVIDUAL_INDIVIDUALS",
+  SEARCH_NONCONSENTED_HOUSEHOLDS: "INDIVIDUAL_NONCONSENTED_HOUSEHOLDS",
   SEARCH_GROUP_INDIVIDUALS: "GROUP_INDIVIDUAL_GROUP_INDIVIDUALS",
   SEARCH_GROUPS: "GROUP_GROUPS",
   GET_INDIVIDUAL: "INDIVIDUAL_INDIVIDUAL",
@@ -128,6 +129,14 @@ function reducer(
     individualDataUploadHistory: [],
     individualDataUploadHistoryPageInfo: {},
     errorIndividualDataUploadHistory: null,
+
+    nonConsentedHouseholds: [],
+    nonConsentedHouseholdsPageInfo: {},
+    nonConsentedHouseholdsTotalCount: 0,
+    fetchingNonConsentedHouseholds: false,
+    fetchedNonConsentedHouseholds: false,
+    errorNonConsentedHouseholds: null,
+
 
     fetchingGroupIndividualHistory: false,
     errorGroupIndividualHistory: null,
@@ -273,6 +282,40 @@ function reducer(
           : null,
         errorIndividuals: formatGraphQLError(action.payload),
       };
+    case REQUEST(ACTION_TYPE.SEARCH_NONCONSENTED_HOUSEHOLDS):
+      return {
+        ...state,
+        fetchingNonConsentedHouseholds: true,
+        fetchedNonConsentedHouseholds: false,
+        nonConsentedHouseholds: [],
+        nonConsentedHouseholdsPageInfo: {},
+        nonConsentedHouseholdsTotalCount: 0,
+        errorNonConsentedHouseholds: null,
+      };
+
+    case SUCCESS(ACTION_TYPE.SEARCH_NONCONSENTED_HOUSEHOLDS):
+      return {
+        ...state,
+        fetchingNonConsentedHouseholds: false,
+        fetchedNonConsentedHouseholds: true,
+        nonConsentedHouseholds: parseData(action.payload.data.individual)?.map((i) => ({
+          ...i,
+          id: decodeId(i.id),
+        })),
+        nonConsentedHouseholdsPageInfo: pageInfo(action.payload.data.individual),
+        nonConsentedHouseholdsTotalCount: action.payload.data.individual
+          ? action.payload.data.individual.totalCount
+          : 0,
+        errorNonConsentedHouseholds: formatGraphQLError(action.payload),
+      };
+
+    case ERROR(ACTION_TYPE.SEARCH_NONCONSENTED_HOUSEHOLDS):
+      return {
+        ...state,
+        fetchingNonConsentedHouseholds: false,
+        errorNonConsentedHouseholds: formatServerError(action.payload),
+      };
+
     case SUCCESS(ACTION_TYPE.SEARCH_INDIVIDUAL_HISTORY):
       return {
         ...state,

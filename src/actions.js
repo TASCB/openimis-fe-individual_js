@@ -225,6 +225,59 @@ export function fetchIndividuals(mm, params) {
   );
   return graphql(payload, ACTION_TYPE.SEARCH_INDIVIDUALS);
 }
+//==================NON CONSENTED========================
+export function fetchNonConsentedHouseholds(mm, params = {}) {
+  const pageSize = params?.pageSize ?? 10;
+  const after = params?.after ?? null;
+  const before = params?.before ?? null;
+
+  // If Searcher is going "back", it typically provides `before`
+  const isBackward = !!before;
+
+  // Build variable definitions ONLY for vars we will use
+  const varDefs = ['$pageSize: Int!'];
+  const variables = { pageSize };
+
+  const gqlArgs = [
+    'isNonConsented: true',
+    'isDeleted: false',
+  ];
+
+  if (isBackward) {
+    varDefs.push('$before: String');
+    variables.before = before;
+    gqlArgs.push('last: $pageSize');
+    gqlArgs.push('before: $before');
+  } else {
+    gqlArgs.push('first: $pageSize');
+    if (after) {
+      varDefs.push('$after: String');
+      variables.after = after;
+      gqlArgs.push('after: $after');
+    }
+  }
+
+  const query = `
+    query (${varDefs.join(', ')}) {
+      individual(${gqlArgs.join(', ')}) {
+        totalCount
+        pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
+        edges {
+          node {
+            ${INDIVIDUAL_FULL_PROJECTION(mm).join('\n')}
+          }
+        }
+      }
+    }
+  `;
+
+  return graphqlWithVariables(
+    query,
+    variables,
+    ACTION_TYPE.SEARCH_NONCONSENTED_HOUSEHOLDS,
+  );
+}
+
 
 export function fetchGroupIndividuals(params) {
   const payload = formatPageQueryWithCount(

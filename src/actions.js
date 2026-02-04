@@ -148,28 +148,69 @@ export function fetchApiEtlServices() {
  * Send a fully-formed GraphQL document via graphqlWithVariables.
  * This avoids any malformed-string issues and supports optional filters.
  */
-export function fetchPulledQuestionnaires(
-  regionCode = null,
-  districtCode = null,
-) {
+export function fetchPulledQuestionnaires(mm, params = {}) {
+  const pageSize = params?.pageSize ?? 10;
+  const after = params?.after ?? null;
+  const before = params?.before ?? null;
+
+  const regionCode = params?.regionCode ?? null;
+  const districtCode = params?.districtCode ?? null;
+
+  const isBackward = !!before;
+
+  const varDefs = ["$pageSize: Int!"];
+  const variables = { pageSize };
+
+  const gqlArgs = [];
+
+  if (regionCode) {
+    varDefs.push("$regionCode: String");
+    variables.regionCode = regionCode;
+    gqlArgs.push("regionCode: $regionCode");
+  }
+
+  if (districtCode) {
+    varDefs.push("$districtCode: String");
+    variables.districtCode = districtCode;
+    gqlArgs.push("districtCode: $districtCode");
+  }
+
+  if (isBackward) {
+    varDefs.push("$before: String");
+    variables.before = before;
+    gqlArgs.push("last: $pageSize");
+    gqlArgs.push("before: $before");
+  } else {
+    gqlArgs.push("first: $pageSize");
+    if (after) {
+      varDefs.push("$after: String");
+      variables.after = after;
+      gqlArgs.push("after: $after");
+    }
+  }
+
+  // NOTE: we removed totalCount from the query (auto-created connection won't expose it)
   const query = `
-    query PulledQuestionnaires($regionCode: String, $districtCode: String) {
-      pulledQuestionnaires(regionCode: $regionCode, districtCode: $districtCode) {
-        paaName
-        numberOfHouseholds
-        numberOfMembers
-        datePulled
-        status
-        errorMessage
+    query PulledQuestionnaires(${varDefs.join(", ")}) {
+      pulledQuestionnaires(${gqlArgs.join(", ")}) {
+        pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
+        edges {
+          node {
+            paaName
+            numberOfHouseholds
+            numberOfMembers
+            datePulled
+            status
+            errorMessage
+          }
+        }
       }
     }
   `;
-  return graphqlWithVariables(
-    query,
-    { regionCode, districtCode },
-    ACTION_TYPE.PULLED_QUESTIONNAIRES,
-  );
+
+  return graphqlWithVariables(query, variables, ACTION_TYPE.PULLED_QUESTIONNAIRES);
 }
+
 const AVAILABLE_QUESTIONNAIRES_PROJECTION = () => [
   'identity',
   'id',

@@ -164,6 +164,8 @@ function reducer(
     fetchingPulledQ: false,
     fetchedPulledQ: false,
     pulledQ: [],
+    pulledQPageInfo: null,
+    pulledQTotalCount: 0,
     errorPulledQ: null,
 
     availableQuestionnaires: [],
@@ -774,13 +776,19 @@ function reducer(
         fetchingPulledQ: true,
         fetchedPulledQ: false,
         pulledQ: [],
+        pulledQPageInfo: null,
+        pulledQTotalCount: 0,
         errorPulledQ: null,
       };
+
     case SUCCESS(ACTION_TYPE.PULLED_QUESTIONNAIRES): {
-      const rows =
+      const conn =
         action.payload?.data?.pulledQuestionnaires ??
         action.payload?.data?.data?.pulledQuestionnaires ??
-        [];
+        null;
+
+      const edges = conn?.edges || [];
+      const rows = edges.map((e) => e.node);
 
       return {
         ...state,
@@ -788,7 +796,7 @@ function reducer(
         fetchedPulledQ: true,
         pulledQ: (rows || []).map((r) => ({
           ...r,
-          // normalize: backend might send snake_case in some paths/older code
+          // normalize if BE ever sends snake_case in older paths
           paaName: r.paaName ?? r.paa_name,
           numberOfHouseholds: r.numberOfHouseholds ?? r.number_of_households,
           numberOfMembers: r.numberOfMembers ?? r.number_of_members,
@@ -796,6 +804,9 @@ function reducer(
           errorMessage: r.errorMessage ?? r.error_message,
           status: r.status,
         })),
+        pulledQPageInfo: conn?.pageInfo || null,
+        pulledQTotalCount:
+          typeof conn?.totalCount === "number" ? conn.totalCount : rows.length,
         errorPulledQ: formatGraphQLError(action.payload),
       };
     }
@@ -806,6 +817,7 @@ function reducer(
         fetchingPulledQ: false,
         errorPulledQ: formatServerError(action.payload),
       };
+
     case REQUEST(ACTION_TYPE.FETCH_ACTIVE_MUTATIONS):
       return {
         ...state,

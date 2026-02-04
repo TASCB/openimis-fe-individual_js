@@ -1,27 +1,49 @@
 // src/components/NonConsentedHouseholdsSearcher.js
-import React, { Component } from 'react';
-import { injectIntl } from 'react-intl';
-import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
-import { withTheme, withStyles } from '@material-ui/core/styles';
+import React, { Component } from "react";
+import { injectIntl } from "react-intl";
+import { bindActionCreators } from "redux";
+import { connect } from "react-redux";
+import { withTheme, withStyles } from "@material-ui/core/styles";
 import {
   Searcher,
   withModulesManager,
   formatMessage,
   formatMessageWithValues,
-} from '@openimis/fe-core';
+} from "@openimis/fe-core";
 
-import { fetchNonConsentedHouseholds } from '../actions';
+import { fetchNonConsentedHouseholds } from "../actions";
 import {
   DEFAULT_PAGE_SIZE,
   ROWS_PER_PAGE_OPTIONS,
   INDIVIDUAL_MODULE_NAME,
-} from '../constants';
+} from "../constants";
 
-import NonConsentedHouseholdsFilter from './NonConsentedHouseholdsFilter';
+import NonConsentedHouseholdsFilter from "./NonConsentedHouseholdsFilter";
 
 const styles = (theme) => ({
-  // optional custom styling
+  tableWrapper: {
+    // Make rows less "thin"
+    "& .MuiTableCell-root": {
+      paddingTop: theme.spacing(1.5),
+      paddingBottom: theme.spacing(1.5),
+    },
+
+    // If Searcher uses sizeSmall cells, override them too
+    "& .MuiTableCell-sizeSmall": {
+      paddingTop: theme.spacing(1.5),
+      paddingBottom: theme.spacing(1.5),
+    },
+
+    // Increase row height
+    "& .MuiTableRow-root": {
+      height: 56,
+    },
+
+    // Stronger header like members table
+    "& .MuiTableHead-root .MuiTableCell-root": {
+      fontWeight: 600,
+    },
+  },
 });
 
 class NonConsentedHouseholdsSearcher extends Component {
@@ -32,28 +54,21 @@ class NonConsentedHouseholdsSearcher extends Component {
   }
 
   /**
-   * jsonExt may contain:
-   * - jsonExt.raw (object)  ✅ ideal
-   * OR
-   * - jsonExt.json_ext (stringified JSON) ✅ current ETL structure
-   *
-   * This helper normalizes it into a usable object.
+   * Parse jsonExt.json_ext into object (works whether it's object or string)
    */
-  getRaw = (individual) => {
+  getNested = (individual) => {
     const je = individual?.jsonExt;
     if (!je) return {};
 
-    // Preferred structure
-    if (je.raw && typeof je.raw === 'object') return je.raw;
+    const nested = je.json_ext || je.jsonExt || je["json_ext"];
+    if (!nested) return {};
 
-    // Current structure: nested string
-    const nested = je.json_ext || je.jsonExt || je['json_ext'];
-    if (typeof nested === 'string') {
+    if (typeof nested === "object") return nested;
+
+    if (typeof nested === "string") {
       try {
         const parsed = JSON.parse(nested);
-        // parsed might be { raw: {...}, ... } or directly raw-like
-        if (parsed?.raw && typeof parsed.raw === 'object') return parsed.raw;
-        if (parsed && typeof parsed === 'object') return parsed;
+        return parsed && typeof parsed === "object" ? parsed : {};
       } catch (e) {
         return {};
       }
@@ -63,9 +78,35 @@ class NonConsentedHouseholdsSearcher extends Component {
   };
 
   /**
-   * Helper: build a parent chain for a location (village -> ward -> district -> region).
-   * This depends on Location.FlatProjection including `parent { ... }`.
+   * Get raw payload (prefers jsonExt.json_ext.raw)
    */
+  getRaw = (individual) => {
+    const je = individual?.jsonExt;
+    if (!je) return {};
+
+    // If backend already provides raw directly
+    if (je.raw && typeof je.raw === "object") return je.raw;
+
+    const nested = je.json_ext || je.jsonExt || je["json_ext"];
+
+    if (nested && typeof nested === "object") {
+      if (nested.raw && typeof nested.raw === "object") return nested.raw;
+      return nested;
+    }
+
+    if (typeof nested === "string") {
+      try {
+        const parsed = JSON.parse(nested);
+        if (parsed?.raw && typeof parsed.raw === "object") return parsed.raw;
+        if (parsed && typeof parsed === "object") return parsed;
+      } catch (e) {
+        return {};
+      }
+    }
+
+    return {};
+  };
+
   getLocationChain = (loc, maxDepth = 10) => {
     const chain = [];
     let cur = loc;
@@ -80,39 +121,22 @@ class NonConsentedHouseholdsSearcher extends Component {
 
   getVillageName = (individual) => {
     const loc = individual?.location;
-    if (!loc) return '-';
-    return loc?.name ?? loc?.code ?? '-';
+    if (!loc) return "-";
+    return loc?.name ?? loc?.code ?? "-";
   };
 
   getDistrictName = (individual) => {
     const chain = this.getLocationChain(individual?.location);
-    if (!chain.length) return '-';
-
-    // Common chain: [village, ward, district, region]
+    if (!chain.length) return "-";
     return (
-      (chain[2] && (chain[2].name || chain[2].code))
-      || (chain[1] && (chain[1].name || chain[1].code))
-      || '-'
+      (chain[2] && (chain[2].name || chain[2].code)) ||
+      (chain[1] && (chain[1].name || chain[1].code)) ||
+      "-"
     );
   };
 
-  /**
-   * Searcher calls fetch(params) with:
-   * - pageSize, after, before (cursor pagination)
-   * - any filters returned by FilterPane
-   *
-   * We forward these to the dedicated action.
-   *
-   * NOTE: backend must understand:
-   * - isNonConsented (we hardcode in action)
-   * - filters mapping (we keep minimal & safe)
-   */
   fetch = (params) => {
     const { fetchNonConsentedHouseholds, modulesManager } = this.props;
-
-    // Keep it minimal: pass through pagination always.
-    // Optional filters (tf4No, interviewKey, firstName, lastName, locationId)
-    // will be used later once backend supports them.
     fetchNonConsentedHouseholds(modulesManager, {
       ...params,
       pageSize: params?.pageSize ?? this.defaultPageSize,
@@ -122,35 +146,46 @@ class NonConsentedHouseholdsSearcher extends Component {
   headers = () => {
     const { intl } = this.props;
     return [
-      // Prefer module-based translations; if missing, openIMIS will show key
-      formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'individual.tf4No'),
-      formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'individual.headName'),
-      formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'individual.district'),
-      formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'individual.village'),
-      formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'individual.interviewKey'),
+      formatMessage(intl, INDIVIDUAL_MODULE_NAME, "individual.tf4No"),
+      formatMessage(intl, INDIVIDUAL_MODULE_NAME, "individual.headName"),
+      formatMessage(intl, INDIVIDUAL_MODULE_NAME, "individual.district"),
+      formatMessage(intl, INDIVIDUAL_MODULE_NAME, "individual.village"),
+      formatMessage(intl, INDIVIDUAL_MODULE_NAME, "individual.interviewKey"),
     ];
   };
 
   itemFormatters = () => [
-    // TF4 Number (from raw payload)
+    // TF4 Number
     (individual) => {
+      if (individual?.tf4No) return individual.tf4No;
       const raw = this.getRaw(individual);
-      return raw?.TF4_NO || raw?.tf4_no || raw?.tf4No || '-';
+      const v = raw?.TF4_NO || raw?.tf4_no || raw?.tf4No;
+      return v != null ? String(v) : "-";
     },
 
-    // Head Name (stub person first/last)
-    (individual) => `${individual?.firstName || ''} ${individual?.lastName || ''}`.trim() || '-',
+    // Head Name
+    (individual) =>
+      `${individual?.firstName || ""} ${individual?.lastName || ""}`.trim() ||
+      "-",
 
-    // District (from location chain)
+    // District
     (individual) => this.getDistrictName(individual),
 
-    // Village (location itself)
+    // Village
     (individual) => this.getVillageName(individual),
 
-    // Interview Key (from raw payload)
+    // Interview Key (use interviewKey GraphQL field first; fallback to jsonExt external_id)
     (individual) => {
-      const raw = this.getRaw(individual);
-      return raw?.interview__key || raw?.interviewKey || raw?.interview_key || '-';
+      if (individual?.interviewKey) return individual.interviewKey;
+
+      const je = individual?.jsonExt || {};
+      const v =
+        je?.external_id ||
+        je?.externalId ||
+        je?.interview_key ||
+        je?.interviewKey;
+
+      return v != null ? String(v) : "-";
     },
   ];
 
@@ -159,36 +194,43 @@ class NonConsentedHouseholdsSearcher extends Component {
   render() {
     const {
       intl,
+      classes,
       nonConsentedHouseholds,
       nonConsentedHouseholdsTotalCount,
+      nonConsentedHouseholdsPageInfo,
       fetchingNonConsentedHouseholds,
       fetchedNonConsentedHouseholds,
       errorNonConsentedHouseholds,
     } = this.props;
 
     return (
-      <Searcher
-        module="individual"
-        items={nonConsentedHouseholds}
-        itemsPageInfo={{ totalCount: nonConsentedHouseholdsTotalCount }}
-        fetchingItems={fetchingNonConsentedHouseholds}
-        fetchedItems={fetchedNonConsentedHouseholds}
-        errorItems={errorNonConsentedHouseholds}
-        tableTitle={formatMessageWithValues(
-          intl,
-          INDIVIDUAL_MODULE_NAME,
-          'nonConsentedHouseholds.searcherTitle',
-          { count: nonConsentedHouseholdsTotalCount || 0 },
-        )}
-        headers={this.headers}
-        itemFormatters={this.itemFormatters}
-        fetch={this.fetch}
-        rowsPerPageOptions={this.rowsPerPageOptions}
-        defaultPageSize={this.defaultPageSize}
-        rowIdentifier={this.rowIdentifier}
-        // ✅ show filter/search UI above the table
-        FilterPane={NonConsentedHouseholdsFilter}
-      />
+      <div className={classes.tableWrapper}>
+        <Searcher
+          module="individual"
+          items={nonConsentedHouseholds}
+          itemsPageInfo={{
+            totalCount: nonConsentedHouseholdsTotalCount,
+            ...(nonConsentedHouseholdsPageInfo || {}),
+          }}
+          fetchingItems={fetchingNonConsentedHouseholds}
+          fetchedItems={fetchedNonConsentedHouseholds}
+          errorItems={errorNonConsentedHouseholds}
+          tableTitle={formatMessageWithValues(
+            intl,
+            INDIVIDUAL_MODULE_NAME,
+            "nonConsentedHouseholds.searcherTitle",
+            { count: nonConsentedHouseholdsTotalCount || 0 },
+          )}
+          headers={this.headers}
+          itemFormatters={this.itemFormatters}
+          fetch={this.fetch}
+          rowsPerPageOptions={this.rowsPerPageOptions}
+          defaultPageSize={this.defaultPageSize}
+          rowIdentifier={this.rowIdentifier}
+          FilterPane={NonConsentedHouseholdsFilter}
+          resetFiltersOnUnmount
+        />
+      </div>
     );
   }
 }
@@ -196,6 +238,7 @@ class NonConsentedHouseholdsSearcher extends Component {
 const mapStateToProps = (state) => ({
   nonConsentedHouseholds: state.individual.nonConsentedHouseholds,
   nonConsentedHouseholdsTotalCount: state.individual.nonConsentedHouseholdsTotalCount,
+  nonConsentedHouseholdsPageInfo: state.individual.nonConsentedHouseholdsPageInfo,
   fetchingNonConsentedHouseholds: state.individual.fetchingNonConsentedHouseholds,
   fetchedNonConsentedHouseholds: state.individual.fetchedNonConsentedHouseholds,
   errorNonConsentedHouseholds: state.individual.errorNonConsentedHouseholds,

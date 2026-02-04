@@ -1,4 +1,3 @@
-/// src/components/NonConsentedHouseholdsFilter.js
 import React from 'react';
 import { withStyles } from '@material-ui/core/styles';
 import { injectIntl } from 'react-intl';
@@ -12,7 +11,7 @@ const styles = (theme) => ({
   },
   // Add breathing room between blocks
   filterBlock: {
-    marginTop: theme.spacing(2), // ✅ increased spacing (was 1)
+    marginTop: theme.spacing(2),
   },
 });
 
@@ -39,7 +38,7 @@ function NonConsentedHouseholdsFilter({
 
   return (
     <div className={classes.root}>
-      {/* ✅ Title removed, only spacing kept */}
+      {/* only spacing kept */}
       <div className={classes.filterBlock}>
         <Filter
           intl={intl}

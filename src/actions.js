@@ -59,6 +59,9 @@ const INDIVIDUAL_FULL_PROJECTION = (mm, withGroupIndividuals = false) => {
     'jsonExt',
     'version',
     'userUpdated {username}',
+    'tf4No',
+    'interviewKey',
+    'jsonExt',
     `location${mm.getProjection('location.Location.FlatProjection')}`,
   ];
 
@@ -230,41 +233,53 @@ export function fetchNonConsentedHouseholds(mm, params = {}) {
   const pageSize = params?.pageSize ?? 10;
   const after = params?.after ?? null;
   const before = params?.before ?? null;
-
-  // If Searcher is going "back", it typically provides `before`
   const isBackward = !!before;
 
-  // Build variable definitions ONLY for vars we will use
-  const varDefs = ['$pageSize: Int!'];
+  // Searcher passes filters either as an array of gql strings OR as an object map.
+  const normalizeFilters = (f) => {
+    if (!f) return [];
+    if (Array.isArray(f)) return f.filter(Boolean);
+    if (typeof f === "object") {
+      return Object.values(f)
+        .map((x) => x?.filter)
+        .filter(Boolean);
+    }
+    return [];
+  };
+
+  const extraFilters = normalizeFilters(params.filters);
+
+  const varDefs = ["$pageSize: Int!"];
   const variables = { pageSize };
 
   const gqlArgs = [
-    'isNonConsented: true',
-    'isDeleted: false',
+    "isNonConsented: true",
+    "isDeleted: false",
+    ...extraFilters,
   ];
 
   if (isBackward) {
-    varDefs.push('$before: String');
+    varDefs.push("$before: String");
     variables.before = before;
-    gqlArgs.push('last: $pageSize');
-    gqlArgs.push('before: $before');
+    gqlArgs.push("last: $pageSize");
+    gqlArgs.push("before: $before");
   } else {
-    gqlArgs.push('first: $pageSize');
+    gqlArgs.push("first: $pageSize");
     if (after) {
-      varDefs.push('$after: String');
+      varDefs.push("$after: String");
       variables.after = after;
-      gqlArgs.push('after: $after');
+      gqlArgs.push("after: $after");
     }
   }
 
   const query = `
-    query (${varDefs.join(', ')}) {
-      individual(${gqlArgs.join(', ')}) {
+    query (${varDefs.join(", ")}) {
+      individual(${gqlArgs.join(", ")}) {
         totalCount
         pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
         edges {
           node {
-            ${INDIVIDUAL_FULL_PROJECTION(mm).join('\n')}
+            ${INDIVIDUAL_FULL_PROJECTION(mm).join("\n")}
           }
         }
       }
@@ -277,7 +292,6 @@ export function fetchNonConsentedHouseholds(mm, params = {}) {
     ACTION_TYPE.SEARCH_NONCONSENTED_HOUSEHOLDS,
   );
 }
-
 
 export function fetchGroupIndividuals(params) {
   const payload = formatPageQueryWithCount(

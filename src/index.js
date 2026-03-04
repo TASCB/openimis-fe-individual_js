@@ -6,6 +6,8 @@ import { FormattedMessage } from '@openimis/fe-core';
 import React from 'react';
 import { Person, People, Block } from '@material-ui/icons';
 import MenuIcon from '@material-ui/icons/Menu';
+import AssessmentIcon from '@material-ui/icons/Assessment';
+import FormatListBulletedIcon from '@material-ui/icons/FormatListBulleted';
 import messages_en from './translations/en.json';
 import reducer from './reducer';
 import IndividualsPage from './pages/IndividualsPage';
@@ -44,6 +46,7 @@ import {
   INDIVIDUAL_MODULE_NAME,
   RIGHT_GROUP_SEARCH,
   RIGHT_INDIVIDUAL_SEARCH,
+  RIGHT_PMT_RERUN,
 } from './constants';
 import { GroupCreateTaskItemFormatters, GroupCreateTaskTableHeaders } from './components/tasks/GroupCreateTasks';
 import IndividualsUploadDialog from './components/dialogs/IndividualsUploadDialog';
@@ -64,6 +67,8 @@ import EnrollmentGroupPage from './pages/EnrollmentGroupPage';
 import GroupMenu from './components/dialogs/GroupMenu';
 import { BenefitsGroupTabLabel, BenefitsGroupTabPanel } from './components/BenefitsGroupTab';
 import ImportDataApiPage from './pages/ImportDataApiPage';
+import PmtConfigurationPage from './pages/PmtConfigurationPage';
+import PmtEnrollmentListPage from './pages/PmtEnrollmentListPage';
 
 const ROUTE_INDIVIDUALS = 'individuals';
 const ROUTE_NON_CONSENTED = 'non-consented';
@@ -74,6 +79,8 @@ const ROUTE_GROUP = 'groups/group';
 const ROUTE_ENROLLMENT = 'individuals/enrollment';
 const ROUTE_GROUP_ENROLLMENT = 'groups/enrollment';
 const ROUTE_API_IMPORTS = 'imports';
+const ROUTE_PMT_CONFIGURATION = 'pmt-configuration';
+const ROUTE_PMT_ENROLLMENT_LIST = 'pmt/enrollment-list';
 
 const BENEFIT_PLAN_TABS_LABEL_REF_KEY = 'socialProtection.BenefitPlansListTabLabel';
 const BENEFIT_PLAN_TABS_PANEL_REF_KEY = 'socialProtection.BenefitPlansListTabPanel';
@@ -92,6 +99,8 @@ const DEFAULT_CONFIG = {
     { path: `${ROUTE_INDIVIDUAL_FROM_GROUP}/:individual_uuid?`, component: IndividualPage },
     { path: `${ROUTE_GROUP}/:group_uuid?`, component: GroupPage },
     { path: ROUTE_API_IMPORTS, component: ImportDataApiPage },
+    { path: ROUTE_PMT_CONFIGURATION, component: PmtConfigurationPage },
+    { path: ROUTE_PMT_ENROLLMENT_LIST, component: PmtEnrollmentListPage },
   ],
   'socialProtection.MainMenu': [
     {
@@ -122,6 +131,20 @@ const DEFAULT_CONFIG = {
       filter: (rights) => rights.includes(RIGHT_INDIVIDUAL_SEARCH),
       id: 'individual.api_imports',
     },
+    {
+      text: <FormattedMessage module={INDIVIDUAL_MODULE_NAME} id="pmt.menu" />,
+      icon: <AssessmentIcon />,
+      route: `/${ROUTE_PMT_CONFIGURATION}`,
+      filter: (rights) => rights.includes(RIGHT_PMT_RERUN),
+      id: 'individual.pmt_configuration',
+    },
+    {
+      text: <FormattedMessage module={INDIVIDUAL_MODULE_NAME} id="pmt.enrollment.page.title" />,
+      icon: <FormatListBulletedIcon />,
+      route: `/${ROUTE_PMT_ENROLLMENT_LIST}`,
+      filter: (rights) => rights.includes(RIGHT_PMT_RERUN),
+      id: 'individual.pmt_enrollment_list',
+    },
   ],
   refs: [
     { key: 'individual.route.individual', ref: ROUTE_INDIVIDUAL },
@@ -142,6 +165,7 @@ const DEFAULT_CONFIG = {
   ],
   'individual.IndividualsUploadDialog': IndividualsUploadDialog,
   'individual.group.GroupMenu': GroupMenu,
+  'deduplication.deduplicationFieldSelectionDialog': [],
   'individual.TabPanel.label': [
     BenefitPlansListTabLabel,
     IndividalChangelogTabLabel,

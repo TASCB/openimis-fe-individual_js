@@ -304,5 +304,94 @@
     "confirmPullingData.message": "Are you sure you want to confirm pulling data from selected API service?",
     "confirmPullingData.cancel": "Cancel",
     "confirmPullingData.confirm": "Confirm"
+  },
+  "pmt": {
+    "menu": "PMT Configuration",
+    "page": {
+      "title": "Poverty Management Tool Configuration",
+      "description": "Recalculate household poverty classification using a new PMT cutoff value"
+    },
+    "configuration": {
+      "title": "PMT Configuration",
+      "cutoff": "PMT Cutoff",
+      "cutoffHint": "Score threshold (0-50). Households with score ≤ cutoff are classified as POOR",
+      "region": "Region",
+      "district": "District",
+      "selectRegion": "Select Region",
+      "selectDistrict": "Select District",
+      "button": "Apply PMT Cutoff & Refresh Results",
+      "info": "This will recalculate PMT scores for all households in the selected district using the new cutoff"
+    },
+    "results": {
+      "title": "Household PMT Results",
+      "empty": "Please configure PMT settings and apply above to see results",
+      "refreshing": "Refreshing results..."
+    },
+    "household": {
+      "groupCode": "Group Code",
+      "headName": "Head Name",
+      "pmtScore": "PMT Score",
+      "status": "Status",
+      "numberOfMembers": "# Members",
+      "location": "Location"
+    },
+    "status": {
+      "poor": "Poor",
+      "nonPoor": "Non-Poor",
+      "all": "All"
+    },
+    "filter": {
+      "title": "Filters",
+      "searchPlaceholder": "Search by group code or head name",
+      "status": "Status",
+      "region": "Region",
+      "district": "District",
+      "numberOfMembers": "Number of Members",
+      "numberOfMembers_all": "All",
+      "numberOfMembers_1_3": "1-3 members",
+      "numberOfMembers_4_6": "4-6 members",
+      "numberOfMembers_7plus": "7+ members"
+    },
+    "button": {
+      "applyConfiguration": "Apply PMT Cutoff",
+      "downloadPdf": "Download PDF",
+      "export": "Export Results",
+      "deduplicate": "Deduplicate"
+    },
+    "enrollment": {
+      "page": {
+        "title": "PMT Enrollment List"
+      },
+      "searcherResultsTitle": "{pmtEnrollmentTotalCount} Households Found"
+    },
+    "message": {
+      "success": "PMT cutoff applied successfully",
+      "error": "Failed to apply PMT cutoff",
+      "loading": "Processing...",
+      "noResults": "No households found matching your criteria",
+      "permissionDenied": "You don't have permission to run PMT"
+    },
+    "confirm": {
+      "title": "Apply New PMT Cutoff?",
+      "message": "This will recalculate PMT scores for {districtName} district using cutoff {cutoff}. Continue?",
+      "yes": "Apply",
+      "no": "Cancel"
+    },
+    "help": {
+      "cutoff": "The PMT (Poverty Measurement Tool) cutoff is a score threshold. Households scoring at or below this value are classified as POOR, above it as NON-POOR. Default is 11.01",
+      "district": "Select a district to recalculate PMT for all households in that district"
+    },
+    "progress": {
+      "title": "PMT Recalculation in Progress",
+      "starting": "Initializing...",
+      "statistics": "Progress Statistics",
+      "households": "Households Processed",
+      "individuals": "Individuals Processed",
+      "enrolled": "Enrollments Created",
+      "success": "PMT Recalculation Completed",
+      "successMessage": "Successfully completed! {count} households have been enrolled in the PMT program.",
+      "failed": "PMT Recalculation Failed",
+      "close": "Close"
+    }
   }
 }

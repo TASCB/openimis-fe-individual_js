@@ -28,6 +28,8 @@ export default {
     "moment",
     "prop-types",
     /^redux.*/,
+    "jspdf",
+    "html2canvas",
   ],
 
   plugins: [

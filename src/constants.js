@@ -18,6 +18,7 @@ export const RIGHT_GROUP_SEARCH = 180001;
 export const RIGHT_GROUP_CREATE = 180002;
 export const RIGHT_GROUP_UPDATE = 180003;
 export const RIGHT_GROUP_DELETE = 180004;
+export const RIGHT_PMT_RERUN = 180005;
 
 export const RIGHT_SCHEMA_SEARCH = 171001;
 
@@ -129,3 +130,33 @@ export const APPROVED = 'APPROVED';
 export const FAILED = 'FAILED';
 export const ACCEPT = 'ACCEPT';
 export const REJECT = 'REJECT';
+
+// PMT Configuration Constants
+export const ROUTE_PMT_CONFIGURATION = 'pmt-configuration';
+export const PMT_DEFAULT_CUTOFF = 11.01;
+export const PMT_CUTOFF_MIN = 0;
+export const PMT_CUTOFF_MAX = 50;
+
+export const PMT_CLASS = {
+  POOR: 'POOR',
+  NON_POOR: 'NON_POOR',
+  ALL: 'ALL',
+};
+
+export const PMT_CLASS_LABELS = {
+  POOR: 'Poor',
+  NON_POOR: 'Non-Poor',
+  ALL: 'All',
+};
+
+export const PMT_CLASS_COLORS = {
+  POOR: '#d32f2f',
+  NON_POOR: '#388e3c',
+};
+
+export const PMT_NUMBER_OF_MEMBERS_RANGES = {
+  ALL: 'ALL',
+  RANGE_1_3: '1-3',
+  RANGE_4_6: '4-6',
+  RANGE_7_PLUS: '7+',
+};

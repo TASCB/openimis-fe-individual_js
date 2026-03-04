@@ -189,7 +189,6 @@ export function fetchPulledQuestionnaires(mm, params = {}) {
     }
   }
 
-  // NOTE: we removed totalCount from the query (auto-created connection won't expose it)
   const query = `
     query PulledQuestionnaires(${varDefs.join(", ")}) {
       pulledQuestionnaires(${gqlArgs.join(", ")}) {
@@ -1093,3 +1092,253 @@ export const clearGroupIndividuals = () => (dispatch) => {
     type: CLEAR(ACTION_TYPE.SEARCH_GROUP_INDIVIDUALS),
   });
 };
+
+// ============ PMT (Poverty Management Tool) Actions ============
+/**
+ * Fetch households with PMT data for a district/region
+ * @param {Object} modulesManager - Module manager instance
+ * @param {Object} params - Query parameters
+ */
+export function fetchPmtHouseholds(modulesManager, params = {}) {
+  const districtCode = params.districtCode || '';
+  const regionCode = params.regionCode || '';
+  const offset = params.offset || 0;
+  const limit = params.limit || 10;
+  const searchText = params.searchText || '';
+  const pmtClass = params.pmtClass || '';
+
+  const filterArgs = [`districtCode: "${districtCode}"`];
+
+  if (regionCode) filterArgs.push(`regionCode: "${regionCode}"`);
+  if (offset) filterArgs.push(`offset: ${offset}`);
+  if (limit) filterArgs.push(`limit: ${limit}`);
+  if (searchText) filterArgs.push(`searchText: "${searchText}"`);
+  if (pmtClass) filterArgs.push(`pmtClass: "${pmtClass}"`);
+
+  const payload = formatQuery(
+    `pmtHouseholds(${filterArgs.join(', ')})`,
+    [],
+    [
+      'households { groupUuid groupCode headUuid headName pmtScore pmtClass numberOfMembers locationCode locationName }',
+      'totalCount',
+      'hasNext',
+      'hasPrevious',
+      'offset',
+      'limit',
+    ],
+  );
+
+  return graphql(
+    payload,
+    [
+      REQUEST(ACTION_TYPE.PMT_HOUSEHOLDS),
+      SUCCESS(ACTION_TYPE.PMT_HOUSEHOLDS),
+      ERROR(ACTION_TYPE.PMT_HOUSEHOLDS),
+    ],
+    {
+      actionType: ACTION_TYPE.PMT_HOUSEHOLDS,
+    },
+  );
+}
+
+export function rerunPmt(modulesManager, districtCode, regionCode = null, pmtCutoff = 11.01) {
+  const mutation = prepareMutation(
+    `
+      mutation (
+        $clientMutationLabel: String
+        $clientMutationId: String
+        $districtCode: String!
+        $pmtCutoff: Float!
+        $regionCode: String
+      ) {
+        rerunPmt(
+          input: {
+            clientMutationId: $clientMutationId
+            clientMutationLabel: $clientMutationLabel
+            districtCode: $districtCode
+            pmtCutoff: $pmtCutoff
+            regionCode: $regionCode
+          }
+        ) {
+          clientMutationId
+          internalId
+          ok
+          errors
+          updatedIndividuals
+          updatedGroups
+          mutationId
+          districtCode
+        }
+      }
+    `,
+    {
+      districtCode,
+      pmtCutoff: parseFloat(pmtCutoff),
+      regionCode: regionCode || null,
+    },
+  );
+
+  return graphqlWithVariables(
+    mutation.operation,
+    { ...mutation.variables.input },
+    [
+      REQUEST(ACTION_TYPE.RERUN_PMT),
+      SUCCESS(ACTION_TYPE.RERUN_PMT),
+      ERROR(ACTION_TYPE.RERUN_PMT),
+    ],
+    {
+      actionType: ACTION_TYPE.RERUN_PMT,
+      clientMutationId: mutation.variables.input.clientMutationId,
+      clientMutationLabel: mutation.variables.input.clientMutationLabel,
+      requestedDateTime: new Date(),
+    },
+  );
+}
+
+/**
+ * Clear PMT households state
+ */
+export const clearPmtHouseholds = () => (dispatch) => {
+  dispatch({
+    type: CLEAR(ACTION_TYPE.PMT_HOUSEHOLDS),
+  });
+};
+
+/**
+ * Fetch PMT audit summary (aggregate statistics by district)
+ * Returns: district name, pmtCutoff, poorCount, nonPoorCount for each district
+ * @param {Object} modulesManager - Module manager instance
+ * @param {Object} params - Query parameters (districtCode, regionCode optional)
+ */
+export function fetchPmtAuditSummary(modulesManager, params = {}) {
+  const districtCode = params.districtCode || '';
+  const regionCode = params.regionCode || '';
+  const offset = params.offset || 0;
+  const limit = params.limit || 10;
+
+  const filterArgs = [];
+
+  if (districtCode) filterArgs.push(`districtCode: "${districtCode}"`);
+  if (regionCode) filterArgs.push(`regionCode: "${regionCode}"`);
+  if (offset) filterArgs.push(`offset: ${offset}`);
+  if (limit) filterArgs.push(`limit: ${limit}`);
+
+  const payload = formatQuery(
+    `pmtAuditSummary(${filterArgs.join(', ')})`,
+    [],
+    [
+      'districts { districtCode districtName pmtCutoff poorCount nonPoorCount }',
+      'totalCount',
+      'hasNext',
+      'hasPrevious',
+      'offset',
+      'limit',
+    ],
+  );
+
+  return graphql(
+    payload,
+    [
+      REQUEST(ACTION_TYPE.PMT_AUDIT_SUMMARY),
+      SUCCESS(ACTION_TYPE.PMT_AUDIT_SUMMARY),
+      ERROR(ACTION_TYPE.PMT_AUDIT_SUMMARY),
+    ],
+    {
+      actionType: ACTION_TYPE.PMT_AUDIT_SUMMARY,
+    },
+  );
+}
+
+/**
+ * Fetch enrollment list for a specific district with PMT cutoff
+ * @param {Object} modulesManager - Module manager instance
+ * @param {Object} params - Query parameters (districtCode, pmtCutoff required)
+ */
+export function fetchPmtEnrollmentList(modulesManager, params = {}) {
+  const districtCode = params.districtCode || '';
+  const pmtCutoff = params.pmtCutoff || 11.01;
+  const regionCode = params.regionCode || '';
+  const offset = params.offset !== undefined ? params.offset : 0;
+  const limit = params.limit !== undefined ? params.limit : 10;
+  const searchText = params.searchText || '';
+  const pmtClass = params.pmtClass || '';
+
+  const filterArgs = [
+    `districtCode: "${districtCode}"`,
+    `pmtCutoff: ${pmtCutoff}`,
+    `offset: ${offset}`,
+    `limit: ${limit}`,
+  ];
+
+  if (regionCode) filterArgs.push(`regionCode: "${regionCode}"`);
+  if (searchText) filterArgs.push(`searchText: "${searchText}"`);
+  if (pmtClass) filterArgs.push(`pmtClass: "${pmtClass}"`);
+
+  const payload = formatQuery(
+    `pmtEnrollmentList(${filterArgs.join(', ')})`,
+    [],
+    [
+      'households { groupUuid groupCode headUuid headName pmtScore pmtClass numberOfMembers locationCode locationName }',
+      'totalCount',
+      'hasNext',
+      'hasPrevious',
+      'offset',
+      'limit',
+    ],
+  );
+
+  return graphql(
+    payload,
+    [
+      REQUEST(ACTION_TYPE.PMT_ENROLLMENT_LIST),
+      SUCCESS(ACTION_TYPE.PMT_ENROLLMENT_LIST),
+      ERROR(ACTION_TYPE.PMT_ENROLLMENT_LIST),
+    ],
+    {
+      actionType: ACTION_TYPE.PMT_ENROLLMENT_LIST,
+    },
+  );
+}
+
+/**
+ * Clear PMT enrollment list state
+ */
+export const clearPmtEnrollmentList = () => (dispatch) => {
+  dispatch({
+    type: CLEAR(ACTION_TYPE.PMT_ENROLLMENT_LIST),
+  });
+};
+
+export function fetchPmtRunProgress(mutationId) {
+  const query = `
+    query PmtRunProgress($mutationId: UUID!) {
+      pmtRunProgress(mutationId: $mutationId) {
+        mutationId
+        status
+        districtCode
+        totalGroups
+        processedGroups
+        totalIndividuals
+        processedIndividuals
+        poorGroupsFound
+        enrollmentsCreated
+        percentageComplete
+        statusMessage
+        errors
+        startedAt
+        completedAt
+      }
+    }
+  `;
+
+  return graphqlWithVariables(
+    query,
+    { mutationId },
+    [
+      REQUEST(ACTION_TYPE.PMT_RUN_PROGRESS),
+      SUCCESS(ACTION_TYPE.PMT_RUN_PROGRESS),
+      ERROR(ACTION_TYPE.PMT_RUN_PROGRESS),
+    ],
+    { actionType: ACTION_TYPE.PMT_RUN_PROGRESS },
+  );
+}

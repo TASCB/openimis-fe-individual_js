@@ -1,4 +1,3 @@
-// src/components/NonConsentedHouseholdsSearcher.js
 import React, { Component } from "react";
 import { injectIntl } from "react-intl";
 import { bindActionCreators } from "redux";

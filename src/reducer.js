@@ -51,6 +51,11 @@ export const ACTION_TYPE = {
   PULL_API_DATA_PAA: "PULL_API_DATA_PAA",
   PULL_API_DATA_LEGACY: "PULL_API_DATA_LEGACY",
   FETCH_ACTIVE_MUTATIONS: "FETCH_ACTIVE_MUTATIONS",
+  PMT_HOUSEHOLDS: "PMT_HOUSEHOLDS",
+  RERUN_PMT: "RERUN_PMT",
+  PMT_AUDIT_SUMMARY: "PMT_AUDIT_SUMMARY",
+  PMT_ENROLLMENT_LIST: "PMT_ENROLLMENT_LIST",
+  PMT_RUN_PROGRESS: "PMT_RUN_PROGRESS",
 };
 
 function reducer(
@@ -175,6 +180,40 @@ function reducer(
 
     fetchingMutations: false,
     mutations: [],
+
+    // PMT State
+    fetchingPmtHouseholds: false,
+    fetchedPmtHouseholds: false,
+    pmtHouseholds: [],
+    pmtHouseholdsPageInfo: {},
+    pmtHouseholdsTotalCount: 0,
+    errorPmtHouseholds: null,
+
+    submittingPmtRerun: false,
+    pmtRerunMutation: null,
+    errorPmtRerun: null,
+
+    // PMT Run Progress State
+    fetchingPmtRunProgress: false,
+    fetchedPmtRunProgress: false,
+    pmtRunProgress: null,
+    errorPmtRunProgress: null,
+
+    // PMT Audit Summary State
+    fetchingPmtAuditSummary: false,
+    fetchedPmtAuditSummary: false,
+    pmtAuditSummary: [],
+    pmtAuditSummaryPageInfo: {},
+    pmtAuditSummaryTotalCount: 0,
+    errorPmtAuditSummary: null,
+
+    // PMT Enrollment List State
+    fetchingPmtEnrollmentList: false,
+    fetchedPmtEnrollmentList: false,
+    pmtEnrollmentList: [],
+    pmtEnrollmentListPageInfo: {},
+    pmtEnrollmentListTotalCount: 0,
+    errorPmtEnrollmentList: null,
   },
   action
 ) {
@@ -952,6 +991,200 @@ function reducer(
         paaEtlMutation: next.mutation,
       };
     }
+
+    // ============================================================
+    // PMT Cases
+    // ============================================================
+
+    case REQUEST(ACTION_TYPE.PMT_HOUSEHOLDS):
+      return {
+        ...state,
+        fetchingPmtHouseholds: true,
+        fetchedPmtHouseholds: false,
+        pmtHouseholds: [],
+        pmtHouseholdsPageInfo: {},
+        pmtHouseholdsTotalCount: 0,
+        errorPmtHouseholds: null,
+      };
+
+    case SUCCESS(ACTION_TYPE.PMT_HOUSEHOLDS): {
+      const data = action.payload?.data?.pmtHouseholds || {};
+      return {
+        ...state,
+        fetchingPmtHouseholds: false,
+        fetchedPmtHouseholds: true,
+        pmtHouseholds: data.households || [],
+        pmtHouseholdsPageInfo: {
+          hasNext: data.hasNext,
+          hasPrevious: data.hasPrevious,
+          offset: data.offset,
+          limit: data.limit,
+        },
+        pmtHouseholdsTotalCount: data.totalCount || 0,
+        errorPmtHouseholds: null,
+      };
+    }
+
+    case ERROR(ACTION_TYPE.PMT_HOUSEHOLDS):
+      return {
+        ...state,
+        fetchingPmtHouseholds: false,
+        errorPmtHouseholds: action.payload || action.error || action,
+      };
+
+    case CLEAR(ACTION_TYPE.PMT_HOUSEHOLDS):
+      return {
+        ...state,
+        pmtHouseholds: [],
+        pmtHouseholdsPageInfo: {},
+        pmtHouseholdsTotalCount: 0,
+        errorPmtHouseholds: null,
+      };
+
+    case REQUEST(ACTION_TYPE.RERUN_PMT):
+      return {
+        ...state,
+        submittingPmtRerun: true,
+        pmtRerunMutation: null,
+        errorPmtRerun: null,
+      };
+
+    case SUCCESS(ACTION_TYPE.RERUN_PMT): {
+      const next = dispatchMutationResp(state, "rerunPmt", action);
+      return {
+        ...next,
+        submittingPmtRerun: false,
+        pmtRerunMutation: next.mutation || { ok: true },
+        errorPmtRerun: null,
+      };
+    }
+
+    case ERROR(ACTION_TYPE.RERUN_PMT):
+      return {
+        ...state,
+        submittingPmtRerun: false,
+        pmtRerunMutation: { error: action.payload || action.error || action },
+        errorPmtRerun: action.payload || action.error || action,
+      };
+
+    case REQUEST(ACTION_TYPE.PMT_AUDIT_SUMMARY):
+      return {
+        ...state,
+        fetchingPmtAuditSummary: true,
+        fetchedPmtAuditSummary: false,
+        pmtAuditSummary: [],
+        pmtAuditSummaryPageInfo: {},
+        pmtAuditSummaryTotalCount: 0,
+        errorPmtAuditSummary: null,
+      };
+
+    case SUCCESS(ACTION_TYPE.PMT_AUDIT_SUMMARY): {
+      const data = action.payload?.data?.pmtAuditSummary || {};
+      return {
+        ...state,
+        fetchingPmtAuditSummary: false,
+        fetchedPmtAuditSummary: true,
+        pmtAuditSummary: data.districts || [],
+        pmtAuditSummaryPageInfo: {
+          hasNext: data.hasNext,
+          hasPrevious: data.hasPrevious,
+          offset: data.offset,
+          limit: data.limit,
+        },
+        pmtAuditSummaryTotalCount: data.totalCount || 0,
+        errorPmtAuditSummary: null,
+      };
+    }
+
+    case ERROR(ACTION_TYPE.PMT_AUDIT_SUMMARY):
+      return {
+        ...state,
+        fetchingPmtAuditSummary: false,
+        errorPmtAuditSummary: action.payload || action.error || action,
+      };
+
+    case CLEAR(ACTION_TYPE.PMT_AUDIT_SUMMARY):
+      return {
+        ...state,
+        pmtAuditSummary: [],
+        pmtAuditSummaryPageInfo: {},
+        pmtAuditSummaryTotalCount: 0,
+        errorPmtAuditSummary: null,
+      };
+
+    case REQUEST(ACTION_TYPE.PMT_ENROLLMENT_LIST):
+      return {
+        ...state,
+        fetchingPmtEnrollmentList: true,
+        fetchedPmtEnrollmentList: false,
+        pmtEnrollmentList: [],
+        pmtEnrollmentListPageInfo: {},
+        pmtEnrollmentListTotalCount: 0,
+        errorPmtEnrollmentList: null,
+      };
+
+    case SUCCESS(ACTION_TYPE.PMT_ENROLLMENT_LIST): {
+      const data = action.payload?.data?.pmtEnrollmentList || {};
+      return {
+        ...state,
+        fetchingPmtEnrollmentList: false,
+        fetchedPmtEnrollmentList: true,
+        pmtEnrollmentList: data.households || [],
+        pmtEnrollmentListPageInfo: pageInfo(action.payload.data.pmtEnrollmentList),
+        pmtEnrollmentListTotalCount: data.totalCount || 0,
+        errorPmtEnrollmentList: null,
+      };
+    }
+
+    case ERROR(ACTION_TYPE.PMT_ENROLLMENT_LIST):
+      return {
+        ...state,
+        fetchingPmtEnrollmentList: false,
+        errorPmtEnrollmentList: action.payload || action.error || action,
+      };
+
+    case CLEAR(ACTION_TYPE.PMT_ENROLLMENT_LIST):
+      return {
+        ...state,
+        pmtEnrollmentList: [],
+        pmtEnrollmentListPageInfo: {},
+        pmtEnrollmentListTotalCount: 0,
+        errorPmtEnrollmentList: null,
+      };
+
+    case REQUEST(ACTION_TYPE.PMT_RUN_PROGRESS):
+      return {
+        ...state,
+        fetchingPmtRunProgress: true,
+        fetchedPmtRunProgress: false,
+        errorPmtRunProgress: null,
+      };
+
+    case SUCCESS(ACTION_TYPE.PMT_RUN_PROGRESS): {
+      const data = action.payload?.data?.pmtRunProgress || null;
+      return {
+        ...state,
+        fetchingPmtRunProgress: false,
+        fetchedPmtRunProgress: true,
+        pmtRunProgress: data,
+        errorPmtRunProgress: null,
+      };
+    }
+
+    case ERROR(ACTION_TYPE.PMT_RUN_PROGRESS):
+      return {
+        ...state,
+        fetchingPmtRunProgress: false,
+        errorPmtRunProgress: action.payload || action.error || action,
+      };
+
+    case CLEAR(ACTION_TYPE.PMT_RUN_PROGRESS):
+      return {
+        ...state,
+        pmtRunProgress: null,
+        errorPmtRunProgress: null,
+        fetchedPmtRunProgress: false,
+      };
 
     default:
       return state;

@@ -135,7 +135,29 @@
     "gql_group_search_perms": "Individual | Group Search",
     "gql_group_create_perms": "Individual | Group Create",
     "gql_group_update_perms": "Individual | Group Update",
-    "gql_group_delete_perms": "Individual | Group Delete"
+    "gql_group_delete_perms": "Individual | Group Delete",
+    "deduplication": {
+      "button": "Find Duplicate Individuals",
+      "title": "Individual Deduplication",
+      "description": "Select fields to identify and merge duplicate individual records. The system will find all individuals with matching values in the selected fields.",
+      "selectFields": "Select fields to match on:",
+      "selectPrimary": "Primary",
+      "searchBtn": "Search for Duplicates",
+      "searching": "Searching...",
+      "results": "Duplicate Groups Found",
+      "groups": "groups",
+      "count": "Count",
+      "details": "Matched Values",
+      "noResults": "No duplicate individuals found with the selected criteria.",
+      "mergeBtn": "Create Merge Task",
+      "creating": "Creating task...",
+      "mergeInfo": "The primary individual will be kept, and all relationships (groups, beneficiaries) will be transferred to it. Secondary individuals will be soft-deleted but preserved in the audit trail.",
+      "taskCreated": "Deduplication task created successfully. You can now review and complete it in Tasks Management.",
+      "error": {
+        "searchFailed": "Failed to search for duplicates. Please try again.",
+        "taskCreationFailed": "Failed to create deduplication task. Please check your permissions and try again."
+      }
+    }
   },
   "individualHistory": {
     "pageTitle": "Individual {firstName} {lastName}",

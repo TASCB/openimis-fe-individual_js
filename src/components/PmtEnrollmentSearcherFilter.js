@@ -1,9 +1,9 @@
 import React from 'react';
 import {
-  withTheme, withStyles, Grid, TextField, MenuItem,
+  withTheme, withStyles, Grid, FormControl, InputLabel, Select, MenuItem,
 } from '@material-ui/core';
 import {
-  formatMessage, TextInput, PublishedComponent, Contributions,
+  formatMessage, TextInput, PublishedComponent,
 } from '@openimis/fe-core';
 import _debounce from 'lodash/debounce';
 import { injectIntl } from 'react-intl';
@@ -15,9 +15,19 @@ function PmtEnrollmentSearcherFilter({
 }) {
   const debouncedOnChangeFilters = _debounce(onChangeFilters, DEFAULT_DEBOUNCE_TIME);
 
-  const filterValue = (filterName) => filters?.[filterName]?.value;
+  const filterValue = (filterName) => {
+    if (!filters) return null;
+    if (Array.isArray(filters)) {
+      const filter = filters.find((f) => f.id === filterName);
+      return filter?.value;
+    }
+    return filters?.[filterName]?.value;
+  };
 
-  const filterTextFieldValue = (filterName) => filters?.[filterName]?.value ?? '';
+  const filterTextFieldValue = (filterName) => {
+    const value = filterValue(filterName);
+    return value ?? '';
+  };
 
   const onChangeStringFilter = (filterName, lookup = null) => (value) => {
     if (lookup) {
@@ -43,6 +53,33 @@ function PmtEnrollmentSearcherFilter({
     onChangeFilters([{ id: k, value: v, filter: `${k}: ${v}` }]);
   };
 
+  /**
+   * Handle location filter change from DetailedLocationFilter
+   * Converts location object to filter format
+   */
+  const handleLocationFilterChange = (newFilters) => {
+    if (newFilters && Array.isArray(newFilters)) {
+      // Merge with existing filters, replacing location-related ones
+      let nonLocationFilters = [];
+
+      if (filters && Array.isArray(filters)) {
+        // Filters is an array - filter out location filters
+        nonLocationFilters = filters.filter(
+          (f) => !['parentLocation', 'location', 'districtLocation', 'regionLocation'].includes(f.id),
+        );
+      } else if (filters && typeof filters === 'object') {
+        // Filters is an object - convert to array format but exclude location filters
+        nonLocationFilters = Object.values(filters).filter(
+          (f) => f && f.id && !['parentLocation', 'location', 'districtLocation', 'regionLocation'].includes(f.id),
+        );
+      }
+
+      onChangeFilters([...nonLocationFilters, ...newFilters]);
+    } else {
+      onChangeFilters(newFilters);
+    }
+  };
+
   return (
     <Grid container className={classes.form}>
       {/* Row 1: Search Code, Search Head Name, PMT Status, and Deduplicate */}
@@ -65,48 +102,25 @@ function PmtEnrollmentSearcherFilter({
       </Grid>
 
       <Grid item xs={12} sm={3}>
-        <TextField
-          select
-          fullWidth
-          label={formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.household.pmtStatus')}
-          value={filterValue('pmtClass') ?? ''}
-          onChange={(e) => onChangeFilter('pmtClass', e.target.value)}
-          variant="outlined"
-          size="small"
-        >
-          <MenuItem value="">{formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'any')}</MenuItem>
-          <MenuItem value="POOR">{formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.status.poor')}</MenuItem>
-          <MenuItem value="NON_POOR">{formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.status.nonPoor')}</MenuItem>
-        </TextField>
+        <FormControl fullWidth variant="standard">
+          <InputLabel>{formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.household.pmtStatus')}</InputLabel>
+          <Select
+            value={filterValue('pmtClass') ?? ''}
+            onChange={(e) => onChangeFilter('pmtClass', e.target.value)}
+          >
+            <MenuItem value="">{formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'any')}</MenuItem>
+            <MenuItem value="POOR">{formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.status.poor')}</MenuItem>
+            <MenuItem value="NON_POOR">{formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.status.nonPoor')}</MenuItem>
+          </Select>
+        </FormControl>
       </Grid>
 
-      <Grid item xs={12} sm={3} style={{ display: 'flex', alignItems: 'flex-end', paddingLeft: '8px' }}>
-        <Contributions
-          contributionKey="deduplication.deduplicationFieldSelectionDialog"
-          intl={intl}
-          benefitPlan={{
-            id: 'pmt-enrollment',
-            name: 'PMT Enrollment Deduplication',
-            beneficiaryDataSchema: JSON.stringify({
-              properties: {
-                groupCode: { type: 'string' },
-                headName: { type: 'string' },
-                locationName: { type: 'string' },
-                pmtScore: { type: 'number' },
-                pmtClass: { type: 'string' },
-              },
-            }),
-          }}
-        />
-      </Grid>
-
-      {/* Row 2: Location Filter - Full Width */}
+      {/* Row 2: Location Filter - District Required */}
       <Grid item xs={12}>
         <PublishedComponent
           pubRef="location.DetailedLocationFilter"
-          withNull
           filters={filters}
-          onChangeFilters={onChangeFilters}
+          onChangeFilters={handleLocationFilterChange}
           anchor="parentLocation"
         />
       </Grid>

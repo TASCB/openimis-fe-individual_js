@@ -1,553 +1,496 @@
-/**
- * PMT Results PDF Export Utility
- * Exports household PMT data as PDF document using jsPDF
- */
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 /**
- * Export PMT household results as PDF
- * @param {Object} config - Export configuration
- * @param {Array} config.households - Array of household objects
- * @param {Object} config.filters - Active filters
- * @param {string} config.districtCode - District code
- * @param {string} config.districtName - District name
- * @param {number} config.pmtCutoff - PMT cutoff used
- * @param {Date} config.generatedDate - Report generation date
+ * Load TASAF logo from multiple possible locations
+ *
+ * Attempts to load the TASAF logo image from multiple paths with fallback support.
+ * If logo is not found, PDF generation continues without logo (graceful degradation).
+ *
+ * @async
+ * @returns {Promise<string|null>} Logo as base64 data URL, or null if not found
+ * @throws {Error} If FileReader encounters an error
  */
-export function exportPmtResultsAsPdf({
-  households,
-  filters,
-  districtCode,
-  districtName,
-  pmtCutoff,
-  generatedDate,
-}) {
-  try {
-    // Dynamically import jsPDF and html2canvas
-    Promise.all([
-      import('jspdf'),
-      import('html2canvas'),
-    ]).then(([jsPDFModule, html2canvasModule]) => {
-      const { jsPDF } = jsPDFModule;
-      const html2canvas = html2canvasModule.default;
-
-      // Create PDF document
-      const doc = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: 'a4',
-      });
-
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      let yPosition = 10;
-      const margin = 10;
-      const contentWidth = pageWidth - 2 * margin;
-
-      // Set font
-      doc.setFontSize(16);
-      doc.setFont(undefined, 'bold');
-      doc.text('PROXY MEANS TEST (PMT) RESULTS REPORT', margin, yPosition);
-
-      yPosition += 8;
-      doc.setFontSize(10);
-      doc.setFont(undefined, 'normal');
-
-      // Report metadata
-      doc.text(`Generated Date: ${generatedDate?.toLocaleString() || 'N/A'}`, margin, yPosition);
-      yPosition += 5;
-      doc.text(`District: ${districtName || districtCode}`, margin, yPosition);
-      yPosition += 5;
-      doc.text(`PMT Cutoff: ${pmtCutoff}`, margin, yPosition);
-      yPosition += 7;
-
-      // Filter summary
-      if (filters && Object.keys(filters).length > 0) {
-        doc.setFont(undefined, 'bold');
-        doc.text('Applied Filters:', margin, yPosition);
-        yPosition += 5;
-        doc.setFont(undefined, 'normal');
-
-        if (filters.searchText) {
-          doc.text(`• Search: "${filters.searchText}"`, margin + 2, yPosition);
-          yPosition += 4;
-        }
-        if (filters.pmtClass && filters.pmtClass !== 'ALL') {
-          doc.text(`• Status: ${filters.pmtClass}`, margin + 2, yPosition);
-          yPosition += 4;
-        }
-        yPosition += 3;
-      }
-
-      // Summary statistics
-      if (households && households.length > 0) {
-        const poorCount = households.filter((h) => h.pmtClass === 'POOR').length;
-        const nonPoorCount = households.filter((h) => h.pmtClass === 'NON_POOR').length;
-        const totalCount = households.length;
-
-        doc.setFont(undefined, 'bold');
-        doc.text('Summary Statistics:', margin, yPosition);
-        yPosition += 5;
-        doc.setFont(undefined, 'normal');
-
-        doc.text(`• Total Households: ${totalCount}`, margin + 2, yPosition);
-        yPosition += 4;
-        doc.text(
-          `• Poor Households: ${poorCount} (${((poorCount / totalCount) * 100).toFixed(2)}%)`,
-          margin + 2,
-          yPosition
-        );
-        yPosition += 4;
-        doc.text(
-          `• Non-Poor Households: ${nonPoorCount} (${((nonPoorCount / totalCount) * 100).toFixed(2)}%)`,
-          margin + 2,
-          yPosition
-        );
-        yPosition += 7;
-      }
-
-      // Table header
-      const tableTop = yPosition;
-      const columns = [
-        { header: 'Group Code', width: 45 },
-        { header: 'Head Name', width: 30 },
-        { header: 'PMT Score', width: 20 },
-        { header: 'Status', width: 25 },
-        { header: '# Members', width: 18 },
-        { header: 'Location', width: 32 },
-      ];
-
-      doc.setFont(undefined, 'bold');
-      doc.setFillColor(245, 245, 245);
-      let xPosition = margin;
-
-      columns.forEach((col) => {
-        doc.rect(xPosition, tableTop, col.width, 6, 'F');
-        doc.text(col.header, xPosition + 1, tableTop + 4);
-        xPosition += col.width;
-      });
-
-      yPosition = tableTop + 7;
-      const rowHeight = 5;
-      let pageNumber = 1;
-
-      // Add data rows
-      doc.setFont(undefined, 'normal');
-      doc.setFontSize(9);
-
-      households.forEach((household, index) => {
-        // Check if we need a new page
-        if (yPosition + rowHeight > pageHeight - 10) {
-          pageNumber += 1;
-          doc.addPage();
-          yPosition = 10;
-
-          // Repeat header on new page
-          doc.setFont(undefined, 'bold');
-          doc.setFillColor(245, 245, 245);
-          let headerX = margin;
-          columns.forEach((col) => {
-            doc.rect(headerX, yPosition, col.width, 6, 'F');
-            doc.text(col.header, headerX + 1, yPosition + 4);
-            headerX += col.width;
-          });
-          yPosition += 7;
-          doc.setFont(undefined, 'normal');
-        }
-
-        // Alternate row colors
-        if (index % 2 === 0) {
-          doc.setFillColor(250, 250, 250);
-          let rectX = margin;
-          columns.forEach((col) => {
-            doc.rect(rectX, yPosition, col.width, rowHeight, 'F');
-            rectX += col.width;
-          });
-        }
-
-        // Row data
-        xPosition = margin;
-        const rowData = [
-          household.groupCode || '-',
-          household.headName || '-',
-          household.pmtScore !== undefined && household.pmtScore !== null
-            ? household.pmtScore.toFixed(3)
-            : '-',
-          household.pmtClass || '-',
-          household.numberOfMembers || '-',
-          household.locationName || '-',
-        ];
-
-        rowData.forEach((data, colIndex) => {
-          const col = columns[colIndex];
-          // Truncate text if too long
-          const truncated = doc.splitTextToSize(data.toString(), col.width - 2)[0];
-          doc.text(truncated, xPosition + 1, yPosition + 3.5);
-          xPosition += col.width;
-        });
-
-        yPosition += rowHeight;
-      });
-
-      // Footer
-      yPosition += 5;
-      doc.setFontSize(8);
-      doc.setFont(undefined, 'normal');
-      doc.text('End of Report', margin, yPosition);
-
-      // Page numbers
-      const pageCount = doc.internal.pages.length - 1;
-      for (let i = 1; i <= pageCount; i += 1) {
-        doc.setPage(i);
-        doc.text(
-          `Page ${i} of ${pageCount}`,
-          pageWidth - margin - 20,
-          pageHeight - 5
-        );
-      }
-
-      // Download
-      const fileName = `PMT_Results_${districtCode}_${formatDateForFilename(generatedDate)}.pdf`;
-      doc.save(fileName);
-    }).catch((error) => {
-      console.error('Error loading PDF libraries:', error);
-      alert('Failed to export PDF. Please ensure jsPDF and html2canvas are installed.');
-    });
-  } catch (error) {
-    console.error('Error exporting PMT results:', error);
-    alert('Failed to export results. Please try again.');
-  }
-}
-
-/**
- * Format date for filename (YYYY-MM-DD_HHMM)
- */
-function formatDateForFilename(date) {
-  if (!date) return 'unknown';
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-
-  return `${year}-${month}-${day}_${hours}${minutes}`;
-}
-
-/**
- * Load logo image as data URL
- * Tries multiple paths to locate the logo
- */
-async function loadLogoAsDataUrl() {
+async function loadLogo() {
   const paths = [
-    '/front/tasafMIS.png', // Production with /front base path
-    '/tasafMIS.png', // Root deployment
+    "/front/tasafMIS.png",
+    "/tasafMIS.png"
   ];
 
   for (const path of paths) {
     try {
       const response = await fetch(path);
+
       if (response.ok) {
         const blob = await response.blob();
+
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
-          reader.onload = () => {
-            console.log('Logo successfully loaded from:', path);
-            resolve(reader.result);
-          };
+
+          reader.onload = () => resolve(reader.result);
           reader.onerror = reject;
+
           reader.readAsDataURL(blob);
         });
       }
-    } catch (error) {
-      console.warn(`Failed to load logo from ${path}:`, error);
-      continue;
+    } catch (e) {
+      // Logo load failed, continue to next path
     }
   }
 
-  console.warn('Logo not found at any expected path:', paths);
   return null;
 }
 
 /**
- * Export PMT enrollment list as PDF
- * @param {Object} config - Export configuration
- * @param {Array} config.households - Array of household objects
- * @param {Object} config.filters - Active filters
- * @param {string} config.districtCode - District code
- * @param {number} config.pmtCutoff - PMT cutoff used
- * @param {Date} config.generatedDate - Report generation date
+ * Add watermark image to PDF page
+ *
+ * Adds a semi-transparent TASAF logo as watermark centered on the page.
+ * Watermark is only visible if logo is provided.
+ *
+ * @param {jsPDF} doc - jsPDF instance
+ * @param {string|null} logo - Logo as base64 data URL (or null to skip)
+ * @param {number} pageWidth - Width of PDF page in mm
+ * @param {number} pageHeight - Height of PDF page in mm
+ * @returns {void}
  */
-export async function exportPmtEnrollmentListAsPdf({
-  households,
-  filters,
-  districtCode,
-  pmtCutoff,
-  generatedDate,
-}) {
-  try {
-    console.log('Starting PDF export...');
-    // Load logo first
-    console.log('Loading logo...');
-    const logoDataUrl = await loadLogoAsDataUrl();
-    console.log('Logo loaded:', logoDataUrl ? 'Success' : 'Failed - will generate PDF without logo');
+function addWatermark(doc, logo, pageWidth, pageHeight) {
+  if (!logo) return;
 
-    // Dynamically import jsPDF
-    const [jsPDFModule] = await Promise.all([
-      import('jspdf'),
-    ]);
-    const { jsPDF } = jsPDFModule;
+  const logoWidth = 150;
+  const logoHeight = 130;
 
-    // Create PDF document
-    const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-    });
+  const x = (pageWidth - logoWidth) / 2;
+  const y = (pageHeight - logoHeight) / 2;
 
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    let yPosition = 0;
-    const margin = 12;
-    const contentWidth = pageWidth - 2 * margin;
-
-    // Professional Header Section
-    doc.setFillColor(0, 102, 102); // Dark teal background
-    doc.rect(0, 0, pageWidth, 40, 'F'); // Increased height for logo
-
-    // Add TASAF Logo on the right side
-    if (logoDataUrl) {
-      try {
-        console.log('Adding logo to PDF...');
-        const logoSize = 28;
-        const logoX = pageWidth - margin - logoSize - 8; // More padding from right edge
-        const logoY = 6;
-        doc.addImage(logoDataUrl, 'PNG', logoX, logoY, logoSize, logoSize);
-        // Add circular border around logo
-        doc.setDrawColor(255, 255, 255);
-        doc.setLineWidth(0.5);
-        doc.circle(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2 + 0.5);
-        console.log('Logo added successfully to PDF');
-      } catch (error) {
-        console.error('Failed to add logo image to PDF:', error);
-      }
-    } else {
-      console.log('Logo not available, skipping logo addition');
-    }
-
-    // Header Title
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(22);
-    doc.setFont(undefined, 'bold');
-    doc.text('PMT ENROLLMENT LIST REPORT', margin, 18);
-
-    // Header Subtitle
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'normal');
-    doc.text('Proxy Means Test - Household Enrollment Report', margin, 26);
-
-    // Decorative line under header
-    doc.setDrawColor(255, 255, 255);
-    doc.setLineWidth(0.5);
-    doc.line(margin, 34, pageWidth - margin, 34);
-
-    yPosition = 48;
-
-    // Metadata Section with better formatting
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(10);
-
-    // Create info boxes for metadata
-    const metadataItems = [
-      { label: 'Generated Date:', value: generatedDate?.toLocaleString() || 'N/A' },
-      { label: 'District:', value: districtCode || 'N/A' },
-      { label: 'PMT Cutoff:', value: pmtCutoff?.toFixed(2) || 'N/A' },
-    ];
-
-    const colWidth = (contentWidth - 6) / 3;
-    let metaX = margin;
-
-    metadataItems.forEach((item) => {
-      // Light background for metadata boxes
-      doc.setFillColor(240, 248, 248);
-      doc.rect(metaX, yPosition, colWidth, 14, 'F');
-      doc.setDrawColor(0, 102, 102);
-      doc.rect(metaX, yPosition, colWidth, 14);
-
-      // Label
-      doc.setFont(undefined, 'bold');
-      doc.setFontSize(8);
-      doc.text(item.label, metaX + 2, yPosition + 5);
-
-      // Value
-      doc.setFont(undefined, 'normal');
-      doc.setFontSize(9);
-      doc.text(item.value.toString(), metaX + 2, yPosition + 11);
-
-      metaX += colWidth + 3;
-    });
-
-    yPosition += 20;
-
-    // Summary Statistics Section
-    if (households && households.length > 0) {
-      const poorCount = households.filter((h) => h.pmtClass === 'POOR').length;
-      const nonPoorCount = households.filter((h) => h.pmtClass === 'NON_POOR').length;
-      const totalCount = households.length;
-
-      // Summary background
-      doc.setFillColor(230, 245, 245);
-      doc.rect(margin, yPosition, contentWidth, 16, 'F');
-      doc.setDrawColor(0, 102, 102);
-      doc.setLineWidth(0.5);
-      doc.rect(margin, yPosition, contentWidth, 16);
-
-      // Summary title
-      doc.setFont(undefined, 'bold');
-      doc.setFontSize(10);
-      doc.text('Summary Statistics', margin + 3, yPosition + 5);
-
-      // Summary stats in one line
-      doc.setFont(undefined, 'normal');
-      doc.setFontSize(9);
-      const summaryText = `Total Households: ${totalCount} | Poor: ${poorCount} (${((poorCount / totalCount) * 100).toFixed(1)}%) | Non-Poor: ${nonPoorCount} (${((nonPoorCount / totalCount) * 100).toFixed(1)}%)`;
-      doc.text(summaryText, margin + 3, yPosition + 12);
-
-      yPosition += 20;
-    }
-
-    // Table Section
-    const tableTop = yPosition;
-    const columns = [
-      { header: 'Group Code', width: 50, align: 'left' },
-      { header: 'Head Name', width: 45, align: 'left' },
-      { header: 'Village', width: 40, align: 'left' },
-      { header: 'PMT Score', width: 25, align: 'left' },
-      { header: 'Status', width: 25, align: 'left' },
-    ];
-
-    // Table header background
-    doc.setFillColor(0, 102, 102);
-    doc.rect(margin, tableTop, contentWidth, 8, 'F');
-
-    // Table header text
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(9);
-    let xPosition = margin;
-
-    columns.forEach((col) => {
-      doc.text(col.header, xPosition + 1.5, tableTop + 5.5, { align: col.align });
-      xPosition += col.width;
-    });
-
-    yPosition = tableTop + 9;
-    const rowHeight = 6;
-
-    // Add data rows
-    doc.setFont(undefined, 'normal');
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(8.5);
-    doc.setDrawColor(200, 200, 200);
-    doc.setLineWidth(0.3);
-
-    households.forEach((household, index) => {
-      // Check if we need a new page
-      if (yPosition + rowHeight > pageHeight - 15) {
-        // Footer on current page
-        addFooter(doc, pageWidth, pageHeight);
-
-        // New page
-        doc.addPage();
-        yPosition = 10;
-
-        // Repeat header on new page
-        doc.setFillColor(0, 102, 102);
-        doc.rect(margin, yPosition, contentWidth, 8, 'F');
-        doc.setFont(undefined, 'bold');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(9);
-        let headerX = margin;
-        columns.forEach((col) => {
-          doc.text(col.header, headerX + 1.5, yPosition + 5.5, { align: col.align });
-          headerX += col.width;
-        });
-        yPosition += 10;
-        doc.setFont(undefined, 'normal');
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(8.5);
-      }
-
-      // Alternate row colors
-      if (index % 2 === 0) {
-        doc.setFillColor(248, 248, 248);
-        doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
-      }
-
-      // Draw row borders
-      xPosition = margin;
-      columns.forEach((col) => {
-        doc.rect(xPosition, yPosition, col.width, rowHeight);
-        xPosition += col.width;
-      });
-
-      // Row data
-      xPosition = margin;
-      const rowData = [
-        household.groupCode || '-',
-        household.headName || '-',
-        household.locationName || '-',
-        household.pmtScore !== undefined && household.pmtScore !== null
-          ? household.pmtScore.toFixed(2)
-          : '-',
-        household.pmtClass || '-',
-      ];
-
-      rowData.forEach((data, colIndex) => {
-        const col = columns[colIndex];
-        doc.text(data.toString(), xPosition + 1.5, yPosition + 4, { align: col.align, maxWidth: col.width - 3 });
-        xPosition += col.width;
-      });
-
-      yPosition += rowHeight;
-    });
-
-    // Footer on last page
-    addFooter(doc, pageWidth, pageHeight);
-
-    // Download
-    const fileName = `PMT_Enrollment_${districtCode}_${formatDateForFilename(generatedDate)}.pdf`;
-    doc.save(fileName);
-    console.log('PDF saved successfully:', fileName);
-  } catch (error) {
-    console.error('Error exporting PMT enrollment list:', error);
-    alert('Failed to export results. Please try again.');
-  }
+  doc.setGState(new doc.GState({ opacity: 0.07 }));
+  doc.addImage(logo, "PNG", x, y, logoWidth, logoHeight);
+  doc.setGState(new doc.GState({ opacity: 1 }));
 }
 
 /**
- * Add footer to PDF page
+ * Add footer with page numbers to PDF page
+ *
+ * Adds a footer line separator and page number indicator (e.g., "Page 1 of 5")
+ * positioned at the bottom right of each page.
+ *
+ * @param {jsPDF} doc - jsPDF instance
+ * @param {number} pageWidth - Width of PDF page in mm
+ * @param {number} pageHeight - Height of PDF page in mm
+ * @returns {void}
  */
 function addFooter(doc, pageWidth, pageHeight) {
-  const pageCount = doc.internal.pages.length - 1;
+  const pageNumber = doc.getCurrentPageInfo().pageNumber;
+  const totalPages = doc.getNumberOfPages();
 
-  // Separator line
   doc.setDrawColor(0, 102, 102);
-  doc.setLineWidth(0.5);
-  doc.line(12, pageHeight - 10, pageWidth - 12, pageHeight - 10);
+  doc.line(
+    12,
+    pageHeight - 10,
+    pageWidth - 12,
+    pageHeight - 10
+  );
 
-  // Footer text
   doc.setFontSize(8);
-  doc.setFont(undefined, 'normal');
   doc.setTextColor(100, 100, 100);
-
-  // Left: Report info
-  doc.text('PMT Enrollment Report', 12, pageHeight - 5);
-
-  // Right: Page numbers
   doc.text(
-    `Page ${doc.internal.getNumberOfPages()} of ${pageCount}`,
-    pageWidth - 35,
+    `Page ${pageNumber} of ${totalPages}`,
+    pageWidth - 12,
     pageHeight - 5,
-    { align: 'right' }
+    { align: "right" }
   );
 }
+
+/**
+ * Draw metadata information boxes on first page of PDF
+ *
+ * Creates three information boxes displaying Generated Date, District, and PMT Cutoff.
+ * Boxes are arranged horizontally with light background and teal borders.
+ *
+ * @param {Object} config - Configuration object
+ * @param {jsPDF} config.doc - jsPDF instance
+ * @param {number} config.margin - Left/right margin in mm
+ * @param {number} config.pageWidth - Page width in mm
+ * @param {number} config.startY - Y position to start drawing in mm
+ * @param {Date} config.generatedDate - Report generation timestamp
+ * @param {string} config.districtCode - Name of district (e.g., "Monduli")
+ * @param {number} config.pmtCutoff - PMT cutoff value (e.g., 11.01)
+ * @returns {number} Y position after metadata boxes
+ */
+function drawMetadataBoxes({
+  doc,
+  margin,
+  pageWidth,
+  startY,
+  generatedDate,
+  districtCode,
+  pmtCutoff
+}) {
+  const contentWidth = pageWidth - (margin * 2);
+  const gap = 3;
+  const boxHeight = 14;
+  const boxWidth = (contentWidth - (gap * 2)) / 3;
+
+  const metadataItems = [
+    {
+      label: "Generated Date:",
+      value: generatedDate?.toLocaleString() || "-"
+    },
+    {
+      label: "District:",
+      value: districtCode || "-"
+    },
+    {
+      label: "PMT Cutoff:",
+      value: pmtCutoff ?? "-"
+    }
+  ];
+
+  let x = margin;
+
+  metadataItems.forEach((item) => {
+    doc.setFillColor(240, 248, 248);
+    doc.rect(x, startY, boxWidth, boxHeight, "F");
+
+    doc.setDrawColor(0, 102, 102);
+    doc.rect(x, startY, boxWidth, boxHeight);
+
+    doc.setTextColor(0, 0, 0);
+
+    doc.setFontSize(8);
+    doc.setFont(undefined, "bold");
+    doc.text(item.label, x + 2, startY + 5);
+
+    doc.setFontSize(9);
+    doc.setFont(undefined, "normal");
+
+    const valueLines = doc.splitTextToSize(
+      String(item.value),
+      boxWidth - 4
+    );
+
+    doc.text(valueLines[0] || "-", x + 2, startY + 11);
+
+    x += boxWidth + gap;
+  });
+
+  return startY + boxHeight;
+}
+
+/**
+ * Draw summary statistics box on first page of PDF
+ *
+ * Creates a summary box displaying total households and breakdown by PMT status (Poor/Non-Poor).
+ * Includes percentage calculations for each category.
+ *
+ * @param {Object} config - Configuration object
+ * @param {jsPDF} config.doc - jsPDF instance
+ * @param {number} config.margin - Left/right margin in mm
+ * @param {number} config.pageWidth - Page width in mm
+ * @param {number} config.startY - Y position to start drawing in mm
+ * @param {Array} config.households - Array of household objects to analyze
+ * @returns {number} Y position after summary box
+ */
+function drawSummaryBox({
+  doc,
+  margin,
+  pageWidth,
+  startY,
+  households
+}) {
+  const contentWidth = pageWidth - (margin * 2);
+  const poor = households.filter((h) => h.pmtClass === "POOR").length;
+  const nonPoor = households.filter((h) => h.pmtClass === "NON_POOR").length;
+  const total = households.length;
+
+  const poorPct = total ? ((poor / total) * 100).toFixed(1) : "0.0";
+  const nonPoorPct = total ? ((nonPoor / total) * 100).toFixed(1) : "0.0";
+
+  doc.setFillColor(230, 245, 245);
+  doc.rect(margin, startY, contentWidth, 16, "F");
+
+  doc.setDrawColor(0, 102, 102);
+  doc.setLineWidth(0.5);
+  doc.rect(margin, startY, contentWidth, 16);
+
+  doc.setTextColor(0, 0, 0);
+
+  doc.setFontSize(10);
+  doc.setFont(undefined, "bold");
+  doc.text("Summary Statistics", margin + 3, startY + 5);
+
+  doc.setFontSize(9);
+  doc.setFont(undefined, "normal");
+
+  const summaryText =
+    `Total Households: ${total} | Poor: ${poor} (${poorPct}%) | Non-Poor: ${nonPoor} (${nonPoorPct}%)`;
+
+  doc.text(summaryText, margin + 3, startY + 12);
+
+  return startY + 16;
+}
+
+/**
+ * Generate and download PMT Enrollment List as PDF
+ *
+ * Creates a professional PDF report containing:
+ * - TASAF header with logo and Swahili titles
+ * - Metadata boxes (Generated Date, District, PMT Cutoff)
+ * - Summary statistics (Total, Poor%, Non-Poor%)
+ * - Table of all households matching filters
+ * - Consistent header and footer on all pages
+ * - Page numbers and watermark
+ *
+ * The PDF is automatically downloaded to the user's device with filename "PMT_Enrollment_List.pdf"
+ *
+ * @async
+ * @param {Object} config - Configuration object
+ * @param {Array} config.households - Array of household objects to export
+ * @param {string} config.districtCode - District name for metadata display (e.g., "Monduli")
+ * @param {number} config.pmtCutoff - PMT cutoff value used for filtering (e.g., 11.01)
+ * @param {Date} config.generatedDate - Report generation timestamp
+ * @param {number} [config.totalCount] - Total count of households (optional, calculated from households array)
+ * @param {number} [config.currentPage] - Current page number (optional, not currently used)
+ * @returns {Promise<void>} Triggers PDF download to browser
+ * @throws {Error} If jsPDF or autoTable encounters rendering error
+ *
+ * @example
+ * await exportPmtEnrollmentPdf({
+ *   households: [{ groupCode: 'P3-001', headName: 'John', ... }],
+ *   districtCode: 'Monduli',
+ *   pmtCutoff: 11.01,
+ *   generatedDate: new Date()
+ * });
+ */
+export async function exportPmtEnrollmentPdf({
+  households = [],
+  districtCode,
+  pmtCutoff,
+  generatedDate,
+  totalCount,
+  currentPage
+}) {
+  const logo = await loadLogo();
+
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4"
+  });
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  const margin = 12;
+
+  /**
+   * Header
+   */
+  doc.setFillColor(0, 102, 102);
+  doc.rect(
+    0,
+    0,
+    pageWidth,
+    40,
+    "F"
+  );
+
+  if (logo) {
+    const logoWidth = 33;
+    const logoHeight = 28;
+    const logoX = pageWidth - margin - logoWidth - 8;
+
+    doc.addImage(
+      logo,
+      "PNG",
+      logoX,
+      6,
+      logoWidth,
+      logoHeight
+    );
+  }
+
+  doc.setTextColor(255, 255, 255);
+
+  doc.setFontSize(16);
+  doc.setFont(undefined, "bold");
+  doc.text(
+    "MFUKO WA MAENDELEO YA JAMII (TASAF III)",
+    margin,
+    12
+  );
+
+  doc.setFontSize(11);
+  doc.setFont(undefined, "bold");
+  doc.text(
+    "MPANGO WA KUNUSURU KAYA MASIKINI",
+    margin,
+    18
+  );
+
+  doc.setFontSize(10);
+  doc.setFont(undefined, "normal");
+  doc.text(
+    "ORODHA YA KAYA MASIKINI YA KIJIJI/MTAA/SHEHIA",
+    margin,
+    24
+  );
+
+  doc.setTextColor(0, 0, 0);
+
+  /**
+   * Metadata boxes + summary box
+   */
+  let contentY = 48;
+
+  /**
+   * Metadata boxes + summary box on first page only
+   */
+  contentY = drawMetadataBoxes({
+    doc,
+    margin,
+    pageWidth,
+    startY: contentY,
+    generatedDate,
+    districtCode,
+    pmtCutoff
+  });
+
+  contentY += 6;
+
+  contentY = drawSummaryBox({
+    doc,
+    margin,
+    pageWidth,
+    startY: contentY,
+    households
+  });
+
+  contentY += 8;
+
+  /**
+   * Watermark
+   */
+  addWatermark(
+    doc,
+    logo,
+    pageWidth,
+    pageHeight
+  );
+
+  /**
+   * Table Data
+   */
+  const columns = [
+    "Group Code",
+    "Head Name",
+    "Village",
+    "PMT Score",
+    "Status"
+  ];
+
+  const rows = households.map((h) => [
+    h.groupCode || "-",
+    h.headName || "-",
+    h.locationName || "-",
+    h.pmtScore !== undefined && h.pmtScore !== null
+      ? Number(h.pmtScore).toFixed(2)
+      : "-",
+    h.pmtClass || "-"
+  ]);
+
+  /**
+   * Table
+   */
+  autoTable(doc, {
+    startY: contentY,
+
+    head: [columns],
+    body: rows,
+
+    theme: "grid",
+
+    styles: {
+      fontSize: 9,
+      cellPadding: 2,
+      valign: "middle"
+    },
+
+    headStyles: {
+      fillColor: [0, 102, 102],
+      textColor: 255,
+      fontStyle: "bold"
+    },
+
+    alternateRowStyles: {
+      fillColor: [245, 245, 245]
+    },
+
+    margin: { left: 12, right: 12, top: 40 },
+
+    didDrawPage: function (data) {
+      const pageNumber = doc.internal.getNumberOfPages();
+
+      // For pages after the first, redraw the complete header (same as page 1)
+      if (pageNumber > 1) {
+        // Dark teal background header
+        doc.setFillColor(0, 102, 102);
+        doc.rect(0, 0, pageWidth, 32, "F");
+
+        // Logo if available
+        if (logo) {
+          const logoWidth = 33;
+          const logoHeight = 28;
+          const logoX = pageWidth - margin - logoWidth - 8;
+          doc.addImage(logo, "PNG", logoX, 2, logoWidth, logoHeight);
+        }
+
+        // White text for Swahili titles
+        doc.setTextColor(255, 255, 255);
+
+        doc.setFontSize(16);
+        doc.setFont(undefined, "bold");
+        doc.text(
+          "MFUKO WA MAENDELEO YA JAMII (TASAF III)",
+          margin,
+          10
+        );
+
+        doc.setFontSize(11);
+        doc.setFont(undefined, "bold");
+        doc.text(
+          "MPANGO WA KUNUSURU KAYA MASIKINI",
+          margin,
+          16
+        );
+
+        doc.setFontSize(10);
+        doc.setFont(undefined, "normal");
+        doc.text(
+          "ORODHA YA KAYA MASIKINI YA KIJIJI/MTAA/SHEHIA",
+          margin,
+          22
+        );
+
+        doc.setTextColor(0, 0, 0);
+      }
+
+      addWatermark(
+        doc,
+        logo,
+        pageWidth,
+        pageHeight
+      );
+
+      addFooter(
+        doc,
+        pageWidth,
+        pageHeight
+      );
+    }
+  });
+
+  doc.save("PMT_Enrollment_List.pdf");
+}
+
+
 

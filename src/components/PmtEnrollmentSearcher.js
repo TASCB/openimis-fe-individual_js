@@ -6,6 +6,8 @@ import {
   formatMessageWithValues,
   Searcher,
   withHistory,
+  graphql,
+  formatQuery,
 } from '@openimis/fe-core';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -21,6 +23,7 @@ import GetAppIcon from '@material-ui/icons/GetApp';
 
 import {
   fetchPmtEnrollmentList,
+  fetchPmtEnrollmentListForExport,
 } from '../actions';
 import {
   DEFAULT_PAGE_SIZE,
@@ -28,7 +31,7 @@ import {
   INDIVIDUAL_MODULE_NAME,
 } from '../constants';
 import PmtEnrollmentSearcherFilter from './PmtEnrollmentSearcherFilter';
-import { exportPmtEnrollmentListAsPdf } from '../util/pmt-export';
+import { exportPmtEnrollmentPdf } from '../util/pmt-export';
 
 const styles = (theme) => ({
   root: {
@@ -41,11 +44,36 @@ const styles = (theme) => ({
   },
 });
 
+/**
+ * PMT Enrollment Searcher Component
+ *
+ * Provides a data search interface for PMT (Proxy Means Test) household enrollment records.
+ * Supports filtering by district, status, and search criteria. Includes PDF export functionality
+ * that automatically fetches and exports all matching records regardless of pagination settings.
+ *
+ * @component
+ * @param {Object} props - Component props from Redux and OpenIMIS
+ * @param {Object} props.intl - Internationalization object from react-intl
+ * @param {Object} props.modulesManager - OpenIMIS modules manager for module access
+ * @param {Object} props.history - React Router history object for navigation
+ * @param {Function} props.fetchPmtEnrollmentList - Redux action to fetch paginated PMT data
+ * @param {Function} props.fetchPmtEnrollmentListForExport - Redux action to fetch all PMT data for export
+ * @param {boolean} props.fetchingPmtEnrollmentList - Loading state for PMT data
+ * @param {boolean} props.fetchedPmtEnrollmentList - Success state for PMT data fetch
+ * @param {string|null} props.errorPmtEnrollmentList - Error message if fetch failed
+ * @param {Array} props.pmtEnrollmentList - Array of household objects matching current filters
+ * @param {Object} props.pmtEnrollmentListPageInfo - Pagination info (pageSize, page, hasNext, hasPrevious)
+ * @param {number} props.pmtEnrollmentListTotalCount - Total count of households matching filters
+ * @param {Object} props.classes - CSS classes from Material-UI withStyles HOC
+ * @param {Object} props.theme - Material-UI theme object
+ * @returns {JSX.Element} Searcher component with filter pane, results table, and export button
+ */
 function PmtEnrollmentSearcher({
   intl,
   modulesManager,
   history,
   fetchPmtEnrollmentList,
+  fetchPmtEnrollmentListForExport,
   fetchingPmtEnrollmentList,
   fetchedPmtEnrollmentList,
   errorPmtEnrollmentList,
@@ -56,8 +84,14 @@ function PmtEnrollmentSearcher({
   theme,
 }) {
   const [exportError, setExportError] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [currentFilters, setCurrentFilters] = useState({});
+  const [districtName, setDistrictName] = useState(null);
 
-  const fetch = (params) => fetchPmtEnrollmentList(modulesManager, params);
+  const fetch = (params) => {
+    setCurrentFilters(params);
+    return fetchPmtEnrollmentList(modulesManager, params);
+  };
 
   const headers = () => [
     'pmt.household.groupCode',
@@ -88,14 +122,38 @@ function PmtEnrollmentSearcher({
 
   const defaultFilters = () => ({});
 
-  const pmtEnrollmentFilterPane = (props) => (
-    <PmtEnrollmentSearcherFilter
-      intl={props.intl}
-      classes={props.classes}
-      filters={props.filters}
-      onChangeFilters={props.onChangeFilters}
-    />
-  );
+  const pmtEnrollmentFilterPane = (props) => {
+    // Wrap the onChangeFilters to intercept and extract location name
+    const wrappedOnChangeFilters = (newFilters) => {
+      // Extract location name from filter objects BEFORE they're converted to strings
+      if (Array.isArray(newFilters)) {
+        newFilters.forEach((filter) => {
+          // Check if this is a location filter with metadata
+          if ((filter.id === 'parentLocation' || filter.id === 'location') && filter.value) {
+            // The value might be an object with location details
+            if (typeof filter.value === 'object') {
+              const locName = filter.value.name || filter.value.displayName;
+              if (locName) {
+                setDistrictName(locName);
+              }
+            }
+          }
+        });
+      }
+
+      // Call the original callback
+      props.onChangeFilters(newFilters);
+    };
+
+    return (
+      <PmtEnrollmentSearcherFilter
+        intl={props.intl}
+        classes={props.classes}
+        filters={props.filters}
+        onChangeFilters={wrappedOnChangeFilters}
+      />
+    );
+  };
 
   const handlePdfExport = async () => {
     if (!pmtEnrollmentList || pmtEnrollmentList.length === 0) {
@@ -104,13 +162,35 @@ function PmtEnrollmentSearcher({
     }
 
     try {
-      await exportPmtEnrollmentListAsPdf({
-        households: pmtEnrollmentList,
+      setIsExporting(true);
+
+      // Use the export action with the SAME params structure as regular fetch
+      // This ensures all active filters (pmtClass, location, search, etc.) are applied
+      const response = await fetchPmtEnrollmentListForExport(modulesManager, currentFilters);
+
+      // Extract households from response
+      const responseData = response?.payload?.data?.pmtEnrollmentList;
+      const allHouseholds = responseData?.households || [];
+      const exportedCount = allHouseholds.length;
+
+      if (allHouseholds.length === 0) {
+        throw new Error('No records to export');
+      }
+
+      // Generate PDF with ALL fetched data
+      await exportPmtEnrollmentPdf({
+        households: allHouseholds,
         generatedDate: new Date(),
+        districtCode: districtName,
+        pmtCutoff: 11.01,
+        totalCount: exportedCount,
       });
+
       setExportError(null);
+      setIsExporting(false);
     } catch (error) {
       setExportError(error.message || 'Error exporting PDF');
+      setIsExporting(false);
     }
   };
 
@@ -183,6 +263,7 @@ const mapStateToProps = (state) => ({
 const mapDispatchToProps = (dispatch) => bindActionCreators(
   {
     fetchPmtEnrollmentList,
+    fetchPmtEnrollmentListForExport,
   },
   dispatch,
 );

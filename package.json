@@ -51,6 +51,7 @@
   "dependencies": {
     "flat": "^5.0.2",
     "html2canvas": "^1.4.1",
-    "jspdf": "^4.2.0"
+    "jspdf": "^4.2.0",
+    "jspdf-autotable": "^5.0.7"
   }
 }

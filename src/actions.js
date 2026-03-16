@@ -61,7 +61,6 @@ const INDIVIDUAL_FULL_PROJECTION = (mm, withGroupIndividuals = false) => {
     'userUpdated {username}',
     'tf4No',
     'interviewKey',
-    'jsonExt',
     `location${mm.getProjection('location.Location.FlatProjection')}`,
   ];
 
@@ -1251,31 +1250,245 @@ export function fetchPmtAuditSummary(modulesManager, params = {}) {
 
 /**
  * Fetch enrollment list for a specific district with PMT cutoff
- * @param {Object} modulesManager - Module manager instance
- * @param {Object} params - Query parameters (districtCode, pmtCutoff required)
+ * Handles filters from the Searcher component, including location UUIDs
+ * Searcher can pass params as either an array of filter strings OR an object
  */
 export function fetchPmtEnrollmentList(modulesManager, params = {}) {
-  const districtCode = params.districtCode || '';
-  const pmtCutoff = params.pmtCutoff || 11.01;
-  const regionCode = params.regionCode || '';
-  const offset = params.offset !== undefined ? params.offset : 0;
-  const limit = params.limit !== undefined ? params.limit : 10;
-  const searchText = params.searchText || '';
-  const pmtClass = params.pmtClass || '';
+  // Handle params being either an array or an object
+  // Sometimes Searcher passes: ['filter1', 'filter2', ...]
+  // Sometimes it passes: {filters: [...], pageInfo: {...}}
+  let paramsObj = {};
+  let filterStrings = [];
 
-  const filterArgs = [
-    `districtCode: "${districtCode}"`,
-    `pmtCutoff: ${pmtCutoff}`,
-    `offset: ${offset}`,
-    `limit: ${limit}`,
-  ];
+  if (Array.isArray(params)) {
+    // Params is an array of filter strings like: ['parentLocation: "UUID"', 'first: 10', 'orderBy: ["code"]']
+    filterStrings = params;
+    // Extract pagination from filter strings
+    filterStrings.forEach((str) => {
+      if (str.includes('first:')) {
+        const match = str.match(/first:\s*(\d+)/);
+        if (match) paramsObj.first = parseInt(match[1], 10);
+      }
+      if (str.includes('offset:')) {
+        const match = str.match(/offset:\s*(\d+)/);
+        if (match) paramsObj.offset = parseInt(match[1], 10);
+      }
+    });
+  } else {
+    // Params is an object
+    paramsObj = params;
+    // Get filters from object
+    if (paramsObj.filters) {
+      const normalizeFilters = (f) => {
+        if (!f) return [];
+        if (Array.isArray(f)) return f.filter(Boolean);
+        if (typeof f === 'object') {
+          return Object.values(f)
+            .map((x) => x?.filter)
+            .filter(Boolean);
+        }
+        return [];
+      };
+      filterStrings = normalizeFilters(paramsObj.filters);
+    }
+  }
 
-  if (regionCode) filterArgs.push(`regionCode: "${regionCode}"`);
-  if (searchText) filterArgs.push(`searchText: "${searchText}"`);
-  if (pmtClass) filterArgs.push(`pmtClass: "${pmtClass}"`);
+  // Get pagination info
+  const pageSize = paramsObj.first || paramsObj.limit || 10;
+  let offset = paramsObj.offset || 0;
+
+  // Extract and convert location filters
+  let processedFilters = [];
+  let hasLocationFilter = false;
+
+  // Helper function to map Searcher filter expressions to GraphQL parameters
+  const mapFilterExpression = (filter) => {
+    // Map search filters: headName_Icontains and code_Icontains both map to searchText
+    if (filter.includes('headName_Icontains:')) {
+      const match = filter.match(/"([^"]+)"/);
+      return match ? `searchText: "${match[1]}"` : null;
+    }
+    if (filter.includes('code_Icontains:')) {
+      const match = filter.match(/"([^"]+)"/);
+      return match ? `searchText: "${match[1]}"` : null;
+    }
+    // PMT class filter: ensure value is quoted
+    if (filter.includes('pmtClass:')) {
+      const match = filter.match(/pmtClass:\s*(\w+)/);
+      return match ? `pmtClass: "${match[1]}"` : filter;
+    }
+    return filter;
+  };
+
+  filterStrings.forEach((filter) => {
+    // Skip pure pagination and ordering filters (but NOT mixed filters like "parentLocation: ..., parentLocationLevel: ...")
+    if (filter.includes('orderBy:') || filter.includes('first:')) {
+      return;
+    }
+
+    // Check if this is a location filter (parentLocation, location, etc)
+    // Note: Filter might be combined like: "parentLocation: \"UUID\", parentLocationLevel: 2"
+    if (filter.includes('parentLocation:') ||
+        filter.includes('location:') ||
+        filter.includes('regionLocation:') ||
+        filter.includes('districtLocation:')) {
+      // Extract location UUID and level from the filter string
+      // Format: "parentLocation: \"UUID\", parentLocationLevel: N"
+      const locationMatch = filter.match(/(parentLocation|location|regionLocation|districtLocation):\s*"([^"]+)"/);
+      const levelMatch = filter.match(/parentLocationLevel:\s*(\d+)/);
+
+      if (locationMatch) {
+        const locationUUID = locationMatch[2];
+        const locationLevel = levelMatch ? parseInt(levelMatch[1], 10) : 1; // Default to district (level 1)
+
+        // Use regionCode for level 0 (regions), districtCode for level 1+ (districts/wards/villages)
+        if (locationLevel === 0) {
+          processedFilters.push(`regionCode: "${locationUUID}"`);
+        } else {
+          processedFilters.push(`districtCode: "${locationUUID}"`);
+        }
+        hasLocationFilter = true;
+      } else {
+        // Fallback: just replace the location field name
+        processedFilters.push(filter.replace(/\b(parentLocation|location|regionLocation|districtLocation):/g, 'districtCode:'));
+        hasLocationFilter = true;
+      }
+    } else if (!filter.includes('parentLocationLevel:')) {
+      // Map filter expression to valid GraphQL parameter, then add it
+      const mappedFilter = mapFilterExpression(filter);
+      if (mappedFilter) {
+        processedFilters.push(mappedFilter);
+      }
+    }
+  });
+
+  // Always include pmtCutoff in the query
+  const pmtCutoff = paramsObj.pmtCutoff || 11.01;
+  const pmtCutoffFilter = `pmtCutoff: ${pmtCutoff}`;
+
+  // Combine all filters
+  const allFilters = [pmtCutoffFilter, ...processedFilters];
+
+  const graphqlQuery = `pmtEnrollmentList(${allFilters.join(', ')}, offset: ${offset}, limit: ${pageSize})`;
 
   const payload = formatQuery(
-    `pmtEnrollmentList(${filterArgs.join(', ')})`,
+    graphqlQuery,
+    [],
+    [
+      'households { groupUuid groupCode headUuid headName pmtScore pmtClass numberOfMembers locationCode locationName }',
+      'totalCount',
+      'hasNext',
+      'hasPrevious',
+      'offset',
+      'limit',
+    ],
+  );
+
+  return graphql(
+    payload,
+    [
+      REQUEST(ACTION_TYPE.PMT_ENROLLMENT_LIST),
+      SUCCESS(ACTION_TYPE.PMT_ENROLLMENT_LIST),
+      ERROR(ACTION_TYPE.PMT_ENROLLMENT_LIST),
+    ],
+    {
+      actionType: ACTION_TYPE.PMT_ENROLLMENT_LIST,
+    },
+  );
+}
+
+/**
+ * Fetch ALL PMT enrollment records for export (bypasses pagination)
+ * Uses same filter extraction as fetchPmtEnrollmentList but with very high limit
+ */
+export function fetchPmtEnrollmentListForExport(modulesManager, params = {}) {
+  // Handle params being either an array or an object
+  let paramsObj = {};
+  let filterStrings = [];
+
+  if (Array.isArray(params)) {
+    filterStrings = params;
+  } else {
+    paramsObj = params;
+    if (paramsObj.filters) {
+      const normalizeFilters = (f) => {
+        if (!f) return [];
+        if (Array.isArray(f)) return f.filter(Boolean);
+        if (typeof f === 'object') {
+          return Object.values(f)
+            .map((x) => x?.filter)
+            .filter(Boolean);
+        }
+        return [];
+      };
+      filterStrings = normalizeFilters(paramsObj.filters);
+    }
+  }
+
+  // Extract and convert location filters
+  let processedFilters = [];
+
+  // Helper function to map Searcher filter expressions to GraphQL parameters
+  const mapFilterExpression = (filter) => {
+    if (filter.includes('headName_Icontains:')) {
+      const match = filter.match(/"([^"]+)"/);
+      return match ? `searchText: "${match[1]}"` : null;
+    }
+    if (filter.includes('code_Icontains:')) {
+      const match = filter.match(/"([^"]+)"/);
+      return match ? `searchText: "${match[1]}"` : null;
+    }
+    if (filter.includes('pmtClass:')) {
+      const match = filter.match(/pmtClass:\s*(\w+)/);
+      return match ? `pmtClass: "${match[1]}"` : filter;
+    }
+    return filter;
+  };
+
+  filterStrings.forEach((filter) => {
+    if (filter.includes('orderBy:') || filter.includes('first:')) {
+      return;
+    }
+
+    if (filter.includes('parentLocation:') ||
+        filter.includes('location:') ||
+        filter.includes('regionLocation:') ||
+        filter.includes('districtLocation:')) {
+      const locationMatch = filter.match(/(parentLocation|location|regionLocation|districtLocation):\s*"([^"]+)"/);
+      const levelMatch = filter.match(/parentLocationLevel:\s*(\d+)/);
+
+      if (locationMatch) {
+        const locationUUID = locationMatch[2];
+        const locationLevel = levelMatch ? parseInt(levelMatch[1], 10) : 1;
+
+        if (locationLevel === 0) {
+          processedFilters.push(`regionCode: "${locationUUID}"`);
+        } else {
+          processedFilters.push(`districtCode: "${locationUUID}"`);
+        }
+      } else {
+        processedFilters.push(filter.replace(/\b(parentLocation|location|regionLocation|districtLocation):/g, 'districtCode:'));
+      }
+    } else if (!filter.includes('parentLocationLevel:')) {
+      const mappedFilter = mapFilterExpression(filter);
+      if (mappedFilter) {
+        processedFilters.push(mappedFilter);
+      }
+    }
+  });
+
+  // Always include pmtCutoff in the query
+  const pmtCutoff = paramsObj.pmtCutoff || 11.01;
+  const pmtCutoffFilter = `pmtCutoff: ${pmtCutoff}`;
+
+  // Combine all filters with NO LIMIT for export
+  const allFilters = [pmtCutoffFilter, ...processedFilters];
+
+  // Use very high offset/limit to get all records (set limit to 10000 to cover almost all cases)
+  const graphqlQuery = `pmtEnrollmentList(${allFilters.join(', ')}, offset: 0, limit: 10000)`;
+
+  const payload = formatQuery(
+    graphqlQuery,
     [],
     [
       'households { groupUuid groupCode headUuid headName pmtScore pmtClass numberOfMembers locationCode locationName }',

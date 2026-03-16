@@ -3,8 +3,8 @@ import { useIntl } from 'react-intl';
 import { withTheme, withStyles } from '@material-ui/core/styles';
 import {
   Table, TableHead, TableBody, TableRow, TableCell, TableContainer,
-  Paper, Button, CircularProgress, Typography, Box, Chip, Tooltip, Grid,
-  TablePagination, TextField,
+  Paper, Button, CircularProgress, Typography, Chip, Tooltip,
+  TablePagination,
 } from '@material-ui/core';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -15,7 +15,7 @@ import { debounce } from 'lodash';
 
 import { fetchPmtHouseholds } from '../actions';
 import PmtHouseholdFilter from './PmtHouseholdFilter';
-import { PMT_CLASS, PMT_CLASS_COLORS, INDIVIDUAL_MODULE_NAME, DEFAULT_PAGE_SIZE, ROWS_PER_PAGE_OPTIONS } from '../constants';
+import { PMT_CLASS, INDIVIDUAL_MODULE_NAME, DEFAULT_PAGE_SIZE, ROWS_PER_PAGE_OPTIONS } from '../constants';
 import { exportPmtResultsAsPdf } from '../util/pmt-export';
 
 const styles = (theme) => {

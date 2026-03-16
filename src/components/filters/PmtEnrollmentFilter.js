@@ -85,38 +85,28 @@ function PmtEnrollmentFilter({
       {expanded ? (
         <>
           <Grid container spacing={2} className={classes.filterGrid}>
-            {/* Region Picker */}
-            <Grid item xs={12} sm={6} md={3}>
-              <PublishedComponent
-                pubRef="location.LocationPicker"
-                onChange={handleRegionChange}
-                value={filters.regionCode ? { code: filters.regionCode } : null}
-                locationLevel={0}
-                label={formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.configuration.region')}
-                disabled={disabled}
-              />
-            </Grid>
-
-            {/* District Picker */}
-            <Grid item xs={12} sm={6} md={3}>
+            {/* District Picker - REQUIRED */}
+            <Grid item xs={12} sm={6} md={4}>
               <PublishedComponent
                 pubRef="location.LocationPicker"
                 onChange={handleDistrictChange}
                 value={filters.districtCode ? { code: filters.districtCode } : null}
-                parentLocation={filters.regionCode ? { code: filters.regionCode } : null}
                 locationLevel={1}
-                label={formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.configuration.district')}
+                label={`${formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.configuration.district')} *`}
                 disabled={disabled}
               />
+              <small style={{ color: '#999', fontSize: '0.75rem' }}>
+                {formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.message.districtRequired')}
+              </small>
             </Grid>
 
-            {/* Search Text */}
-            <Grid item xs={12} sm={6} md={3}>
+            {/* Search Code */}
+            <Grid item xs={12} sm={6} md={4}>
               <TextField
                 fullWidth
-                label={formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.household.search')}
+                label={formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.household.searchCode')}
                 type="text"
-                value={filters.searchText}
+                value={filters.searchText || ''}
                 onChange={handleSearchChange}
                 disabled={disabled}
                 placeholder={formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.household.searchPlaceholder')}
@@ -126,12 +116,12 @@ function PmtEnrollmentFilter({
             </Grid>
 
             {/* Status Filter */}
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={4}>
               <TextField
                 fullWidth
                 select
                 label={formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.household.status')}
-                value={filters.pmtClass}
+                value={filters.pmtClass || 'ALL'}
                 onChange={handleStatusChange}
                 disabled={disabled}
                 variant="outlined"

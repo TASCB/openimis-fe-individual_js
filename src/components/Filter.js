@@ -5,6 +5,7 @@ import {
   Grid,
   withTheme,
   withStyles,
+  Button,
 } from '@material-ui/core';
 import {
   formatMessage,
@@ -66,7 +67,7 @@ function FilterCheckbox({
 }
 
 function Filter({
-  intl, classes, filters, onChangeFilters, filterFields, checkboxFields,
+  intl, classes, filters, onChangeFilters, filterFields, checkboxFields, dedupButton,
 }) {
   const { onChangeStringFilter, onChangeFilter } = useFilterChangeHandler(onChangeFilters);
 
@@ -81,6 +82,12 @@ function Filter({
           onChange={onChangeStringFilter(field.name, field.lookup)}
         />
       ))}
+
+      {dedupButton && (
+        <Grid item xs={2} style={{ display: 'flex', alignItems: 'flex-end', paddingLeft: '8px' }}>
+          {dedupButton}
+        </Grid>
+      )}
 
       {checkboxFields.map((field) => (
         <FilterCheckbox

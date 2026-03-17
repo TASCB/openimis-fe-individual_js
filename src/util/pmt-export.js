@@ -2,14 +2,10 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
 /**
- * Load TASAF logo from multiple possible locations
- *
- * Attempts to load the TASAF logo image from multiple paths with fallback support.
- * If logo is not found, PDF generation continues without logo (graceful degradation).
+ * Load TASAF logo from public paths
  *
  * @async
- * @returns {Promise<string|null>} Logo as base64 data URL, or null if not found
- * @throws {Error} If FileReader encounters an error
+ * @returns {Promise<string|null>}
  */
 async function loadLogo() {
   const paths = [
@@ -29,12 +25,11 @@ async function loadLogo() {
 
           reader.onload = () => resolve(reader.result);
           reader.onerror = reject;
-
           reader.readAsDataURL(blob);
         });
       }
     } catch (e) {
-      // Logo load failed, continue to next path
+      // continue to next path
     }
   }
 
@@ -42,16 +37,155 @@ async function loadLogo() {
 }
 
 /**
+ * Load government logo from public paths
+ *
+ * Put the file in:
+ * - public/front/serikali-logo.png
+ * or
+ * - public/serikali-logo.png
+ *
+ * @async
+ * @returns {Promise<string|null>}
+ */
+async function loadGovernmentLogo() {
+  const paths = [
+    "/front/bibiNabwana.png",
+    "/bibiNabwana.png"
+  ];
+
+  for (const path of paths) {
+    try {
+      const response = await fetch(path);
+
+      if (response.ok) {
+        const blob = await response.blob();
+
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
+    } catch (e) {
+      // continue to next path
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Draw common report header
+ *
+ * Layout:
+ * - government logo on the left
+ * - titles centered
+ * - TASAF logo on the right
+ *
+ * @param {Object} config
+ * @param {jsPDF} config.doc
+ * @param {number} config.pageWidth
+ * @param {number} config.margin
+ * @param {string|null} config.rightLogo
+ * @param {string|null} config.leftLogo
+ */
+function drawHeader({
+  doc,
+  pageWidth,
+  margin,
+  rightLogo,
+  leftLogo
+}) {
+  const headerHeight = 40;
+
+  doc.setFillColor(0, 102, 102);
+  doc.rect(0, 0, pageWidth, headerHeight, "F");
+
+  // Left logo (government logo)
+  if (leftLogo) {
+    try {
+      const leftLogoWidth = 24;
+      const leftLogoHeight = 24;
+      const leftLogoX = margin;
+      const leftLogoY = 8;
+
+      doc.addImage(
+        leftLogo,
+        "PNG",
+        leftLogoX,
+        leftLogoY,
+        leftLogoWidth,
+        leftLogoHeight
+      );
+    } catch (error) {
+      console.warn("Failed to add government logo to PDF header:", error);
+    }
+  }
+
+  // Right logo (TASAF)
+  if (rightLogo) {
+    try {
+      const rightLogoWidth = 33;
+      const rightLogoHeight = 28;
+      const rightLogoX = pageWidth - margin - rightLogoWidth;
+      const rightLogoY = 6;
+
+      doc.addImage(
+        rightLogo,
+        "PNG",
+        rightLogoX,
+        rightLogoY,
+        rightLogoWidth,
+        rightLogoHeight
+      );
+    } catch (error) {
+      console.warn("Failed to add TASAF logo to PDF header:", error);
+    }
+  }
+
+  const centerX = pageWidth / 2;
+
+  doc.setTextColor(255, 255, 255);
+
+  doc.setFontSize(15);
+  doc.setFont(undefined, "bold");
+  doc.text(
+    "MFUKO WA MAENDELEO YA JAMII (TASAF III)",
+    centerX,
+    12,
+    { align: "center" }
+  );
+
+  doc.setFontSize(11);
+  doc.setFont(undefined, "bold");
+  doc.text(
+    "MPANGO WA KUNUSURU KAYA MASIKINI",
+    centerX,
+    18,
+    { align: "center" }
+  );
+
+  doc.setFontSize(10);
+  doc.setFont(undefined, "normal");
+  doc.text(
+    "ORODHA YA KAYA MASIKINI YA KIJIJI/MTAA/SHEHIA",
+    centerX,
+    24,
+    { align: "center" }
+  );
+
+  doc.setTextColor(0, 0, 0);
+}
+
+/**
  * Add watermark image to PDF page
  *
- * Adds a semi-transparent TASAF logo as watermark centered on the page.
- * Watermark is only visible if logo is provided.
- *
- * @param {jsPDF} doc - jsPDF instance
- * @param {string|null} logo - Logo as base64 data URL (or null to skip)
- * @param {number} pageWidth - Width of PDF page in mm
- * @param {number} pageHeight - Height of PDF page in mm
- * @returns {void}
+ * @param {jsPDF} doc
+ * @param {string|null} logo
+ * @param {number} pageWidth
+ * @param {number} pageHeight
  */
 function addWatermark(doc, logo, pageWidth, pageHeight) {
   if (!logo) return;
@@ -68,15 +202,11 @@ function addWatermark(doc, logo, pageWidth, pageHeight) {
 }
 
 /**
- * Add footer with page numbers to PDF page
+ * Add footer with page numbers
  *
- * Adds a footer line separator and page number indicator (e.g., "Page 1 of 5")
- * positioned at the bottom right of each page.
- *
- * @param {jsPDF} doc - jsPDF instance
- * @param {number} pageWidth - Width of PDF page in mm
- * @param {number} pageHeight - Height of PDF page in mm
- * @returns {void}
+ * @param {jsPDF} doc
+ * @param {number} pageWidth
+ * @param {number} pageHeight
  */
 function addFooter(doc, pageWidth, pageHeight) {
   const pageNumber = doc.getCurrentPageInfo().pageNumber;
@@ -101,20 +231,17 @@ function addFooter(doc, pageWidth, pageHeight) {
 }
 
 /**
- * Draw metadata information boxes on first page of PDF
+ * Draw metadata information boxes on first page
  *
- * Creates three information boxes displaying Generated Date, District, and PMT Cutoff.
- * Boxes are arranged horizontally with light background and teal borders.
- *
- * @param {Object} config - Configuration object
- * @param {jsPDF} config.doc - jsPDF instance
- * @param {number} config.margin - Left/right margin in mm
- * @param {number} config.pageWidth - Page width in mm
- * @param {number} config.startY - Y position to start drawing in mm
- * @param {Date} config.generatedDate - Report generation timestamp
- * @param {string} config.districtCode - Name of district (e.g., "Monduli")
- * @param {number} config.pmtCutoff - PMT cutoff value (e.g., 11.01)
- * @returns {number} Y position after metadata boxes
+ * @param {Object} config
+ * @param {jsPDF} config.doc
+ * @param {number} config.margin
+ * @param {number} config.pageWidth
+ * @param {number} config.startY
+ * @param {Date} config.generatedDate
+ * @param {string} config.districtCode
+ * @param {number} config.pmtCutoff
+ * @returns {number}
  */
 function drawMetadataBoxes({
   doc,
@@ -177,18 +304,15 @@ function drawMetadataBoxes({
 }
 
 /**
- * Draw summary statistics box on first page of PDF
+ * Draw summary statistics box on first page
  *
- * Creates a summary box displaying total households and breakdown by PMT status (Poor/Non-Poor).
- * Includes percentage calculations for each category.
- *
- * @param {Object} config - Configuration object
- * @param {jsPDF} config.doc - jsPDF instance
- * @param {number} config.margin - Left/right margin in mm
- * @param {number} config.pageWidth - Page width in mm
- * @param {number} config.startY - Y position to start drawing in mm
- * @param {Array} config.households - Array of household objects to analyze
- * @returns {number} Y position after summary box
+ * @param {Object} config
+ * @param {jsPDF} config.doc
+ * @param {number} config.margin
+ * @param {number} config.pageWidth
+ * @param {number} config.startY
+ * @param {Array} config.households
+ * @returns {number}
  */
 function drawSummaryBox({
   doc,
@@ -232,34 +356,15 @@ function drawSummaryBox({
 /**
  * Generate and download PMT Enrollment List as PDF
  *
- * Creates a professional PDF report containing:
- * - TASAF header with logo and Swahili titles
- * - Metadata boxes (Generated Date, District, PMT Cutoff)
- * - Summary statistics (Total, Poor%, Non-Poor%)
- * - Table of all households matching filters
- * - Consistent header and footer on all pages
- * - Page numbers and watermark
- *
- * The PDF is automatically downloaded to the user's device with filename "PMT_Enrollment_List.pdf"
- *
  * @async
- * @param {Object} config - Configuration object
- * @param {Array} config.households - Array of household objects to export
- * @param {string} config.districtCode - District name for metadata display (e.g., "Monduli")
- * @param {number} config.pmtCutoff - PMT cutoff value used for filtering (e.g., 11.01)
- * @param {Date} config.generatedDate - Report generation timestamp
- * @param {number} [config.totalCount] - Total count of households (optional, calculated from households array)
- * @param {number} [config.currentPage] - Current page number (optional, not currently used)
- * @returns {Promise<void>} Triggers PDF download to browser
- * @throws {Error} If jsPDF or autoTable encounters rendering error
- *
- * @example
- * await exportPmtEnrollmentPdf({
- *   households: [{ groupCode: 'P3-001', headName: 'John', ... }],
- *   districtCode: 'Monduli',
- *   pmtCutoff: 11.01,
- *   generatedDate: new Date()
- * });
+ * @param {Object} config
+ * @param {Array} config.households
+ * @param {string} config.districtCode
+ * @param {number} config.pmtCutoff
+ * @param {Date} config.generatedDate
+ * @param {number} [config.totalCount]
+ * @param {number} [config.currentPage]
+ * @returns {Promise<void>}
  */
 export async function exportPmtEnrollmentPdf({
   households = [],
@@ -270,6 +375,7 @@ export async function exportPmtEnrollmentPdf({
   currentPage
 }) {
   const logo = await loadLogo();
+  const governmentLogo = await loadGovernmentLogo();
 
   const doc = new jsPDF({
     orientation: "portrait",
@@ -279,72 +385,20 @@ export async function exportPmtEnrollmentPdf({
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-
   const margin = 12;
 
-  /**
-   * Header
-   */
-  doc.setFillColor(0, 102, 102);
-  doc.rect(
-    0,
-    0,
+  // First page header
+  drawHeader({
+    doc,
     pageWidth,
-    40,
-    "F"
-  );
-
-  if (logo) {
-    const logoWidth = 33;
-    const logoHeight = 28;
-    const logoX = pageWidth - margin - logoWidth - 8;
-
-    doc.addImage(
-      logo,
-      "PNG",
-      logoX,
-      6,
-      logoWidth,
-      logoHeight
-    );
-  }
-
-  doc.setTextColor(255, 255, 255);
-
-  doc.setFontSize(16);
-  doc.setFont(undefined, "bold");
-  doc.text(
-    "MFUKO WA MAENDELEO YA JAMII (TASAF III)",
     margin,
-    12
-  );
+    rightLogo: logo,
+    leftLogo: governmentLogo
+  });
 
-  doc.setFontSize(11);
-  doc.setFont(undefined, "bold");
-  doc.text(
-    "MPANGO WA KUNUSURU KAYA MASIKINI",
-    margin,
-    18
-  );
-
-  doc.setFontSize(10);
-  doc.setFont(undefined, "normal");
-  doc.text(
-    "ORODHA YA KAYA MASIKINI YA KIJIJI/MTAA/SHEHIA",
-    margin,
-    24
-  );
-
-  doc.setTextColor(0, 0, 0);
-
-  /**
-   * Metadata boxes + summary box
-   */
+  // First page metadata + summary
   let contentY = 48;
 
-  /**
-   * Metadata boxes + summary box on first page only
-   */
   contentY = drawMetadataBoxes({
     doc,
     margin,
@@ -367,9 +421,6 @@ export async function exportPmtEnrollmentPdf({
 
   contentY += 8;
 
-  /**
-   * Watermark
-   */
   addWatermark(
     doc,
     logo,
@@ -377,9 +428,6 @@ export async function exportPmtEnrollmentPdf({
     pageHeight
   );
 
-  /**
-   * Table Data
-   */
   const columns = [
     "Group Code",
     "Head Name",
@@ -398,15 +446,10 @@ export async function exportPmtEnrollmentPdf({
     h.pmtClass || "-"
   ]);
 
-  /**
-   * Table
-   */
   autoTable(doc, {
     startY: contentY,
-
     head: [columns],
     body: rows,
-
     theme: "grid",
 
     styles: {
@@ -425,53 +468,23 @@ export async function exportPmtEnrollmentPdf({
       fillColor: [245, 245, 245]
     },
 
-    margin: { left: 12, right: 12, top: 40 },
+    margin: {
+      left: 12,
+      right: 12,
+      top: 40
+    },
 
-    didDrawPage: function (data) {
-      const pageNumber = doc.internal.getNumberOfPages();
+    didDrawPage: function () {
+      const currentPageNumber = doc.getCurrentPageInfo().pageNumber;
 
-      // For pages after the first, redraw the complete header (same as page 1)
-      if (pageNumber > 1) {
-        // Dark teal background header
-        doc.setFillColor(0, 102, 102);
-        doc.rect(0, 0, pageWidth, 32, "F");
-
-        // Logo if available
-        if (logo) {
-          const logoWidth = 33;
-          const logoHeight = 28;
-          const logoX = pageWidth - margin - logoWidth - 8;
-          doc.addImage(logo, "PNG", logoX, 2, logoWidth, logoHeight);
-        }
-
-        // White text for Swahili titles
-        doc.setTextColor(255, 255, 255);
-
-        doc.setFontSize(16);
-        doc.setFont(undefined, "bold");
-        doc.text(
-          "MFUKO WA MAENDELEO YA JAMII (TASAF III)",
+      if (currentPageNumber > 1) {
+        drawHeader({
+          doc,
+          pageWidth,
           margin,
-          10
-        );
-
-        doc.setFontSize(11);
-        doc.setFont(undefined, "bold");
-        doc.text(
-          "MPANGO WA KUNUSURU KAYA MASIKINI",
-          margin,
-          16
-        );
-
-        doc.setFontSize(10);
-        doc.setFont(undefined, "normal");
-        doc.text(
-          "ORODHA YA KAYA MASIKINI YA KIJIJI/MTAA/SHEHIA",
-          margin,
-          22
-        );
-
-        doc.setTextColor(0, 0, 0);
+          rightLogo: logo,
+          leftLogo: governmentLogo
+        });
       }
 
       addWatermark(
@@ -491,6 +504,3 @@ export async function exportPmtEnrollmentPdf({
 
   doc.save("PMT_Enrollment_List.pdf");
 }
-
-
-

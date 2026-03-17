@@ -216,24 +216,16 @@ function PmtConfigurationPage({
    * In GraphQL it becomes `mutationId`.
    */
   useEffect(() => {
-    console.log('DEBUG: pmtRerunMutation =', pmtRerunMutation);
-    console.log('DEBUG: pmtRerunMutation?.data =', pmtRerunMutation?.data);
-    console.log('DEBUG: pmtRerunMutation?.rerunPmt =', pmtRerunMutation?.rerunPmt);
-
     const mutationId =
+      pmtRerunMutation?.mutationId ||
       pmtRerunMutation?.data?.rerunPmt?.mutationId ||
-      pmtRerunMutation?.rerunPmt?.mutationId ||
       null;
 
-    console.log('DEBUG: extracted mutationId =', mutationId);
-
     if (mutationId && mutationId !== progressMutationId) {
-      console.log('DEBUG: Opening progress dialog with mutationId:', mutationId);
       setProgressMutationId(mutationId);
       setOpenProgressDialog(true);
     }
   }, [pmtRerunMutation]); // eslint-disable-line react-hooks/exhaustive-deps
-
   return (
     <>
       <Helmet

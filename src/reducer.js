@@ -1051,10 +1051,15 @@ function reducer(
 
     case SUCCESS(ACTION_TYPE.RERUN_PMT): {
       const next = dispatchMutationResp(state, "rerunPmt", action);
+      const rerunData = action.payload?.data?.rerunPmt || {};
       return {
         ...next,
         submittingPmtRerun: false,
-        pmtRerunMutation: next.mutation || { ok: true },
+        pmtRerunMutation: {
+          ...(next.mutation || {}),
+          data: { rerunPmt: rerunData },
+          mutationId: rerunData.mutationId || null,
+        },
         errorPmtRerun: null,
       };
     }

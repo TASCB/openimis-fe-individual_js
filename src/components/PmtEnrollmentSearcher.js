@@ -44,30 +44,6 @@ const styles = (theme) => ({
   },
 });
 
-/**
- * PMT Enrollment Searcher Component
- *
- * Provides a data search interface for PMT (Proxy Means Test) household enrollment records.
- * Supports filtering by district, status, and search criteria. Includes PDF export functionality
- * that automatically fetches and exports all matching records regardless of pagination settings.
- *
- * @component
- * @param {Object} props - Component props from Redux and OpenIMIS
- * @param {Object} props.intl - Internationalization object from react-intl
- * @param {Object} props.modulesManager - OpenIMIS modules manager for module access
- * @param {Object} props.history - React Router history object for navigation
- * @param {Function} props.fetchPmtEnrollmentList - Redux action to fetch paginated PMT data
- * @param {Function} props.fetchPmtEnrollmentListForExport - Redux action to fetch all PMT data for export
- * @param {boolean} props.fetchingPmtEnrollmentList - Loading state for PMT data
- * @param {boolean} props.fetchedPmtEnrollmentList - Success state for PMT data fetch
- * @param {string|null} props.errorPmtEnrollmentList - Error message if fetch failed
- * @param {Array} props.pmtEnrollmentList - Array of household objects matching current filters
- * @param {Object} props.pmtEnrollmentListPageInfo - Pagination info (pageSize, page, hasNext, hasPrevious)
- * @param {number} props.pmtEnrollmentListTotalCount - Total count of households matching filters
- * @param {Object} props.classes - CSS classes from Material-UI withStyles HOC
- * @param {Object} props.theme - Material-UI theme object
- * @returns {JSX.Element} Searcher component with filter pane, results table, and export button
- */
 function PmtEnrollmentSearcher({
   intl,
   modulesManager,
@@ -123,14 +99,10 @@ function PmtEnrollmentSearcher({
   const defaultFilters = () => ({});
 
   const pmtEnrollmentFilterPane = (props) => {
-    // Wrap the onChangeFilters to intercept and extract location name
     const wrappedOnChangeFilters = (newFilters) => {
-      // Extract location name from filter objects BEFORE they're converted to strings
       if (Array.isArray(newFilters)) {
         newFilters.forEach((filter) => {
-          // Check if this is a location filter with metadata
           if ((filter.id === 'parentLocation' || filter.id === 'location') && filter.value) {
-            // The value might be an object with location details
             if (typeof filter.value === 'object') {
               const locName = filter.value.name || filter.value.displayName;
               if (locName) {
@@ -141,7 +113,6 @@ function PmtEnrollmentSearcher({
         });
       }
 
-      // Call the original callback
       props.onChangeFilters(newFilters);
     };
 
@@ -164,20 +135,17 @@ function PmtEnrollmentSearcher({
     try {
       setIsExporting(true);
 
-      // Use the export action with the SAME params structure as regular fetch
-      // This ensures all active filters (pmtClass, location, search, etc.) are applied
       const response = await fetchPmtEnrollmentListForExport(modulesManager, currentFilters);
-
-      // Extract households from response
       const responseData = response?.payload?.data?.pmtEnrollmentList;
-      const allHouseholds = responseData?.households || [];
+      const allHouseholds = responseData?.households?.length
+        ? responseData.households
+        : pmtEnrollmentList;
       const exportedCount = allHouseholds.length;
 
       if (allHouseholds.length === 0) {
         throw new Error('No records to export');
       }
 
-      // Generate PDF with ALL fetched data
       await exportPmtEnrollmentPdf({
         households: allHouseholds,
         generatedDate: new Date(),

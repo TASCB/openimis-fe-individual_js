@@ -56,6 +56,8 @@ export const ACTION_TYPE = {
   PMT_AUDIT_SUMMARY: "PMT_AUDIT_SUMMARY",
   PMT_ENROLLMENT_LIST: "PMT_ENROLLMENT_LIST",
   PMT_RUN_PROGRESS: "PMT_RUN_PROGRESS",
+  FETCH_ELIGIBLE_HOUSEHOLDS: "FETCH_ELIGIBLE_HOUSEHOLDS",
+  FETCH_ELIGIBLE_MEMBERS: "FETCH_ELIGIBLE_MEMBERS",
 };
 
 function reducer(
@@ -214,6 +216,21 @@ function reducer(
     pmtEnrollmentListPageInfo: {},
     pmtEnrollmentListTotalCount: 0,
     errorPmtEnrollmentList: null,
+    
+    //Eligible Households
+    fetchingEligibleHouseholds: false,
+    fetchedEligibleHouseholds: false,
+    errorEligibleHouseholds: null,
+    eligibleHouseholds: [],
+    eligibleHouseholdsPageInfo: {},
+    eligibleHouseholdsTotalCount: 0,
+    //Eligible Members
+    fetchingEligibleMembers: false,
+    fetchedEligibleMembers: false,
+    errorEligibleMembers: null,
+    eligibleMembers: [],
+    eligibleMembersPageInfo: {},
+    eligibleMembersTotalCount: 0,
   },
   action
 ) {
@@ -357,6 +374,60 @@ function reducer(
         errorNonConsentedHouseholds: formatServerError(action.payload),
       };
 
+    case REQUEST(ACTION_TYPE.FETCH_ELIGIBLE_HOUSEHOLDS):
+      return {
+        ...state,
+        fetchingEligibleHouseholds: true,
+        fetchedEligibleHouseholds: false,
+        errorEligibleHouseholds: null,
+      };
+    case SUCCESS(ACTION_TYPE.FETCH_ELIGIBLE_HOUSEHOLDS):
+      return {
+        ...state,
+        fetchingEligibleHouseholds: false,
+        fetchedEligibleHouseholds: true,
+        errorEligibleHouseholds: null,
+        eligibleHouseholds: parseData(action.payload.data.group).map((g) => ({
+          ...g,
+          id: decodeId(g.id),
+        })),
+        eligibleHouseholdsPageInfo: pageInfo(action.payload.data.group),
+        eligibleHouseholdsTotalCount: action.payload.data.group?.totalCount ?? 0,
+      };
+    case ERROR(ACTION_TYPE.FETCH_ELIGIBLE_HOUSEHOLDS):
+      return {
+        ...state,
+        fetchingEligibleHouseholds: false,
+        fetchedEligibleHouseholds: true,
+        errorEligibleHouseholds: formatServerError(action.payload),
+      };
+    case REQUEST(ACTION_TYPE.FETCH_ELIGIBLE_MEMBERS):
+      return {
+        ...state,
+        fetchingEligibleMembers: true,
+        fetchedEligibleMembers: false,
+        errorEligibleMembers: null,
+      };
+    case SUCCESS(ACTION_TYPE.FETCH_ELIGIBLE_MEMBERS):
+      return {
+        ...state,
+        fetchingEligibleMembers: false,
+        fetchedEligibleMembers: true,
+        errorEligibleMembers: null,
+        eligibleMembers: parseData(action.payload.data.individual).map((i) => ({
+          ...i,
+          id: decodeId(i.id),
+        })),
+        eligibleMembersPageInfo: pageInfo(action.payload.data.individual),
+        eligibleMembersTotalCount: action.payload.data.individual?.totalCount ?? 0,
+      };
+    case ERROR(ACTION_TYPE.FETCH_ELIGIBLE_MEMBERS):
+      return {
+        ...state,
+        fetchingEligibleMembers: false,
+        fetchedEligibleMembers: true,
+        errorEligibleMembers: formatServerError(action.payload),
+      };
     case SUCCESS(ACTION_TYPE.SEARCH_INDIVIDUAL_HISTORY):
       return {
         ...state,
@@ -871,11 +942,7 @@ function reducer(
       return {
         ...state,
         fetchingMutations: false,
-        mutations: _.unionBy(
-          activeMutations,
-          state.mutations,
-          "clientMutationId"
-        ),
+        mutations: activeMutations,
       };
     }
     case ERROR(ACTION_TYPE.FETCH_ACTIVE_MUTATIONS):
@@ -919,7 +986,7 @@ function reducer(
     // ----- Legacy ETL -----
     case REQUEST(ACTION_TYPE.PULL_API_DATA_LEGACY):
       return {
-        ...state,
+        ...dispatchMutationReq(state, action),
         submittingLegacyEtl: true,
         legacyEtlMutation: null,
       };
@@ -971,7 +1038,7 @@ function reducer(
       };
     case REQUEST(ACTION_TYPE.PULL_API_DATA_PAA):
       return {
-        ...state,
+        ...dispatchMutationReq(state, action),
         submittingPaaEtl: true,
         paaEtlMutation: null,
       };

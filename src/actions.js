@@ -73,6 +73,15 @@ const INDIVIDUAL_FULL_PROJECTION = (mm, withGroupIndividuals = false) => {
   return fields;
 };
 
+const NON_CONSENTED_INDIVIDUAL_PROJECTION = (mm) => [
+  'id',
+  'firstName',
+  'lastName',
+  'interviewKey',
+  'interviewResultsNo',
+  `location${mm.getProjection('location.Location.FlatProjection')}`,
+];
+
 const GROUP_INDIVIDUAL_FULL_PROJECTION = [
   'id',
   'individual {id, firstName, lastName, dob}',
@@ -132,6 +141,74 @@ const PULLED_QUESTIONNAIRES_PROJECTION = () => [
   'datePulled',
   'status',
   'errorMessage',
+];
+
+const ELIGIBLE_HOUSEHOLD_PROJECTION = (mm) => [
+  "id",
+  "uuid",
+  "code",
+  "pmtScoreHousehold",
+  "pmtClassHousehold",
+  `head { id uuid firstName lastName }`,
+  `location {
+    id
+    uuid
+    code
+    name
+    parent {
+      id
+      uuid
+      code
+      name
+      parent {
+        id
+        uuid
+        code
+        name
+        parent {
+          id
+          uuid
+          code
+          name
+        }
+      }
+    }
+  }`,
+];
+
+const ELIGIBLE_MEMBER_PROJECTION = (mm) => [
+  "id",
+  "uuid",
+  "firstName",
+  "lastName",
+  "dob",
+  "dateCreated",
+  "dateUpdated",
+  "jsonExt",
+  `location {
+    id
+    uuid
+    code
+    name
+    parent {
+      id
+      uuid
+      code
+      name
+      parent {
+        id
+        uuid
+        code
+        name
+        parent {
+          id
+          uuid
+          code
+          name
+        }
+      }
+    }
+  }`,
 ];
 
 export function fetchApiEtlServices() {
@@ -318,7 +395,7 @@ export function fetchNonConsentedHouseholds(mm, params = {}) {
         pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
         edges {
           node {
-            ${INDIVIDUAL_FULL_PROJECTION(mm).join("\n")}
+            ${NON_CONSENTED_INDIVIDUAL_PROJECTION(mm).join("\n")}
           }
         }
       }
@@ -422,6 +499,24 @@ export function deleteIndividual(individual, clientMutationLabel) {
       requestedDateTime,
     },
   );
+}
+
+export function fetchEligibleHouseholds(mm, params) {
+  const payload = formatPageQueryWithCount(
+    "group",
+    params,
+    ELIGIBLE_HOUSEHOLD_PROJECTION(mm),
+  );
+  return graphql(payload, ACTION_TYPE.FETCH_ELIGIBLE_HOUSEHOLDS);
+}
+
+export function fetchEligibleMembers(mm, params) {
+  const payload = formatPageQueryWithCount(
+    "individual",
+    params,
+    ELIGIBLE_MEMBER_PROJECTION(mm),
+  );
+  return graphql(payload, ACTION_TYPE.FETCH_ELIGIBLE_MEMBERS);
 }
 
 export function undoDeleteIndividual(individual, clientMutationLabel) {

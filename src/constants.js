@@ -42,6 +42,8 @@ export const TASK_CONTRIBUTION_KEY = 'tasksManagement.tasks';
 export const BENEFITS_CONTRIBUTION_KEY = 'payroll.benefitConsumptionPayrollSearcher';
 export const GROUP_ROUTE_GROUP = 'individual.route.group';
 
+export const ELIGIBLE_HOUSEHOLDS_ROUTE = "individual/eligible-households";
+
 export const BENEFICIARY_STATUS = {
   POTENTIAL: 'POTENTIAL',
   ACTIVE: 'ACTIVE',

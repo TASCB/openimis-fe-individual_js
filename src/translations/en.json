@@ -21,6 +21,7 @@
     "firstName": "First Name",
     "lastName": "Last Name",
     "dob": "Day of birth",
+    "interviewResultsNo": "Reason",
     "location": "Location",
     "locationEditDisabledTitle": "Individual belongs to a group; Please edit location on their group",
     "isDeleted": "Show Deleted",
@@ -157,6 +158,10 @@
         "searchFailed": "Failed to search for duplicates. Please try again.",
         "taskCreationFailed": "Failed to create deduplication task. Please check your permissions and try again."
       }
+    },
+    "button": {
+      "download": "DOWNLOAD",
+      "enrollment": "ENROLLMENT"
     }
   },
   "individualHistory": {
@@ -316,6 +321,16 @@
   "groupTaskConfirmation.title": "Group Upload Confirmation",
   "dialogActions.continue": "Continue",
   "dialogActions.goBack": "Cancel",
+  "_comment_Eligible_Households": "=== Eligible Households ===",
+  "menu.eligibleHouseholds": "Eligible Households",
+  "eligibleHouseholds.pageTitle": "Eligible Households",
+  "eligibleHouseholds.searcherTitle": "{count} Eligible Households Found",
+  "group.pmtScoreHousehold": "PMT Score",
+  "group.pmtClassHousehold": "PMT Class",
+  "_comment_Eligible_Members": "=== Eligible Members ===",
+  "menu.eligibleMembers": "Eligible Members",
+  "eligibleMembers.pageTitle": "Eligible Members",
+  "eligibleMembers.searcherTitle": "{count} Eligible Members Found",
   "ImportPageAPI": {
     "ImportPage": "Import Data - API",
     "apiSelection": "Selected API",

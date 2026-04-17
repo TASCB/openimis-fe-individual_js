@@ -12,6 +12,8 @@ import messages_en from './translations/en.json';
 import reducer from './reducer';
 import IndividualsPage from './pages/IndividualsPage';
 import NonConsentedHouseholdsPage from './pages/NonConsentedHouseholdsPage';
+import EligibleHouseholdsPage from "./pages/EligibleHouseholdsPage";
+import EligibleMembersPage from "./pages/EligibleMembersPage";
 import IndividualPage from './pages/IndividualPage';
 import EnrollmentPage from './pages/EnrollmentPage';
 import GroupsPage from './pages/GroupsPage';
@@ -65,6 +67,7 @@ import {
 } from './components/tasks/GroupImportTasks';
 import EnrollmentGroupPage from './pages/EnrollmentGroupPage';
 import GroupMenu from './components/dialogs/GroupMenu';
+import EligibleHouseholdsMenu from './components/dialogs/EligibleHouseholdsMenu';
 import { BenefitsGroupTabLabel, BenefitsGroupTabPanel } from './components/BenefitsGroupTab';
 import ImportDataApiPage from './pages/ImportDataApiPage';
 import PmtConfigurationPage from './pages/PmtConfigurationPage';
@@ -81,6 +84,9 @@ const ROUTE_GROUP_ENROLLMENT = 'groups/enrollment';
 const ROUTE_API_IMPORTS = 'imports';
 const ROUTE_PMT_CONFIGURATION = 'pmt-configuration';
 const ROUTE_PMT_ENROLLMENT_LIST = 'pmt/enrollment-list';
+
+const ROUTE_ELIGIBLE_HOUSEHOLDS = 'eligible-households';
+const ROUTE_ELIGIBLE_MEMBERS = 'eligible-members';
 
 const BENEFIT_PLAN_TABS_LABEL_REF_KEY = 'socialProtection.BenefitPlansListTabLabel';
 const BENEFIT_PLAN_TABS_PANEL_REF_KEY = 'socialProtection.BenefitPlansListTabPanel';
@@ -101,6 +107,8 @@ const DEFAULT_CONFIG = {
     { path: ROUTE_API_IMPORTS, component: ImportDataApiPage },
     { path: ROUTE_PMT_CONFIGURATION, component: PmtConfigurationPage },
     { path: ROUTE_PMT_ENROLLMENT_LIST, component: PmtEnrollmentListPage },
+    { path: ROUTE_ELIGIBLE_HOUSEHOLDS, component: EligibleHouseholdsPage },
+    { path: ROUTE_ELIGIBLE_MEMBERS, component: EligibleMembersPage },
   ],
   'socialProtection.MainMenu': [
     {
@@ -145,6 +153,20 @@ const DEFAULT_CONFIG = {
       filter: (rights) => rights.includes(RIGHT_PMT_RERUN),
       id: 'individual.pmt_enrollment_list',
     },
+    {
+      text: <FormattedMessage module={INDIVIDUAL_MODULE_NAME} id="menu.eligibleHouseholds" />,
+      icon: <People />,
+      route: `/${ROUTE_ELIGIBLE_HOUSEHOLDS}`,
+      filter: (rights) => rights.includes(RIGHT_GROUP_SEARCH),
+      id: 'individual.eligibleHouseholds',
+    },
+    {
+      text: <FormattedMessage module={INDIVIDUAL_MODULE_NAME} id="menu.eligibleMembers" />,
+      icon: <Person />,
+      route: `/${ROUTE_ELIGIBLE_MEMBERS}`,
+      filter: (rights) => rights.includes(RIGHT_INDIVIDUAL_SEARCH),
+      id: 'individual.eligibleMembers',
+    },
   ],
   refs: [
     { key: 'individual.route.individual', ref: ROUTE_INDIVIDUAL },
@@ -162,9 +184,11 @@ const DEFAULT_CONFIG = {
     { key: 'individual.AdvancedCriteriaRowValue', ref: AdvancedCriteriaRowValue },
     { key: 'individual.IndividualPicker', ref: IndividualPicker },
     { key: 'individual.group.GroupMenu', ref: GroupMenu },
+    { key: 'individual.eligibleHouseholds.Menu', ref: EligibleHouseholdsMenu },
   ],
   'individual.IndividualsUploadDialog': IndividualsUploadDialog,
   'individual.group.GroupMenu': GroupMenu,
+  'individual.eligibleHouseholds.Menu': EligibleHouseholdsMenu,
   'deduplication.deduplicationFieldSelectionDialog': [],
   'individual.TabPanel.label': [
     BenefitPlansListTabLabel,

@@ -1,96 +1,58 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
-/**
- * Load TASAF logo from public paths
- *
- * @async
- * @returns {Promise<string|null>}
- */
+const getImageFormat = (mimeType) => {
+  const normalized = (mimeType || "").toLowerCase();
+  if (normalized.includes("png")) return "PNG";
+  if (normalized.includes("jpeg") || normalized.includes("jpg")) return "JPEG";
+  if (normalized.includes("webp")) return "WEBP";
+  return null;
+};
+
+async function loadImageAsset(paths) {
+  for (const path of paths) {
+    try {
+      const response = await fetch(path);
+
+      if (response.ok) {
+        const mimeType = response.headers.get("content-type") || "";
+        const format = getImageFormat(mimeType);
+
+        if (!format) continue;
+
+        const blob = await response.blob();
+
+        const data = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+
+        return { data, format };
+      }
+    } catch (e) {
+    }
+  }
+
+  return null;
+}
+
 async function loadLogo() {
-  const paths = [
+  return loadImageAsset([
     "/front/tasafMIS.png",
     "/tasafMIS.png"
-  ];
-
-  for (const path of paths) {
-    try {
-      const response = await fetch(path);
-
-      if (response.ok) {
-        const blob = await response.blob();
-
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-      }
-    } catch (e) {
-      // continue to next path
-    }
-  }
-
-  return null;
+  ]);
 }
 
-/**
- * Load government logo from public paths
- *
- * Put the file in:
- * - public/front/serikali-logo.png
- * or
- * - public/serikali-logo.png
- *
- * @async
- * @returns {Promise<string|null>}
- */
 async function loadGovernmentLogo() {
-  const paths = [
+  return loadImageAsset([
     "/front/bibiNabwana.png",
     "/bibiNabwana.png"
-  ];
-
-  for (const path of paths) {
-    try {
-      const response = await fetch(path);
-
-      if (response.ok) {
-        const blob = await response.blob();
-
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-      }
-    } catch (e) {
-      // continue to next path
-    }
-  }
-
-  return null;
+  ]);
 }
 
-/**
- * Draw common report header
- *
- * Layout:
- * - government logo on the left
- * - titles centered
- * - TASAF logo on the right
- *
- * @param {Object} config
- * @param {jsPDF} config.doc
- * @param {number} config.pageWidth
- * @param {number} config.margin
- * @param {string|null} config.rightLogo
- * @param {string|null} config.leftLogo
- */
 function drawHeader({
   doc,
   pageWidth,
@@ -103,7 +65,6 @@ function drawHeader({
   doc.setFillColor(0, 102, 102);
   doc.rect(0, 0, pageWidth, headerHeight, "F");
 
-  // Left logo (government logo)
   if (leftLogo) {
     try {
       const leftLogoWidth = 24;
@@ -112,8 +73,8 @@ function drawHeader({
       const leftLogoY = 8;
 
       doc.addImage(
-        leftLogo,
-        "PNG",
+        leftLogo.data,
+        leftLogo.format,
         leftLogoX,
         leftLogoY,
         leftLogoWidth,
@@ -124,7 +85,6 @@ function drawHeader({
     }
   }
 
-  // Right logo (TASAF)
   if (rightLogo) {
     try {
       const rightLogoWidth = 33;
@@ -133,8 +93,8 @@ function drawHeader({
       const rightLogoY = 6;
 
       doc.addImage(
-        rightLogo,
-        "PNG",
+        rightLogo.data,
+        rightLogo.format,
         rightLogoX,
         rightLogoY,
         rightLogoWidth,
@@ -179,14 +139,6 @@ function drawHeader({
   doc.setTextColor(0, 0, 0);
 }
 
-/**
- * Add watermark image to PDF page
- *
- * @param {jsPDF} doc
- * @param {string|null} logo
- * @param {number} pageWidth
- * @param {number} pageHeight
- */
 function addWatermark(doc, logo, pageWidth, pageHeight) {
   if (!logo) return;
 
@@ -197,17 +149,10 @@ function addWatermark(doc, logo, pageWidth, pageHeight) {
   const y = (pageHeight - logoHeight) / 2;
 
   doc.setGState(new doc.GState({ opacity: 0.07 }));
-  doc.addImage(logo, "PNG", x, y, logoWidth, logoHeight);
+  doc.addImage(logo.data, logo.format, x, y, logoWidth, logoHeight);
   doc.setGState(new doc.GState({ opacity: 1 }));
 }
 
-/**
- * Add footer with page numbers
- *
- * @param {jsPDF} doc
- * @param {number} pageWidth
- * @param {number} pageHeight
- */
 function addFooter(doc, pageWidth, pageHeight) {
   const pageNumber = doc.getCurrentPageInfo().pageNumber;
   const totalPages = doc.getNumberOfPages();
@@ -230,19 +175,6 @@ function addFooter(doc, pageWidth, pageHeight) {
   );
 }
 
-/**
- * Draw metadata information boxes on first page
- *
- * @param {Object} config
- * @param {jsPDF} config.doc
- * @param {number} config.margin
- * @param {number} config.pageWidth
- * @param {number} config.startY
- * @param {Date} config.generatedDate
- * @param {string} config.districtCode
- * @param {number} config.pmtCutoff
- * @returns {number}
- */
 function drawMetadataBoxes({
   doc,
   margin,
@@ -303,17 +235,6 @@ function drawMetadataBoxes({
   return startY + boxHeight;
 }
 
-/**
- * Draw summary statistics box on first page
- *
- * @param {Object} config
- * @param {jsPDF} config.doc
- * @param {number} config.margin
- * @param {number} config.pageWidth
- * @param {number} config.startY
- * @param {Array} config.households
- * @returns {number}
- */
 function drawSummaryBox({
   doc,
   margin,
@@ -353,19 +274,6 @@ function drawSummaryBox({
   return startY + 16;
 }
 
-/**
- * Generate and download PMT Enrollment List as PDF
- *
- * @async
- * @param {Object} config
- * @param {Array} config.households
- * @param {string} config.districtCode
- * @param {number} config.pmtCutoff
- * @param {Date} config.generatedDate
- * @param {number} [config.totalCount]
- * @param {number} [config.currentPage]
- * @returns {Promise<void>}
- */
 export async function exportPmtEnrollmentPdf({
   households = [],
   districtCode,
@@ -387,7 +295,6 @@ export async function exportPmtEnrollmentPdf({
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 12;
 
-  // First page header
   drawHeader({
     doc,
     pageWidth,
@@ -396,7 +303,6 @@ export async function exportPmtEnrollmentPdf({
     leftLogo: governmentLogo
   });
 
-  // First page metadata + summary
   let contentY = 48;
 
   contentY = drawMetadataBoxes({

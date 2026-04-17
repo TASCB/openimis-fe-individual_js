@@ -1,10 +1,7 @@
-// src/pages/ImportDataApiPage.js (or wherever your ImportDataApiPage lives)
-
 import React, { useState, useEffect, useMemo } from "react";
 import { connect } from "react-redux";
 import { bindActionCreators } from "redux";
 
-// Material-UI v4
 import {
   Paper,
   Grid,
@@ -29,14 +26,12 @@ import {
 } from "@material-ui/core";
 import { withStyles, withTheme } from "@material-ui/core/styles";
 
-// Dialogs
 import Dialog from "@material-ui/core/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogContentText from "@material-ui/core/DialogContentText";
 import DialogTitle from "@material-ui/core/DialogTitle";
 
-// openIMIS core
 import {
   Helmet,
   PublishedComponent,
@@ -109,12 +104,32 @@ const API_WORKFLOW_HEADERS = [
   "ImportPageAPI.triggerImport",
 ];
 
+const ZANZIBAR_PAA_BY_CODE = {
+  54: "PEMBA",
+  55: "PEMBA",
+  51: "UNGUJA",
+  52: "UNGUJA",
+  53: "UNGUJA",
+};
+
+const getZanzibarPaaScope = (...locations) => {
+  for (const location of locations) {
+    const code = location?.code ? String(location.code) : "";
+    const exactScope = ZANZIBAR_PAA_BY_CODE[code];
+    if (exactScope) return exactScope;
+
+    const parentCode = Object.keys(ZANZIBAR_PAA_BY_CODE).find(
+      (paaCode) => code.startsWith(paaCode) && code !== paaCode,
+    );
+    if (parentCode) return ZANZIBAR_PAA_BY_CODE[parentCode];
+  }
+  return null;
+};
+
 function ImportDataApiPage({
   intl,
   classes,
   modulesManager,
-
-  // state
   pulledQ,
   fetchingPulledQ,
   errorPulledQ,
@@ -135,39 +150,29 @@ function ImportDataApiPage({
 
   pulledQPageInfo,
   pulledQTotalCount,
-
-  // actions
   fetchPulledQuestionnaires,
   confirmPullingDataFromApiEtl,
   fetchApiEtlServices,
   fetchMutationByLabel,
   fetchAvailableQuestionnaires,
 }) {
-  // ------------------------------------------------------------
-  // Pagination state for pulled questionnaires (cursor-based)
-  // ------------------------------------------------------------
   const [pulledQPageSize, setPulledQPageSize] = useState(10);
   const [pulledQAfter, setPulledQAfter] = useState(null);
   const [pulledQBefore, setPulledQBefore] = useState(null);
 
-  // Questionnaire selection for PAA-based import
   const [selectedQuestionnaire, setSelectedQuestionnaire] = useState(null);
   const [questionnaireSearchTerm, setQuestionnaireSearchTerm] = useState("");
 
-  // Region/District (ETL control)
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [selectedDistrict, setSelectedDistrict] = useState(null);
 
-  // Advanced options
   const [manualQuestionnaireId, setManualQuestionnaireId] = useState("");
   const [dryRun, setDryRun] = useState(false);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
-  // API services confirm dialog
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
   const [serviceToPullData, setServiceToPullData] = useState(null);
 
-  // PAA Import confirm dialog
   const [openPAAConfirmDialog, setOpenPAAConfirmDialog] = useState(false);
 
   const isSubmitting =
@@ -175,12 +180,16 @@ function ImportDataApiPage({
 
   const hasNext = !!pulledQPageInfo?.hasNextPage;
   const hasPrev = !!pulledQPageInfo?.hasPreviousPage;
+  const selectedPaaScope = useMemo(
+    () => getZanzibarPaaScope(selectedDistrict, selectedRegion),
+    [selectedDistrict, selectedRegion],
+  );
+  const selectedPaaName = selectedPaaScope || selectedDistrict?.name;
 
   const rangeText = useMemo(() => {
     const total = pulledQTotalCount ?? (Array.isArray(pulledQ) ? pulledQ.length : 0);
     const shown = Array.isArray(pulledQ) ? pulledQ.length : 0;
     if (!total && !shown) return "";
-    // For cursor paging we don’t know exact start index reliably; show simple text.
     return `Showing ${shown} of ${total}`;
   }, [pulledQTotalCount, pulledQ]);
 
@@ -195,7 +204,6 @@ function ImportDataApiPage({
     });
   };
 
-  // Initial loads
   useEffect(() => {
     if (!fetchedPulledQ && !fetchingPulledQ) {
       fetchPulledQuestionnaires(modulesManager, { pageSize: pulledQPageSize });
@@ -204,7 +212,6 @@ function ImportDataApiPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Refetch history when filters change (reset cursors)
   useEffect(() => {
     setPulledQAfter(null);
     setPulledQBefore(null);
@@ -219,7 +226,6 @@ function ImportDataApiPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRegion, selectedDistrict]);
 
-  // After mutation completes, refresh history (reset cursors)
   useEffect(() => {
     const label = mutation?.clientMutationLabel || "";
     const isEtl = label.startsWith("paa_etl_") || label.startsWith("etl_");
@@ -243,28 +249,25 @@ function ImportDataApiPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mutation, submittingMutation]);
 
-  // Keep mutation-by-label in sync (used for disabling API “Send” button)
   useEffect(() => {
     fetchMutationByLabel(
       formatMessage(intl, "individual", "ImportPageAPI.confirmPullingData")
     );
   }, [serviceToPullData, fetchMutationByLabel, intl]);
 
-  // Fetch questionnaires when district is selected
   useEffect(() => {
     if (selectedDistrict && selectedRegion) {
       fetchAvailableQuestionnaires(
         selectedDistrict.code,
         selectedRegion.code,
-        selectedDistrict.name,
+        selectedPaaName,
         false
       );
       setSelectedQuestionnaire(null);
       setQuestionnaireSearchTerm("");
     }
-  }, [selectedDistrict, selectedRegion, fetchAvailableQuestionnaires]);
+  }, [selectedDistrict, selectedRegion, selectedPaaName, fetchAvailableQuestionnaires]);
 
-  // Auto-refresh pulled questionnaires every 5 seconds if any import is running
   useEffect(() => {
     const hasRunningImports =
       pulledQ && pulledQ.some((item) => item.status === "running");
@@ -284,7 +287,6 @@ function ImportDataApiPage({
     return () => clearInterval(intervalId);
   }, [pulledQ, selectedRegion, selectedDistrict, pulledQPageSize, fetchPulledQuestionnaires, modulesManager]);
 
-  // --- Handlers (pagination)
   const onNext = () => {
     if (!hasNext) return;
     setPulledQBefore(null);
@@ -327,7 +329,6 @@ function ImportDataApiPage({
     });
   };
 
-  // --- Handlers (ETL PAA)
   const handleTriggerPAAImport = () => {
     if (!selectedRegion || !selectedDistrict) return;
     setOpenPAAConfirmDialog(true);
@@ -339,7 +340,7 @@ function ImportDataApiPage({
     if (submittingLegacyEtl || submittingPaaEtl || submittingMutation) return;
 
     const params = {
-      paaName: selectedDistrict.name,
+      paaName: selectedPaaName,
       regionCode: selectedRegion.code,
       districtCode: selectedDistrict.code,
       dryRun,
@@ -357,7 +358,6 @@ function ImportDataApiPage({
     setOpenPAAConfirmDialog(false);
   };
 
-  // --- Handlers (API services)
   const openServiceConfirm = (etlService) => {
     setServiceToPullData(etlService);
     setOpenConfirmDialog(true);
@@ -374,7 +374,6 @@ function ImportDataApiPage({
     setServiceToPullData(null);
   };
 
-  // Helper: safe error to text
   const formatErr = (err) => {
     if (!err) return "";
     if (typeof err === "string") return err;
@@ -449,7 +448,6 @@ function ImportDataApiPage({
 
       <div className={classes.page}>
         <Grid container spacing={2}>
-          {/* ====== SECTION 1: API Services ====== */}
           <Grid item xs={12}>
             <Paper className={classes.tablePaper}>
               <div className={classes.tableHeaderBar}>
@@ -485,7 +483,7 @@ function ImportDataApiPage({
                                 variant="contained"
                                 color="primary"
                                 onClick={() => openServiceConfirm(etl.nameOfService)}
-                                disabled={Array.isArray(mutations) && mutations.length > 0}
+                                disabled={isSubmitting}
                               >
                                 {formatMessage(intl, "individual", "ImportPageAPI.triggerImport")}
                               </Button>
@@ -512,7 +510,6 @@ function ImportDataApiPage({
             </Paper>
           </Grid>
 
-          {/* ====== SECTION 2: PAA-Based Import with Questionnaire Selection ====== */}
           <Grid item xs={12}>
             <Paper className={classes.paper}>
               <div className={classes.headerBar}>
@@ -559,6 +556,16 @@ function ImportDataApiPage({
 
               {selectedDistrict && (
                 <>
+                  {selectedPaaScope && (
+                    <Grid container spacing={3} className={classes.formRow}>
+                      <Grid item xs={12}>
+                        <Typography variant="body2" color="textSecondary" style={{ marginTop: 8 }}>
+                          Zanzibar PAA scope: <strong>{selectedPaaScope}</strong>
+                        </Typography>
+                      </Grid>
+                    </Grid>
+                  )}
+
                   <Grid container spacing={3} className={classes.formRow}>
                     <Grid item xs={12}>
                       <Typography variant="subtitle1" style={{ fontWeight: 500, marginTop: 16 }}>
@@ -685,7 +692,7 @@ function ImportDataApiPage({
                     disabled={
                       !selectedRegion ||
                       !selectedDistrict ||
-                      (Array.isArray(mutations) && mutations.length > 0)
+                      isSubmitting
                     }
                     fullWidth
                     startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
@@ -748,10 +755,8 @@ function ImportDataApiPage({
             </Paper>
           </Grid>
 
-          {/* ====== SECTION 3: Pulled Questionnaires History ====== */}
           <Grid item xs={12}>
             <Paper className={classes.tablePaper}>
-              {/* Title ONLY in header */}
               <div className={classes.tableHeaderBar}>
                 <Typography variant="h6" className={classes.sectionTitle}>
                   {formatMessage(intl, "individual", "ImportDataApiPage.pulledQuestionnaires.title")}
@@ -834,7 +839,6 @@ function ImportDataApiPage({
                 </Table>
               </TableContainer>
 
-              {/* ✅ Pagination controls at the BOTTOM (not in header) */}
               <div
                 style={{
                   display: "flex",
@@ -871,7 +875,6 @@ function ImportDataApiPage({
         </Grid>
       </div>
 
-      {/* Confirm dialog for API services trigger */}
       <Dialog open={openConfirmDialog} onClose={() => setOpenConfirmDialog(false)}>
         <DialogTitle>
           {formatMessage(intl, "individual", "ImportPageAPI.confirmPullingData.title")}
@@ -901,7 +904,6 @@ function ImportDataApiPage({
         </DialogActions>
       </Dialog>
 
-      {/* Confirm dialog for PAA Import trigger */}
       <Dialog open={openPAAConfirmDialog} onClose={() => setOpenPAAConfirmDialog(false)}>
         <DialogTitle>
           {formatMessage(intl, "individual", "ImportPageAPI.confirmPullingData.title")}
@@ -913,6 +915,7 @@ function ImportDataApiPage({
           {selectedDistrict && (
             <Typography variant="body2" style={{ marginTop: 16 }}>
               <strong>District:</strong> {selectedDistrict.name}
+              {selectedPaaScope ? ` (${selectedPaaScope})` : ""}
             </Typography>
           )}
           {selectedQuestionnaire && (

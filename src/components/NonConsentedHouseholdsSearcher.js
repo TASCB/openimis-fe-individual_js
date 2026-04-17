@@ -21,24 +21,20 @@ import NonConsentedHouseholdsFilter from "./NonConsentedHouseholdsFilter";
 
 const styles = (theme) => ({
   tableWrapper: {
-    // Make rows less "thin"
     "& .MuiTableCell-root": {
       paddingTop: theme.spacing(1.5),
       paddingBottom: theme.spacing(1.5),
     },
 
-    // If Searcher uses sizeSmall cells, override them too
     "& .MuiTableCell-sizeSmall": {
       paddingTop: theme.spacing(1.5),
       paddingBottom: theme.spacing(1.5),
     },
 
-    // Increase row height
     "& .MuiTableRow-root": {
       height: 56,
     },
 
-    // Stronger header like members table
     "& .MuiTableHead-root .MuiTableCell-root": {
       fontWeight: 600,
     },
@@ -52,9 +48,6 @@ class NonConsentedHouseholdsSearcher extends Component {
     this.defaultPageSize = DEFAULT_PAGE_SIZE;
   }
 
-  /**
-   * Parse jsonExt.json_ext into object (works whether it's object or string)
-   */
   getNested = (individual) => {
     const je = individual?.jsonExt;
     if (!je) return {};
@@ -76,14 +69,10 @@ class NonConsentedHouseholdsSearcher extends Component {
     return {};
   };
 
-  /**
-   * Get raw payload (prefers jsonExt.json_ext.raw)
-   */
   getRaw = (individual) => {
     const je = individual?.jsonExt;
     if (!je) return {};
 
-    // If backend already provides raw directly
     if (je.raw && typeof je.raw === "object") return je.raw;
 
     const nested = je.json_ext || je.jsonExt || je["json_ext"];
@@ -134,6 +123,41 @@ class NonConsentedHouseholdsSearcher extends Component {
     );
   };
 
+  getInterviewResultNo = (individual) => {
+    if (individual?.interviewResultsNo != null) {
+      return String(individual.interviewResultsNo).trim().padStart(2, "0");
+    }
+
+    const raw = this.getRaw(individual);
+    const nested = this.getNested(individual);
+    const je = individual?.jsonExt || {};
+
+    const value =
+      raw?.interview_resultsNo ||
+      raw?.interview_results_no ||
+      raw?.interview_results ||
+      raw?.INTERVIEW_RESULTSNO ||
+      raw?.INTERVIEW_RESULTS_NO ||
+      raw?.INTERVIEW_RESULTS ||
+      nested?.interview_resultsNo ||
+      nested?.interview_results_no ||
+      nested?.interview_results ||
+      je?.interview_resultsNo ||
+      je?.interview_results_no ||
+      je?.interview_results;
+
+    return value != null ? String(value).trim().padStart(2, "0") : "";
+  };
+
+  getInterviewResultReason = (individual) => {
+    const code = this.getInterviewResultNo(individual);
+    const reasons = {
+      "01": "Mwakilishi wa kaya hajahudhuria mahojiano",
+      "02": "Mwakilishi wa kaya amekataa kuhojiwa",
+    };
+    return reasons[code] || "-";
+  };
+
   fetch = (params) => {
     const { fetchNonConsentedHouseholds, modulesManager } = this.props;
     fetchNonConsentedHouseholds(modulesManager, {
@@ -145,35 +169,23 @@ class NonConsentedHouseholdsSearcher extends Component {
   headers = () => {
     const { intl } = this.props;
     return [
-      formatMessage(intl, INDIVIDUAL_MODULE_NAME, "individual.tf4No"),
       formatMessage(intl, INDIVIDUAL_MODULE_NAME, "individual.headName"),
       formatMessage(intl, INDIVIDUAL_MODULE_NAME, "individual.district"),
       formatMessage(intl, INDIVIDUAL_MODULE_NAME, "individual.village"),
       formatMessage(intl, INDIVIDUAL_MODULE_NAME, "individual.interviewKey"),
+      formatMessage(intl, INDIVIDUAL_MODULE_NAME, "individual.interviewResultsNo"),
     ];
   };
 
   itemFormatters = () => [
-    // TF4 Number
-    (individual) => {
-      if (individual?.tf4No) return individual.tf4No;
-      const raw = this.getRaw(individual);
-      const v = raw?.TF4_NO || raw?.tf4_no || raw?.tf4No;
-      return v != null ? String(v) : "-";
-    },
-
-    // Head Name
     (individual) =>
       `${individual?.firstName || ""} ${individual?.lastName || ""}`.trim() ||
       "-",
 
-    // District
     (individual) => this.getDistrictName(individual),
 
-    // Village
     (individual) => this.getVillageName(individual),
 
-    // Interview Key (use interviewKey GraphQL field first; fallback to jsonExt external_id)
     (individual) => {
       if (individual?.interviewKey) return individual.interviewKey;
 
@@ -186,6 +198,8 @@ class NonConsentedHouseholdsSearcher extends Component {
 
       return v != null ? String(v) : "-";
     },
+
+    (individual) => this.getInterviewResultReason(individual),
   ];
 
   rowIdentifier = (individual) => individual.id;

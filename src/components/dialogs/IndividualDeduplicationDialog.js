@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -18,7 +18,13 @@ import {
   makeStyles,
 } from '@material-ui/core';
 import { injectIntl } from 'react-intl';
-import { Autocomplete, ProgressOrError, formatMessage } from '@openimis/fe-core';
+import {
+  Autocomplete,
+  ProgressOrError,
+  apiHeaders,
+  baseApiUrl,
+  formatMessage,
+} from '@openimis/fe-core';
 import { INDIVIDUAL_MODULE_NAME } from '../../constants';
 
 const useStyles = makeStyles((theme) => ({
@@ -39,6 +45,100 @@ const BASIC_FIELDS = [
   { id: 'last_name', name: 'last_name' },
   { id: 'dob', name: 'dob' },
 ];
+
+const FIELD_ALIASES = {
+  firstName: 'first_name',
+  'individual.firstName': 'first_name',
+  individual_firstName: 'first_name',
+  'Individual First Name': 'first_name',
+  'First Name': 'first_name',
+  firstname: 'first_name',
+  lastName: 'last_name',
+  'individual.lastName': 'last_name',
+  individual_lastName: 'last_name',
+  'Individual Last Name': 'last_name',
+  'Last Name': 'last_name',
+  lastname: 'last_name',
+  dateOfBirth: 'dob',
+  birthDate: 'dob',
+  'individual.dob': 'dob',
+  'Date Of Birth': 'dob',
+  'Date of Birth': 'dob',
+  'Birth Date': 'dob',
+};
+
+const normalizeSelectedField = (value) => {
+  const field = typeof value === 'string' ? value : value?.id || value?.name || value?.label;
+  const canonicalField = String(field || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (['firstname', 'individualfirstname'].includes(canonicalField)) {
+    return 'first_name';
+  }
+  if (['lastname', 'individuallastname'].includes(canonicalField)) {
+    return 'last_name';
+  }
+  if (['dob', 'dateofbirth', 'birthdate', 'individualdob'].includes(canonicalField)) {
+    return 'dob';
+  }
+  return FIELD_ALIASES[field] || field;
+};
+
+const executeGraphQLQuery = async (query, variables = {}) => {
+  const response = await fetch(`${baseApiUrl}/graphql`, {
+    method: 'POST',
+    headers: apiHeaders(),
+    body: JSON.stringify({
+      query,
+      variables,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const result = await response.json();
+
+  if (result.errors) {
+    throw new Error(result.errors[0]?.message || 'GraphQL error');
+  }
+
+  return result.data;
+};
+
+const parseColumnValues = (input) => {
+  if (!input) {
+    return {};
+  }
+  if (typeof input === 'string') {
+    return JSON.parse(input);
+  }
+  return input;
+};
+
+const fetchDeduplicationRows = async (selectedValues) => {
+  const columns = selectedValues
+    .map(normalizeSelectedField)
+    .filter(Boolean);
+
+  if (!columns.length) {
+    return [];
+  }
+
+  const query = `
+    query IndividualDeduplicationSummary($columns: [String!]!) {
+      individualDeduplicationSummary(columns: $columns) {
+        rows {
+          count
+          ids
+          columnValues
+        }
+      }
+    }
+  `;
+
+  const result = await executeGraphQLQuery(query, { columns });
+  return result.individualDeduplicationSummary?.rows || [];
+};
 
 /**
  * Individual Field Picker Component
@@ -80,97 +180,15 @@ function IndividualFieldPicker({
  * Individual Deduplication Summary Table
  */
 function IndividualDeduplicationSummaryTable({
-  selectedValues,
-  setSummary,
+  data,
+  loading,
+  error,
+  hasScanned,
 }) {
   const classes = useStyles();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [data, setData] = useState([]);
-
-  const getCookie = (name) => {
-    let cookieValue = '';
-    if (document.cookie && document.cookie !== '') {
-      const cookies = document.cookie.split(';');
-      for (let i = 0; i < cookies.length; i += 1) {
-        const cookie = cookies[i].trim();
-        if (cookie.substring(0, name.length + 1) === `${name}=`) {
-          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-          break;
-        }
-      }
-    }
-    return cookieValue;
-  };
-
-  const executeGraphQLQuery = async (query, variables = {}) => {
-    const response = await fetch('/graphql', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': getCookie('csrftoken'),
-      },
-      body: JSON.stringify({
-        query,
-        variables,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const result = await response.json();
-
-    if (result.errors) {
-      throw new Error(result.errors[0]?.message || 'GraphQL error');
-    }
-
-    return result.data;
-  };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!selectedValues || selectedValues.length === 0) {
-        setData([]);
-        setSummary([]);
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        const columns = selectedValues.map((v) => v.id);
-        const query = `
-          query IndividualDeduplicationSummary($columns: [String!]!) {
-            individualDeduplicationSummary(columns: $columns)
-          }
-        `;
-
-        const result = await executeGraphQLQuery(query, { columns });
-        const summaryStr = result.individualDeduplicationSummary;
-
-        if (summaryStr) {
-          const summary = typeof summaryStr === 'string' ? JSON.parse(summaryStr) : summaryStr;
-          const rows = summary.rows || [];
-          setData(rows);
-          setSummary(rows);
-        }
-      } catch (err) {
-        setError(err.message);
-        setData([]);
-        setSummary([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [selectedValues, setSummary]);
 
   const reshapeColumnValues = (input) => {
-    const columnValues = typeof input === 'string' ? JSON.parse(input) : input;
+    const columnValues = parseColumnValues(input);
     const formattedValues = Object.entries(columnValues).map(([key, value]) => {
       const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
       const formattedValue = value !== null ? value : 'null';
@@ -182,7 +200,12 @@ function IndividualDeduplicationSummaryTable({
   return (
     <>
       <ProgressOrError progress={loading} error={error} />
-      {!loading && (
+      {!loading && hasScanned && !error && data.length === 0 && (
+        <Typography color="textSecondary">
+          No duplicate groups found for the selected fields.
+        </Typography>
+      )}
+      {!loading && !error && data.length > 0 && (
         <TableContainer component={Paper}>
           <Table size="small">
             <TableHead className={classes.header}>
@@ -194,7 +217,7 @@ function IndividualDeduplicationSummaryTable({
             <TableBody>
               {data.map((row) => (
                 <TableRow key={row.ids[0]}>
-                  <TableCell>{reshapeColumnValues(row.column_values)}</TableCell>
+                  <TableCell>{reshapeColumnValues(row.columnValues || row.column_values)}</TableCell>
                   <TableCell>{row.count}</TableCell>
                 </TableRow>
               ))}
@@ -219,47 +242,6 @@ function IndividualDeduplicationSummaryDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const getCookie = (name) => {
-    let cookieValue = '';
-    if (document.cookie && document.cookie !== '') {
-      const cookies = document.cookie.split(';');
-      for (let i = 0; i < cookies.length; i += 1) {
-        const cookie = cookies[i].trim();
-        if (cookie.substring(0, name.length + 1) === `${name}=`) {
-          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-          break;
-        }
-      }
-    }
-    return cookieValue;
-  };
-
-  const executeGraphQLQuery = async (query, variables = {}) => {
-    const response = await fetch('/graphql', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': getCookie('csrftoken'),
-      },
-      body: JSON.stringify({
-        query,
-        variables,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const result = await response.json();
-
-    if (result.errors) {
-      throw new Error(result.errors[0]?.message || 'GraphQL error');
-    }
-
-    return result.data;
-  };
-
   const handleCreateTasks = async () => {
     if (!summary || summary.length === 0) {
       setError('No duplicate groups to create tasks for');
@@ -270,10 +252,15 @@ function IndividualDeduplicationSummaryDialog({
     setError(null);
 
     try {
-      const summaryData = summary.map((group) => ({
-        ...group,
-        primary_id: primarySelected && group.ids.includes(primarySelected) ? primarySelected : group.ids[0],
-      }));
+      const summaryData = summary.map((group) => {
+        const columnValues = parseColumnValues(group.columnValues || group.column_values);
+        return {
+          count: group.count,
+          ids: group.ids,
+          column_values: columnValues,
+          primary_id: primarySelected && group.ids.includes(primarySelected) ? primarySelected : group.ids[0],
+        };
+      });
 
       const mutation = `
         mutation CreateIndividualDeduplicationReview($summary: [JSONString!]!) {
@@ -349,7 +336,9 @@ function IndividualDeduplicationSummaryDialog({
                     <TableCell>{group.count}</TableCell>
                     <TableCell>
                       <div>
-                        {Object.entries(group.column_values || {}).map(([key, value]) => (
+                        {Object.entries(
+                          parseColumnValues(group.columnValues || group.column_values),
+                        ).map(([key, value]) => (
                           <div key={key} style={{ marginBottom: 4 }}>
                             <strong>
                               {key}
@@ -388,7 +377,7 @@ function IndividualDeduplicationSummaryDialog({
               onClick={handleCreateTasks}
               variant="outlined"
               autoFocus
-              disabled={!summary || loading}
+              disabled={!summary || summary.length === 0 || loading}
               style={{ margin: '0 16px' }}
             >
               {loading ? (
@@ -429,17 +418,60 @@ function IndividualDeduplicationDialog({
 }) {
   const [selectedValues, setSelectedValues] = useState([]);
   const [summary, setSummary] = useState([]);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState(null);
+  const [hasScanned, setHasScanned] = useState(false);
+  const [scannedFields, setScannedFields] = useState([]);
   const [showSummaryDialog, setShowSummaryDialog] = useState(false);
 
-  const handlePickerChange = (selectedOptions) => {
-    setSelectedValues(selectedOptions || []);
+  const scanForDuplicates = async (values = selectedValues) => {
+    const normalizedValues = Array.isArray(values) ? values : [values].filter(Boolean);
+
+    if (!normalizedValues.length) {
+      setSummary([]);
+      return [];
+    }
+
+    setSummaryLoading(true);
+    setSummaryError(null);
+    setHasScanned(false);
+    setScannedFields(normalizedValues.map(normalizeSelectedField).filter(Boolean));
+
+    try {
+      const rows = await fetchDeduplicationRows(normalizedValues);
+      setSummary(rows);
+      setHasScanned(true);
+      return rows;
+    } catch (err) {
+      setSummary([]);
+      setSummaryError(err.message);
+      setHasScanned(true);
+      return [];
+    } finally {
+      setSummaryLoading(false);
+    }
   };
 
-  const handleShowSummary = () => {
+  const handlePickerChange = (selectedOptions) => {
+    const values = Array.isArray(selectedOptions)
+      ? selectedOptions
+      : [selectedOptions].filter(Boolean);
+    setSelectedValues(values);
+    setSummary([]);
+    setSummaryError(null);
+    setHasScanned(false);
+    setScannedFields([]);
+  };
+
+  const handleShowSummary = async () => {
     if (selectedValues.length === 0) {
       return;
     }
-    setShowSummaryDialog(true);
+
+    const rows = await scanForDuplicates();
+    if (rows.length > 0) {
+      setShowSummaryDialog(true);
+    }
   };
 
   const handleSummaryClose = () => {
@@ -477,11 +509,19 @@ function IndividualDeduplicationDialog({
             withPlaceholder
           />
           <div style={{ marginTop: 20 }}>
+            {scannedFields.length > 0 && (
+              <Typography variant="caption" color="textSecondary">
+                Scanned fields:
+                {' '}
+                {scannedFields.join(', ')}
+              </Typography>
+            )}
             {selectedValues.length > 0 && (
               <IndividualDeduplicationSummaryTable
-                columnParam={JSON.stringify(selectedValues.map((v) => v.id))}
-                selectedValues={selectedValues}
-                setSummary={setSummary}
+                data={summary}
+                loading={summaryLoading}
+                error={hasScanned ? summaryError : null}
+                hasScanned={hasScanned}
               />
             )}
           </div>
@@ -501,10 +541,10 @@ function IndividualDeduplicationDialog({
                 onClick={handleShowSummary}
                 variant="outlined"
                 autoFocus
-                disabled={!selectedValues.length}
+                disabled={!selectedValues.length || summaryLoading}
                 style={{ margin: '0 16px' }}
               >
-                Show Duplicate Summary
+                {summaryLoading ? 'Scanning...' : `Show Duplicate Summary${hasScanned ? ` (${summary.length})` : ''}`}
               </Button>
             </div>
             <div style={{ float: 'right', paddingRight: '16px' }}>

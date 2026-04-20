@@ -9,6 +9,28 @@ const getImageFormat = (mimeType) => {
   return null;
 };
 
+const DEFAULT_ENROLLMENT_TITLE = "ORODHA YA KAYA MASIKINI YA KIJIJI/MTAA/SHEHIA";
+
+const getEnrollmentPdfTitle = (pmtClass) => {
+  if (pmtClass === "POOR") {
+    return "ORODHA YA KAYA MASIKINI YA KIJIJI";
+  }
+  if (pmtClass === "NON_POOR") {
+    return "ORODHA YA KAYA MATAJIRI YA KIJIJI";
+  }
+  return DEFAULT_ENROLLMENT_TITLE;
+};
+
+const getEnrollmentPdfFileName = (pmtClass) => {
+  if (pmtClass === "POOR") {
+    return "PMT_Enrollment_List_Poor.pdf";
+  }
+  if (pmtClass === "NON_POOR") {
+    return "PMT_Enrollment_List_Non_Poor.pdf";
+  }
+  return "PMT_Enrollment_List.pdf";
+};
+
 async function loadImageAsset(paths) {
   for (const path of paths) {
     try {
@@ -58,7 +80,8 @@ function drawHeader({
   pageWidth,
   margin,
   rightLogo,
-  leftLogo
+  leftLogo,
+  title = DEFAULT_ENROLLMENT_TITLE
 }) {
   const headerHeight = 40;
 
@@ -130,7 +153,7 @@ function drawHeader({
   doc.setFontSize(10);
   doc.setFont(undefined, "normal");
   doc.text(
-    "ORODHA YA KAYA MASIKINI YA KIJIJI/MTAA/SHEHIA",
+    title,
     centerX,
     24,
     { align: "center" }
@@ -182,7 +205,7 @@ function drawMetadataBoxes({
   startY,
   generatedDate,
   districtCode,
-  pmtCutoff
+  villageName
 }) {
   const contentWidth = pageWidth - (margin * 2);
   const gap = 3;
@@ -191,16 +214,16 @@ function drawMetadataBoxes({
 
   const metadataItems = [
     {
-      label: "Generated Date:",
+      label: "Tarehe:",
       value: generatedDate?.toLocaleString() || "-"
     },
     {
-      label: "District:",
+      label: "Wilaya:",
       value: districtCode || "-"
     },
     {
-      label: "PMT Cutoff:",
-      value: pmtCutoff ?? "-"
+      label: "Kijiji:",
+      value: villageName || "-"
     }
   ];
 
@@ -235,6 +258,17 @@ function drawMetadataBoxes({
   return startY + boxHeight;
 }
 
+const getExportVillageName = (households) => {
+  const villages = new Set((households || []).map((household) => household?.locationName).filter(Boolean));
+  if (villages.size === 1) {
+    return [...villages][0];
+  }
+  if (villages.size > 1) {
+    return "Vijiji Mbalimbali";
+  }
+  return null;
+};
+
 function drawSummaryBox({
   doc,
   margin,
@@ -261,13 +295,13 @@ function drawSummaryBox({
 
   doc.setFontSize(10);
   doc.setFont(undefined, "bold");
-  doc.text("Summary Statistics", margin + 3, startY + 5);
+  doc.text("Muhtasari", margin + 3, startY + 5);
 
   doc.setFontSize(9);
   doc.setFont(undefined, "normal");
 
   const summaryText =
-    `Total Households: ${total} | Poor: ${poor} (${poorPct}%) | Non-Poor: ${nonPoor} (${nonPoorPct}%)`;
+    `Jumla ya Kaya: ${total} | Masikini: ${poor} (${poorPct}%) | Matajiri: ${nonPoor} (${nonPoorPct}%)`;
 
   doc.text(summaryText, margin + 3, startY + 12);
 
@@ -280,10 +314,14 @@ export async function exportPmtEnrollmentPdf({
   pmtCutoff,
   generatedDate,
   totalCount,
-  currentPage
+  currentPage,
+  pmtClass
 }) {
   const logo = await loadLogo();
   const governmentLogo = await loadGovernmentLogo();
+  const title = getEnrollmentPdfTitle(pmtClass);
+  const fileName = getEnrollmentPdfFileName(pmtClass);
+  const villageName = getExportVillageName(households);
 
   const doc = new jsPDF({
     orientation: "portrait",
@@ -300,7 +338,8 @@ export async function exportPmtEnrollmentPdf({
     pageWidth,
     margin,
     rightLogo: logo,
-    leftLogo: governmentLogo
+    leftLogo: governmentLogo,
+    title
   });
 
   let contentY = 48;
@@ -312,7 +351,7 @@ export async function exportPmtEnrollmentPdf({
     startY: contentY,
     generatedDate,
     districtCode,
-    pmtCutoff
+    villageName
   });
 
   contentY += 6;
@@ -335,21 +374,17 @@ export async function exportPmtEnrollmentPdf({
   );
 
   const columns = [
-    "Group Code",
-    "Head Name",
-    "Village",
-    "PMT Score",
-    "Status"
+    "Na.",
+    "NAMBA YA UTAMBUZI",
+    "JINA LA MWAKILISHI",
+    "JINA LA MKUU WA KAYA"
   ];
 
-  const rows = households.map((h) => [
+  const rows = households.map((h, index) => [
+    index + 1,
     h.groupCode || "-",
+    h.hhRep || "-",
     h.headName || "-",
-    h.locationName || "-",
-    h.pmtScore !== undefined && h.pmtScore !== null
-      ? Number(h.pmtScore).toFixed(2)
-      : "-",
-    h.pmtClass || "-"
   ]);
 
   autoTable(doc, {
@@ -377,7 +412,7 @@ export async function exportPmtEnrollmentPdf({
     margin: {
       left: 12,
       right: 12,
-      top: 40
+      top: 52
     },
 
     didDrawPage: function () {
@@ -389,7 +424,8 @@ export async function exportPmtEnrollmentPdf({
           pageWidth,
           margin,
           rightLogo: logo,
-          leftLogo: governmentLogo
+          leftLogo: governmentLogo,
+          title
         });
       }
 
@@ -408,5 +444,5 @@ export async function exportPmtEnrollmentPdf({
     }
   });
 
-  doc.save("PMT_Enrollment_List.pdf");
+  doc.save(fileName);
 }

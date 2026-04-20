@@ -44,6 +44,43 @@ const styles = (theme) => ({
   },
 });
 
+const getCurrentPmtClassFilter = (params) => {
+  const queue = Array.isArray(params) ? [...params] : [params];
+
+  while (queue.length) {
+    const item = queue.shift();
+    if (!item) continue;
+
+    if (Array.isArray(item)) {
+      queue.push(...item);
+      continue;
+    }
+
+    if (typeof item === 'object') {
+      if (item.id === 'pmtClass' && item.value) {
+        return item.value;
+      }
+
+      if (typeof item.filter === 'string') {
+        const match = item.filter.match(/pmtClass:\s*"?([A-Z_]+)"?/);
+        if (match) return match[1];
+      }
+
+      queue.push(...Object.values(item));
+    }
+  }
+
+  return null;
+};
+
+const getExportPmtClass = (params, households) => {
+  const filterPmtClass = getCurrentPmtClassFilter(params);
+  if (filterPmtClass) return filterPmtClass;
+
+  const classes = new Set((households || []).map((household) => household?.pmtClass).filter(Boolean));
+  return classes.size === 1 ? [...classes][0] : null;
+};
+
 function PmtEnrollmentSearcher({
   intl,
   modulesManager,
@@ -152,6 +189,7 @@ function PmtEnrollmentSearcher({
         districtCode: districtName,
         pmtCutoff: 11.01,
         totalCount: exportedCount,
+        pmtClass: getExportPmtClass(currentFilters, allHouseholds),
       });
 
       setExportError(null);

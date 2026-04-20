@@ -1470,7 +1470,7 @@ export function fetchPmtEnrollmentList(modulesManager, params = {}) {
     graphqlQuery,
     [],
     [
-      'households { groupUuid groupCode headUuid headName pmtScore pmtClass numberOfMembers locationCode locationName }',
+      'households { groupUuid groupCode hhRep headUuid headName pmtScore pmtClass numberOfMembers locationCode locationName }',
       'totalCount',
       'hasNext',
       'hasPrevious',
@@ -1586,7 +1586,7 @@ export function fetchPmtEnrollmentListForExport(modulesManager, params = {}) {
     graphqlQuery,
     [],
     [
-      'households { groupUuid groupCode headUuid headName pmtScore pmtClass numberOfMembers locationCode locationName }',
+      'households { groupUuid groupCode hhRep headUuid headName pmtScore pmtClass numberOfMembers locationCode locationName }',
       'totalCount',
       'hasNext',
       'hasPrevious',

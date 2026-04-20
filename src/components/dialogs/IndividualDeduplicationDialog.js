@@ -80,9 +80,7 @@ function IndividualFieldPicker({
  * Individual Deduplication Summary Table
  */
 function IndividualDeduplicationSummaryTable({
-  columnParam,
   selectedValues,
-  intl,
   setSummary,
 }) {
   const classes = useStyles();
@@ -94,7 +92,7 @@ function IndividualDeduplicationSummaryTable({
     let cookieValue = '';
     if (document.cookie && document.cookie !== '') {
       const cookies = document.cookie.split(';');
-      for (let i = 0; i < cookies.length; i++) {
+      for (let i = 0; i < cookies.length; i += 1) {
         const cookie = cookies[i].trim();
         if (cookie.substring(0, name.length + 1) === `${name}=`) {
           cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
@@ -106,34 +104,29 @@ function IndividualDeduplicationSummaryTable({
   };
 
   const executeGraphQLQuery = async (query, variables = {}) => {
-    try {
-      const response = await fetch('/graphql', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken'),
-        },
-        body: JSON.stringify({
-          query,
-          variables,
-        }),
-      });
+    const response = await fetch('/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken'),
+      },
+      body: JSON.stringify({
+        query,
+        variables,
+      }),
+    });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      if (result.errors) {
-        throw new Error(result.errors[0]?.message || 'GraphQL error');
-      }
-
-      return result.data;
-    } catch (err) {
-      console.error('GraphQL query failed:', err);
-      throw err;
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
+
+    const result = await response.json();
+
+    if (result.errors) {
+      throw new Error(result.errors[0]?.message || 'GraphQL error');
+    }
+
+    return result.data;
   };
 
   useEffect(() => {
@@ -159,14 +152,12 @@ function IndividualDeduplicationSummaryTable({
         const summaryStr = result.individualDeduplicationSummary;
 
         if (summaryStr) {
-          const summary =
-            typeof summaryStr === 'string' ? JSON.parse(summaryStr) : summaryStr;
+          const summary = typeof summaryStr === 'string' ? JSON.parse(summaryStr) : summaryStr;
           const rows = summary.rows || [];
           setData(rows);
           setSummary(rows);
         }
       } catch (err) {
-        console.error('Error fetching deduplication summary:', err);
         setError(err.message);
         setData([]);
         setSummary([]);
@@ -178,8 +169,8 @@ function IndividualDeduplicationSummaryTable({
     fetchData();
   }, [selectedValues, setSummary]);
 
-  const reshapeColumnValues = (inputString) => {
-    const columnValues = JSON.parse(inputString);
+  const reshapeColumnValues = (input) => {
+    const columnValues = typeof input === 'string' ? JSON.parse(input) : input;
     const formattedValues = Object.entries(columnValues).map(([key, value]) => {
       const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
       const formattedValue = value !== null ? value : 'null';
@@ -219,11 +210,9 @@ function IndividualDeduplicationSummaryTable({
  * Individual Deduplication Summary Dialog (Step 2)
  */
 function IndividualDeduplicationSummaryDialog({
-  intl,
   open,
   onClose,
   summary,
-  selectedValues,
   onMergeComplete,
 }) {
   const [primarySelected, setPrimarySelected] = useState(null);
@@ -234,7 +223,7 @@ function IndividualDeduplicationSummaryDialog({
     let cookieValue = '';
     if (document.cookie && document.cookie !== '') {
       const cookies = document.cookie.split(';');
-      for (let i = 0; i < cookies.length; i++) {
+      for (let i = 0; i < cookies.length; i += 1) {
         const cookie = cookies[i].trim();
         if (cookie.substring(0, name.length + 1) === `${name}=`) {
           cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
@@ -246,39 +235,34 @@ function IndividualDeduplicationSummaryDialog({
   };
 
   const executeGraphQLQuery = async (query, variables = {}) => {
-    try {
-      const response = await fetch('/graphql', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken'),
-        },
-        body: JSON.stringify({
-          query,
-          variables,
-        }),
-      });
+    const response = await fetch('/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken'),
+      },
+      body: JSON.stringify({
+        query,
+        variables,
+      }),
+    });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      if (result.errors) {
-        throw new Error(result.errors[0]?.message || 'GraphQL error');
-      }
-
-      return result.data;
-    } catch (err) {
-      console.error('GraphQL query failed:', err);
-      throw err;
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
+
+    const result = await response.json();
+
+    if (result.errors) {
+      throw new Error(result.errors[0]?.message || 'GraphQL error');
+    }
+
+    return result.data;
   };
 
   const handleCreateTasks = async () => {
-    if (!primarySelected || !summary || summary.length === 0) {
-      setError('Please select a primary record');
+    if (!summary || summary.length === 0) {
+      setError('No duplicate groups to create tasks for');
       return;
     }
 
@@ -288,7 +272,7 @@ function IndividualDeduplicationSummaryDialog({
     try {
       const summaryData = summary.map((group) => ({
         ...group,
-        primary_id: primarySelected,
+        primary_id: primarySelected && group.ids.includes(primarySelected) ? primarySelected : group.ids[0],
       }));
 
       const mutation = `
@@ -312,7 +296,6 @@ function IndividualDeduplicationSummaryDialog({
         setError(errors.join(', ') || 'Failed to create task');
       }
     } catch (err) {
-      console.error('Error creating deduplication task:', err);
       setError(err.message || 'Failed to create task');
     } finally {
       setLoading(false);
@@ -354,8 +337,8 @@ function IndividualDeduplicationSummaryDialog({
                 </TableRow>
               </TableHead>
               <TableBody>
-                {summary.map((group, idx) => (
-                  <TableRow key={idx} hover>
+                {summary.map((group) => (
+                  <TableRow key={group.ids.join('-')} hover>
                     <TableCell padding="checkbox">
                       <Checkbox
                         checked={primarySelected === group.ids[0]}
@@ -368,12 +351,19 @@ function IndividualDeduplicationSummaryDialog({
                       <div>
                         {Object.entries(group.column_values || {}).map(([key, value]) => (
                           <div key={key} style={{ marginBottom: 4 }}>
-                            <strong>{key}:</strong> {String(value || '(empty)')}
+                            <strong>
+                              {key}
+                              :
+                            </strong>
+                            {' '}
+                            {String(value || '(empty)')}
                           </div>
                         ))}
                       </div>
                       <Typography variant="caption" color="textSecondary" style={{ marginTop: 8, display: 'block' }}>
-                        IDs: {group.ids.join(', ')}
+                        IDs:
+                        {' '}
+                        {group.ids.join(', ')}
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -398,7 +388,7 @@ function IndividualDeduplicationSummaryDialog({
               onClick={handleCreateTasks}
               variant="outlined"
               autoFocus
-              disabled={!primarySelected || !summary || loading}
+              disabled={!summary || loading}
               style={{ margin: '0 16px' }}
             >
               {loading ? (
@@ -431,16 +421,15 @@ function IndividualDeduplicationSummaryDialog({
 /**
  * Individual Field Selection Dialog (Step 1)
  */
-function IndividualDeduplicationDialog({ intl, open, onClose, onMergeComplete }) {
-  const classes = useStyles();
+function IndividualDeduplicationDialog({
+  intl,
+  open,
+  onClose,
+  onMergeComplete,
+}) {
   const [selectedValues, setSelectedValues] = useState([]);
   const [summary, setSummary] = useState([]);
   const [showSummaryDialog, setShowSummaryDialog] = useState(false);
-
-  const handleOpen = () => {
-    setSelectedValues([]);
-    setSummary([]);
-  };
 
   const handlePickerChange = (selectedOptions) => {
     setSelectedValues(selectedOptions || []);
@@ -492,7 +481,6 @@ function IndividualDeduplicationDialog({ intl, open, onClose, onMergeComplete })
               <IndividualDeduplicationSummaryTable
                 columnParam={JSON.stringify(selectedValues.map((v) => v.id))}
                 selectedValues={selectedValues}
-                intl={intl}
                 setSummary={setSummary}
               />
             )}
@@ -536,11 +524,9 @@ function IndividualDeduplicationDialog({ intl, open, onClose, onMergeComplete })
       {/* Summary Dialog */}
       {showSummaryDialog && (
         <IndividualDeduplicationSummaryDialog
-          intl={intl}
           open={showSummaryDialog}
           onClose={handleSummaryClose}
           summary={summary}
-          selectedValues={selectedValues}
           onMergeComplete={handleMergeComplete}
         />
       )}

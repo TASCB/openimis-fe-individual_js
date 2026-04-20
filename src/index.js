@@ -12,8 +12,8 @@ import messages_en from './translations/en.json';
 import reducer from './reducer';
 import IndividualsPage from './pages/IndividualsPage';
 import NonConsentedHouseholdsPage from './pages/NonConsentedHouseholdsPage';
-import EligibleHouseholdsPage from "./pages/EligibleHouseholdsPage";
-import EligibleMembersPage from "./pages/EligibleMembersPage";
+import EligibleHouseholdsPage from './pages/EligibleHouseholdsPage';
+import EligibleMembersPage from './pages/EligibleMembersPage';
 import IndividualPage from './pages/IndividualPage';
 import EnrollmentPage from './pages/EnrollmentPage';
 import GroupsPage from './pages/GroupsPage';
@@ -65,6 +65,10 @@ import {
   GroupUploadResolutionItemFormatters,
   GroupUploadResolutionTaskTableHeaders,
 } from './components/tasks/GroupImportTasks';
+import {
+  IndividualDeduplicationTaskItemFormatters,
+  IndividualDeduplicationTaskTableHeaders,
+} from './components/tasks/IndividualDeduplicationTasks';
 import EnrollmentGroupPage from './pages/EnrollmentGroupPage';
 import GroupMenu from './components/dialogs/GroupMenu';
 import EligibleHouseholdsMenu from './components/dialogs/EligibleHouseholdsMenu';
@@ -247,6 +251,12 @@ const DEFAULT_CONFIG = {
     itemFormatters: GroupUploadResolutionItemFormatters,
     taskSource: ['import_group_valid_items'],
     confirmationPanel: GroupUploadConfirmationPanel,
+  },
+  {
+    text: <FormattedMessage module={INDIVIDUAL_MODULE_NAME} id="deduplication.title" />,
+    tableHeaders: IndividualDeduplicationTaskTableHeaders,
+    itemFormatters: IndividualDeduplicationTaskItemFormatters,
+    taskSource: ['CreateDeduplicationIndividualReviewTasksService'],
   },
   ],
 };

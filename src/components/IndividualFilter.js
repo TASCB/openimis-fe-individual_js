@@ -4,7 +4,7 @@ import { injectIntl } from 'react-intl';
 import { formatMessage } from '@openimis/fe-core';
 import Filter from './Filter';
 import IndividualDeduplicationDialog from './dialogs/IndividualDeduplicationDialog';
-import { CONTAINS_LOOKUP, INDIVIDUAL_MODULE_NAME } from '../constants';
+import { CONTAINS_LOOKUP } from '../constants';
 
 function IndividualFilter({
   intl, classes, filters, onChangeFilters,
@@ -30,8 +30,6 @@ function IndividualFilter({
   };
 
   const handleMergeComplete = () => {
-    // Optionally refresh the individual list by clearing filters
-    // This will trigger a re-fetch of individuals
     handleDeduplicationClose();
   };
 

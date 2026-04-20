@@ -345,11 +345,11 @@
   "pmt": {
     "menu": "PMT Configuration",
     "page": {
-      "title": "Poverty Management Tool Configuration",
+      "title": "PMT Configuration",
       "description": "Recalculate household poverty classification using a new PMT cutoff value"
     },
     "configuration": {
-      "title": "PMT Configuration",
+      "title": "PMT Rerun",
       "cutoff": "PMT Cutoff",
       "cutoffHint": "Score threshold (0-50). Households with score ≤ cutoff are classified as POOR",
       "region": "Region",
@@ -415,7 +415,7 @@
       "no": "Cancel"
     },
     "help": {
-      "cutoff": "The PMT (Poverty Measurement Tool) cutoff is a score threshold. Households scoring at or below this value are classified as POOR, above it as NON-POOR. Default is 11.01",
+      "cutoff": "The PMT (Proxy Means Test) cutoff is a score threshold. Households scoring at or below this value are classified as POOR, above it as NON-POOR. Default is 11.01",
       "district": "Select a district to recalculate PMT for all households in that district"
     },
     "progress": {

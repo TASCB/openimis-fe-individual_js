@@ -9,14 +9,14 @@ const getImageFormat = (mimeType) => {
   return null;
 };
 
-const DEFAULT_ENROLLMENT_TITLE = "ORODHA YA KAYA MASIKINI YA KIJIJI/MTAA/SHEHIA";
+const DEFAULT_ENROLLMENT_TITLE = "ORODHA YA KAYA ZILIZOTAMBULIWA";
 
 const getEnrollmentPdfTitle = (pmtClass) => {
   if (pmtClass === "POOR") {
-    return "ORODHA YA KAYA MASIKINI YA KIJIJI";
+    return "ORODHA YA KAYA MASIKINI";
   }
   if (pmtClass === "NON_POOR") {
-    return "ORODHA YA KAYA MATAJIRI YA KIJIJI";
+    return "ORODHA YA KAYA ZILIZOKOSA VIGEZO";
   }
   return DEFAULT_ENROLLMENT_TITLE;
 };

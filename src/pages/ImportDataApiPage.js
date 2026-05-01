@@ -282,7 +282,7 @@ function ImportDataApiPage({
         after: null,
         before: null,
       });
-    }, 5000);
+    }, 12000);
 
     return () => clearInterval(intervalId);
   }, [pulledQ, selectedRegion, selectedDistrict, pulledQPageSize, fetchPulledQuestionnaires, modulesManager]);
@@ -777,6 +777,9 @@ function ImportDataApiPage({
                         {formatMessage(intl, "individual", "ImportDataApiPage.table.numberOfMembers")}
                       </TableCell>
                       <TableCell>
+                        {formatMessage(intl, "individual", "ImportDataApiPage.table.questionnaireVersion")}
+                      </TableCell>
+                      <TableCell>
                         {formatMessage(intl, "individual", "ImportDataApiPage.table.datePulled")}
                       </TableCell>
                       <TableCell>
@@ -788,7 +791,7 @@ function ImportDataApiPage({
                   <TableBody>
                     {fetchingPulledQ && (
                       <TableRow>
-                        <TableCell colSpan={5}>
+                        <TableCell colSpan={6}>
                           <div className={classes.loadingBox}>
                             <CircularProgress />
                             <Typography variant="body2" style={{ marginTop: 8 }}>
@@ -801,7 +804,7 @@ function ImportDataApiPage({
 
                     {!!errorPulledQ && !fetchingPulledQ && (
                       <TableRow>
-                        <TableCell colSpan={5}>
+                        <TableCell colSpan={6}>
                           <Typography color="error">
                             {formatMessage(intl, "individual", "ImportDataApiPage.errorLoadingHistory")}:{" "}
                             {formatErr(errorPulledQ)}
@@ -819,6 +822,7 @@ function ImportDataApiPage({
                           <TableCell>{item.paaName}</TableCell>
                           <TableCell>{item.numberOfHouseholds || 0}</TableCell>
                           <TableCell>{item.numberOfMembers || 0}</TableCell>
+                          <TableCell>{item.questionnaireVersion ?? ""}</TableCell>
                           <TableCell>
                             {item.datePulled ? new Date(item.datePulled).toLocaleDateString() : ""}
                           </TableCell>
@@ -828,7 +832,7 @@ function ImportDataApiPage({
 
                     {!fetchingPulledQ && !errorPulledQ && (!pulledQ || pulledQ.length === 0) && (
                       <TableRow>
-                        <TableCell colSpan={5}>
+                        <TableCell colSpan={6}>
                           <Typography variant="body2" color="textSecondary" align="center" style={{ padding: 20 }}>
                             {formatMessage(intl, "individual", "ImportDataApiPage.noHistoryData")}
                           </Typography>

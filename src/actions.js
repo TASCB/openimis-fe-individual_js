@@ -274,6 +274,7 @@ export function fetchPulledQuestionnaires(mm, params = {}) {
             paaName
             numberOfHouseholds
             numberOfMembers
+            questionnaireVersion
             datePulled
             status
             errorMessage

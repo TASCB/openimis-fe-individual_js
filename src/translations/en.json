@@ -162,6 +162,11 @@
     "button": {
       "download": "DOWNLOAD",
       "enrollment": "ENROLLMENT"
+    },
+    "ImportDataApiPage": {
+      "table": {
+        "questionnaireVersion": "Qnr Version"
+      }
     }
   },
   "individualHistory": {

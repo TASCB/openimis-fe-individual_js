@@ -16,7 +16,7 @@ import { debounce } from 'lodash';
 import { fetchPmtHouseholds } from '../actions';
 import PmtHouseholdFilter from './PmtHouseholdFilter';
 import { PMT_CLASS, INDIVIDUAL_MODULE_NAME, DEFAULT_PAGE_SIZE, ROWS_PER_PAGE_OPTIONS } from '../constants';
-import { exportPmtResultsAsPdf } from '../util/pmt-export';
+import { exportPmtResultsAsPdf } from '../util/pdf-export';
 
 const styles = (theme) => {
   // Extract colors from theme with fallbacks

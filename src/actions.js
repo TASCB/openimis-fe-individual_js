@@ -82,6 +82,10 @@ const NON_CONSENTED_INDIVIDUAL_PROJECTION = (mm) => [
   `location${mm.getProjection('location.Location.FlatProjection')}`,
 ];
 
+const INDIVIDUAL_HISTORY_FULL_PROJECTION = (mm) => INDIVIDUAL_FULL_PROJECTION(mm).filter(
+  (item) => item !== 'tf4No' && item !== 'interviewKey',
+);
+
 const GROUP_INDIVIDUAL_FULL_PROJECTION = [
   'id',
   'individual {id, firstName, lastName, dob}',
@@ -99,6 +103,7 @@ const GROUP_FULL_PROJECTION = (mm) => [
   'code',
   'isDeleted',
   'head {firstName, lastName, uuid}',
+  'groupindividuals(isDeleted: false) { edges { node { id } } }',
   'dateCreated',
   'dateUpdated',
   'jsonExt',
@@ -121,7 +126,7 @@ const GROUP_INDIVIDUAL_HISTORY_FULL_PROJECTION = [
 ];
 
 const GROUP_HISTORY_FULL_PROJECTION = (mm) => GROUP_FULL_PROJECTION(mm).filter(
-  (item) => item !== 'head {firstName, lastName}',
+  (item) => item !== 'groupindividuals(isDeleted: false) { edges { node { id } } }',
 );
 
 const UPLOAD_HISTORY_FULL_PROJECTION = () => [
@@ -347,45 +352,77 @@ export function fetchIndividuals(mm, params) {
 }
 //==================NON CONSENTED========================
 export function fetchNonConsentedHouseholds(mm, params = {}) {
-  const pageSize = params?.pageSize ?? 10;
-  const after = params?.after ?? null;
-  const before = params?.before ?? null;
-  const isBackward = !!before;
-
-  // Searcher passes filters either as an array of gql strings OR as an object map.
-  const normalizeFilters = (f) => {
-    if (!f) return [];
-    if (Array.isArray(f)) return f.filter(Boolean);
-    if (typeof f === "object") {
-      return Object.values(f)
+  const normalizeFilters = (filters) => {
+    if (!filters) return [];
+    if (Array.isArray(filters)) return filters.filter(Boolean);
+    if (typeof filters === 'object') {
+      return Object.values(filters)
         .map((x) => x?.filter)
         .filter(Boolean);
     }
     return [];
   };
 
-  const extraFilters = normalizeFilters(params.filters);
+  const getParamsState = (input) => {
+    if (Array.isArray(input)) {
+      const filterStrings = input.filter(Boolean);
+      const extractString = (prefix) => {
+        const item = filterStrings.find((f) => f.startsWith(prefix));
+        const match = item?.match(/"([^"]+)"/);
+        return match?.[1] ?? null;
+      };
+      const extractNumber = (prefix) => {
+        const item = filterStrings.find((f) => f.startsWith(prefix));
+        const match = item?.match(/:\s*(\d+)/);
+        return match ? parseInt(match[1], 10) : null;
+      };
 
-  const varDefs = ["$pageSize: Int!"];
+      return {
+        pageSize: extractNumber('first') || extractNumber('last') || 10,
+        after: extractString('after'),
+        before: extractString('before'),
+        extraFilters: filterStrings.filter(
+          (filter) => !['first:', 'last:', 'after:', 'before:', 'orderBy:'].some((prefix) => filter.startsWith(prefix)),
+        ),
+      };
+    }
+
+    return {
+      pageSize: input?.pageSize ?? input?.first ?? 10,
+      after: input?.after ?? null,
+      before: input?.before ?? null,
+      extraFilters: normalizeFilters(input?.filters),
+    };
+  };
+
+  const {
+    pageSize,
+    after,
+    before,
+    extraFilters,
+  } = getParamsState(params);
+  const isBackward = !!before;
+
+  const varDefs = ['$pageSize: Int!'];
   const variables = { pageSize };
 
   const gqlArgs = [
-    "isNonConsented: true",
-    "isDeleted: false",
+    'isNonConsented: true',
+    'isDeleted: false',
     ...extraFilters,
   ];
 
   if (isBackward) {
-    varDefs.push("$before: String");
+    varDefs.push('$before: String');
     variables.before = before;
-    gqlArgs.push("last: $pageSize");
-    gqlArgs.push("before: $before");
+    gqlArgs.push('last: $pageSize');
+    gqlArgs.push('before: $before');
   } else {
-    gqlArgs.push("first: $pageSize");
+    gqlArgs.push('first: $pageSize');
     if (after) {
-      varDefs.push("$after: String");
+      varDefs.push('$after: String');
       variables.after = after;
-      gqlArgs.push("after: $after");
+      gqlArgs.push('after: $after');
     }
   }
 
@@ -408,6 +445,95 @@ export function fetchNonConsentedHouseholds(mm, params = {}) {
     variables,
     ACTION_TYPE.SEARCH_NONCONSENTED_HOUSEHOLDS,
   );
+}
+
+export function fetchNonConsentedHouseholdsForExport(mm, params = {}) {
+  const normalizeFilters = (filters) => {
+    if (!filters) return [];
+    if (Array.isArray(filters)) return filters.filter(Boolean);
+    if (typeof filters === 'object') {
+      return Object.values(filters)
+        .map((x) => x?.filter)
+        .filter(Boolean);
+    }
+    return [];
+  };
+
+  const extraFilters = Array.isArray(params)
+    ? params.filter(
+      (filter) => filter && !['first:', 'last:', 'after:', 'before:', 'orderBy:'].some((prefix) => filter.startsWith(prefix)),
+    )
+    : normalizeFilters(params.filters);
+  const pageSize = 100;
+
+  return async (dispatch) => {
+    let after = null;
+    let hasNextPage = true;
+    let totalCount = 0;
+    const edges = [];
+
+    while (hasNextPage) {
+      const query = `
+        query ($pageSize: Int!, $after: String) {
+          individual(
+            isNonConsented: true,
+            isDeleted: false,
+            ${extraFilters.join(", ")}
+            first: $pageSize
+            after: $after
+          ) {
+            totalCount
+            pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
+            edges {
+              node {
+                ${NON_CONSENTED_INDIVIDUAL_PROJECTION(mm).join("\n")}
+              }
+            }
+          }
+        }
+      `;
+
+      const response = await dispatch(
+        graphqlWithVariables(
+          query,
+          { pageSize, after },
+          ACTION_TYPE.EXPORT_NONCONSENTED_HOUSEHOLDS,
+        ),
+      );
+
+      const page = response?.payload?.data?.individual;
+      if (!page) {
+        return response;
+      }
+
+      totalCount = page.totalCount ?? totalCount;
+      edges.push(...(page.edges || []));
+
+      hasNextPage = !!page.pageInfo?.hasNextPage;
+      after = page.pageInfo?.endCursor ?? null;
+
+      if (!hasNextPage || !after || (totalCount && edges.length >= totalCount)) {
+        hasNextPage = false;
+      }
+    }
+
+    return {
+      payload: {
+        data: {
+          individual: {
+            totalCount,
+            pageInfo: {
+              hasNextPage: false,
+              hasPreviousPage: false,
+              startCursor: edges[0]?.cursor ?? null,
+              endCursor: null,
+            },
+            edges,
+          },
+        },
+      },
+    };
+  };
 }
 
 export function fetchGroupIndividuals(params) {
@@ -441,7 +567,7 @@ export function fetchIndividualHistory(mm, params) {
   const payload = formatPageQueryWithCount(
     'individualHistory',
     params,
-    INDIVIDUAL_FULL_PROJECTION(mm),
+    INDIVIDUAL_HISTORY_FULL_PROJECTION(mm),
   );
   return graphql(payload, ACTION_TYPE.SEARCH_INDIVIDUAL_HISTORY);
 }
@@ -1458,12 +1584,25 @@ export function fetchPmtEnrollmentList(modulesManager, params = {}) {
     }
   });
 
+  if (paramsObj.districtCode) {
+    processedFilters.push(`districtCode: "${paramsObj.districtCode}"`);
+  }
+  if (paramsObj.regionCode) {
+    processedFilters.push(`regionCode: "${paramsObj.regionCode}"`);
+  }
+  if (paramsObj.searchText) {
+    processedFilters.push(`searchText: "${paramsObj.searchText}"`);
+  }
+  if (paramsObj.pmtClass) {
+    processedFilters.push(`pmtClass: "${paramsObj.pmtClass}"`);
+  }
+
   // Always include pmtCutoff in the query
   const pmtCutoff = paramsObj.pmtCutoff || 11.01;
   const pmtCutoffFilter = `pmtCutoff: ${pmtCutoff}`;
 
   // Combine all filters
-  const allFilters = [pmtCutoffFilter, ...processedFilters];
+  const allFilters = [pmtCutoffFilter, ...new Set(processedFilters)];
 
   const graphqlQuery = `pmtEnrollmentList(${allFilters.join(', ')}, offset: ${offset}, limit: ${pageSize})`;
 
@@ -1573,12 +1712,25 @@ export function fetchPmtEnrollmentListForExport(modulesManager, params = {}) {
     }
   });
 
+  if (paramsObj.districtCode) {
+    processedFilters.push(`districtCode: "${paramsObj.districtCode}"`);
+  }
+  if (paramsObj.regionCode) {
+    processedFilters.push(`regionCode: "${paramsObj.regionCode}"`);
+  }
+  if (paramsObj.searchText) {
+    processedFilters.push(`searchText: "${paramsObj.searchText}"`);
+  }
+  if (paramsObj.pmtClass) {
+    processedFilters.push(`pmtClass: "${paramsObj.pmtClass}"`);
+  }
+
   // Always include pmtCutoff in the query
   const pmtCutoff = paramsObj.pmtCutoff || 11.01;
   const pmtCutoffFilter = `pmtCutoff: ${pmtCutoff}`;
 
   // Combine all filters with NO LIMIT for export
-  const allFilters = [pmtCutoffFilter, ...processedFilters];
+  const allFilters = [pmtCutoffFilter, ...new Set(processedFilters)];
 
   // Use very high offset/limit to get all records (set limit to 10000 to cover almost all cases)
   const graphqlQuery = `pmtEnrollmentList(${allFilters.join(', ')}, offset: 0, limit: 10000)`;

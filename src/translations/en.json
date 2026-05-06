@@ -22,6 +22,7 @@
     "lastName": "Last Name",
     "dob": "Day of birth",
     "interviewResultsNo": "Reason",
+    "isTasafBeneficiary": "Is TASAF Beneficiary",
     "location": "Location",
     "locationEditDisabledTitle": "Individual belongs to a group; Please edit location on their group",
     "isDeleted": "Show Deleted",
@@ -224,6 +225,7 @@
         "title": "Group Create Tasks"
       }
     },
+    "hhSize": "HH Size",
     "members": "Members"
   },
   "groupHistory": {
@@ -330,6 +332,9 @@
   "menu.eligibleHouseholds": "Eligible Households",
   "eligibleHouseholds.pageTitle": "Eligible Households",
   "eligibleHouseholds.searcherTitle": "{count} Eligible Households Found",
+  "menu.nonConsentedHouseholds": "Kaya ambazo hazijahojiwa",
+  "nonConsentedHouseholds.pageTitle": "Kaya ambazo hazijahojiwa",
+  "nonConsentedHouseholds.searcherTitle": "{count} Kaya ambazo hazijahojiwa",
   "group.pmtScoreHousehold": "PMT Score",
   "group.pmtClassHousehold": "PMT Class",
   "_comment_Eligible_Members": "=== Eligible Members ===",
@@ -433,7 +438,9 @@
       "success": "PMT Recalculation Completed",
       "successMessage": "Successfully completed! {count} households have been enrolled in the PMT program.",
       "failed": "PMT Recalculation Failed",
-      "close": "Close"
+      "close": "Close",
+      "runInBackground": "Run In Background",
+      "viewActive": "View Active Progress"
     }
   }
 }

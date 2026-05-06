@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { injectIntl } from 'react-intl';
 import {
   withModulesManager,
@@ -8,9 +8,6 @@ import {
   withHistory,
   historyPush,
   downloadExport,
-  coreConfirm,
-  clearConfirm,
-  journalize,
   decodeId,
 } from '@openimis/fe-core';
 import { bindActionCreators } from 'redux';
@@ -23,14 +20,13 @@ import {
   DialogContent,
 } from '@material-ui/core';
 import EditIcon from '@material-ui/icons/Edit';
-import DeleteIcon from '@material-ui/icons/Delete';
 import {
-  deleteGroup, downloadGroups, fetchGroups, clearGroupExport,
+  downloadGroups, fetchGroups, clearGroupExport,
 } from '../actions';
 import {
   DEFAULT_PAGE_SIZE,
   ROWS_PER_PAGE_OPTIONS,
-  RIGHT_GROUP_UPDATE, RIGHT_GROUP_DELETE, INDIVIDUAL_MODULE_NAME, INDIVIDUAL_LABEL,
+  RIGHT_GROUP_UPDATE, INDIVIDUAL_MODULE_NAME, INDIVIDUAL_LABEL,
   INDIVIDUAL_GROUP_MENU_CONTRIBUTION_KEY,
 } from '../constants';
 import GroupFilter from './GroupFilter';
@@ -55,69 +51,21 @@ function GroupSearcher({
   downloadGroups,
   groupExport,
   errorGroupExport,
-  deleteGroup,
-  confirmed,
-  submittingMutation,
   clearGroupExport,
   isModalEnrollment,
-  mutation,
-  coreConfirm,
-  clearConfirm,
-  journalize,
   CLEARED_STATE_FILTER,
   benefitPlanToEnroll,
   advancedCriteria,
 }) {
-  const [groupToDelete, setGroupToDelete] = useState(null);
-  const [deletedGroupUuids, setDeletedGroupUuids] = useState([]);
   const [appliedCustomFilters, setAppliedCustomFilters] = useState([CLEARED_STATE_FILTER]);
   const [appliedFiltersRowStructure, setAppliedFiltersRowStructure] = useState([CLEARED_STATE_FILTER]);
-  const prevSubmittingMutationRef = useRef();
 
   function groupUpdatePageUrl(group) {
     return `${modulesManager.getRef('individual.route.group')}/${group?.id}`;
   }
 
-  const openDeleteGroupConfirmDialog = () => coreConfirm(
-    formatMessageWithValues(intl, 'individual', 'group.delete.confirm.title', {
-      id: groupToDelete.id,
-    }),
-    formatMessage(intl, 'individual', 'group.delete.confirm.message'),
-  );
-
   const onDoubleClick = (group, newTab = false) => rights.includes(RIGHT_GROUP_UPDATE)
-  && !deletedGroupUuids.includes(group.id)
   && historyPush(modulesManager, history, 'individual.route.group', [group?.id], newTab);
-
-  const onDelete = (group) => setGroupToDelete(group);
-
-  useEffect(() => groupToDelete && openDeleteGroupConfirmDialog(), [groupToDelete]);
-
-  useEffect(() => {
-    if (groupToDelete && confirmed) {
-      deleteGroup(
-        groupToDelete,
-        formatMessageWithValues(intl, 'individual', 'individual.delete.mutationLabel', {
-          id: groupToDelete.id,
-        }),
-      );
-      setDeletedGroupUuids([...deletedGroupUuids, groupToDelete.id]);
-    }
-    if (groupToDelete && confirmed !== null) {
-      setGroupToDelete(null);
-    }
-    return () => confirmed && clearConfirm(false);
-  }, [confirmed]);
-
-  useEffect(() => {
-    if (prevSubmittingMutationRef.current && !submittingMutation) {
-      journalize(mutation);
-    }
-  }, [submittingMutation]);
-
-  useEffect(() => {
-    prevSubmittingMutationRef.current = submittingMutation;
-  });
 
   const fetch = (params) => fetchGroups(modulesManager, params);
 
@@ -125,6 +73,7 @@ function GroupSearcher({
     const headers = [
       'group.code',
       'group.head',
+      'group.hhSize',
     ];
 
     headers.push(...Array.from({ length: LOC_LEVELS }, (_, i) => `location.locationType.${i}`));
@@ -141,6 +90,7 @@ function GroupSearcher({
       (group) => (group?.head
         ? `${group?.head?.firstName} ${group?.head?.lastName}`
         : formatMessage(intl, 'group', 'noHeadSpecified')),
+      (group) => group?.groupindividuals?.edges?.length ?? 0,
     ];
 
     const locations = Array.from({ length: LOC_LEVELS }, (_, i) => (group) => (
@@ -160,18 +110,6 @@ function GroupSearcher({
         </Tooltip>
       ));
     }
-    if (rights.includes(RIGHT_GROUP_DELETE) && isModalEnrollment === false) {
-      formatters.push((group) => (
-        <Tooltip title={formatMessage(intl, 'individual', 'deleteButtonTooltip')}>
-          <IconButton
-            onClick={() => onDelete(group)}
-            disabled={deletedGroupUuids.includes(group.id)}
-          >
-            <DeleteIcon />
-          </IconButton>
-        </Tooltip>
-      ));
-    }
     return formatters;
   };
 
@@ -180,8 +118,6 @@ function GroupSearcher({
   const sorts = () => [
     ['id', false],
   ];
-
-  const isRowDisabled = (_, group) => deletedGroupUuids.includes(group.id);
 
   const defaultFilters = () => {
     const filters = {
@@ -273,8 +209,6 @@ function GroupSearcher({
         appliedFiltersRowStructure={appliedFiltersRowStructure}
         setAppliedFiltersRowStructure={setAppliedFiltersRowStructure}
         applyNumberCircle={applyNumberCircle}
-        rowDisabled={isRowDisabled}
-        rowLocked={isRowDisabled}
         // eslint-disable-next-line react/jsx-props-no-spreading, max-len
         {...(isModalEnrollment === false ? {
           actionsContributionKey: INDIVIDUAL_GROUP_MENU_CONTRIBUTION_KEY, isCustomFiltering: true,
@@ -311,9 +245,6 @@ const mapStateToProps = (state) => ({
   groupExport: state.individual.groupExport,
   groupExportPageInfo: state.individual.groupExportPageInfo,
   errorGroupExport: state.individual.errorGroupExport,
-  confirmed: state.core.confirmed,
-  submittingMutation: state.individual.submittingMutation,
-  mutation: state.individual.mutation,
 });
 
 const mapDispatchToProps = (dispatch) => bindActionCreators(
@@ -321,10 +252,6 @@ const mapDispatchToProps = (dispatch) => bindActionCreators(
     fetchGroups,
     downloadGroups,
     clearGroupExport,
-    deleteGroup,
-    coreConfirm,
-    clearConfirm,
-    journalize,
   },
   dispatch,
 );

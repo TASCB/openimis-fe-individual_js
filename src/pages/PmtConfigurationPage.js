@@ -348,6 +348,19 @@ function PmtConfigurationPage({
                         "pmt.configuration.button"
                       )}
                 </Button>
+                {progressMutationId && !openProgressDialog && (
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    onClick={() => setOpenProgressDialog(true)}
+                  >
+                    {formatMessage(
+                      intl,
+                      INDIVIDUAL_MODULE_NAME,
+                      "pmt.progress.viewActive"
+                    )}
+                  </Button>
+                )}
               </div>
             </Paper>
           </Grid>
@@ -391,12 +404,10 @@ function PmtConfigurationPage({
       <PmtProgressDialog
         open={openProgressDialog}
         mutationId={progressMutationId}
-        onClose={() => {
+        onClose={({ completed } = {}) => {
           setOpenProgressDialog(false);
-          setProgressMutationId(null);
-          // Refetch audit summary to show all recently rerun districts
-          // sorted by most recent first (backend handles sorting)
-          if (rerunDistrictCode) {
+          if (completed) {
+            setProgressMutationId(null);
             fetchPmtAuditSummaryAction(modulesManager, {
               offset: 0,
               limit: 50,  // Show up to 50 most recent reruns

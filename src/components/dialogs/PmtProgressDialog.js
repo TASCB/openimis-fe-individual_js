@@ -116,10 +116,7 @@ function PmtProgressDialog({ open, mutationId, onClose }) {
   const percentage = Number(progress?.percentageComplete ?? 0);
 
   const handleClose = () => {
-    // Only allow close after completed/failed
-    if (isCompleted || isFailed) {
-      onClose();
-    }
+    onClose({ completed: isCompleted || isFailed });
   };
 
   const titleKey =
@@ -135,8 +132,6 @@ function PmtProgressDialog({ open, mutationId, onClose }) {
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
-      disableBackdropClick={!isCompleted && !isFailed}
-      disableEscapeKeyDown={!isCompleted && !isFailed}
     >
       <DialogTitle>
         {formatMessage(intl, INDIVIDUAL_MODULE_NAME, titleKey)}
@@ -233,13 +228,15 @@ function PmtProgressDialog({ open, mutationId, onClose }) {
         </Box>
       </DialogContent>
 
-      {(isCompleted || isFailed) && (
-        <DialogActions>
-          <Button onClick={handleClose} color="primary" variant="contained">
-            {formatMessage(intl, INDIVIDUAL_MODULE_NAME, "pmt.progress.close")}
-          </Button>
-        </DialogActions>
-      )}
+      <DialogActions>
+        <Button onClick={handleClose} color="primary" variant="contained">
+          {formatMessage(
+            intl,
+            INDIVIDUAL_MODULE_NAME,
+            isCompleted || isFailed ? "pmt.progress.close" : "pmt.progress.runInBackground"
+          )}
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 }

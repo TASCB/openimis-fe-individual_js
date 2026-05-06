@@ -28,11 +28,12 @@ function NonConsentedHouseholdsFilter({
   };
 
   const filterFields = [
-    { name: 'tf4No', label: 'individual.tf4No', lookup: CONTAINS_LOOKUP },
-    { name: 'headName', label: 'individual.headName', lookup: CONTAINS_LOOKUP },
+    { name: 'firstName', label: 'individual.firstName', lookup: CONTAINS_LOOKUP },
+    { name: 'lastName', label: 'individual.lastName', lookup: CONTAINS_LOOKUP },
   ];
 
   const checkboxFields = [
+    { name: 'isTasafBeneficiary', label: 'individual.isTasafBeneficiary' },
     { name: 'isDeleted', label: 'isDeleted' },
   ];
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { injectIntl } from 'react-intl';
 import {
   withModulesManager,
@@ -6,9 +6,6 @@ import {
   formatMessageWithValues,
   Searcher,
   formatDateFromISO,
-  coreConfirm,
-  clearConfirm,
-  journalize,
   withHistory,
   historyPush,
   downloadExport,
@@ -25,21 +22,16 @@ import {
   DialogContent,
 } from '@material-ui/core';
 import EditIcon from '@material-ui/icons/Edit';
-import DeleteIcon from '@material-ui/icons/Delete';
-import UndoIcon from '@material-ui/icons/Undo';
 import {
   fetchIndividuals,
-  deleteIndividual,
   downloadIndividuals,
   clearIndividualExport,
-  undoDeleteIndividual,
 } from '../actions';
 import {
   DEFAULT_PAGE_SIZE,
   ROWS_PER_PAGE_OPTIONS,
   EMPTY_STRING,
   RIGHT_INDIVIDUAL_UPDATE,
-  RIGHT_INDIVIDUAL_DELETE,
   RIGHT_SCHEMA_SEARCH,
   FETCH_BENEFIT_PLAN_SCHEMA_FIELDS_REF,
   INDIVIDUAL_MODULE_NAME,
@@ -58,14 +50,7 @@ function IndividualSearcher({
   modulesManager,
   history,
   rights,
-  coreConfirm,
-  clearConfirm,
-  confirmed,
-  journalize,
-  submittingMutation,
-  mutation,
   fetchIndividuals,
-  deleteIndividual,
   fetchingIndividuals,
   fetchedIndividuals,
   errorIndividuals,
@@ -83,15 +68,10 @@ function IndividualSearcher({
   isModalEnrollment,
   advancedCriteria,
   benefitPlanToEnroll,
-  undoDeleteIndividual,
 }) {
   const dispatch = useDispatch();
-  const [individualToDelete, setIndividualToDelete] = useState(null);
-  const [individualToUndo, setIndividualToUndo] = useState(null);
   const [appliedCustomFilters, setAppliedCustomFilters] = useState([CLEARED_STATE_FILTER]);
   const [appliedFiltersRowStructure, setAppliedFiltersRowStructure] = useState([CLEARED_STATE_FILTER]);
-  const [deletedIndividualUuids, setDeletedIndividualUuids] = useState([]);
-  const [undoIndividualUuids, setUndoIndividualUuids] = useState([]);
   const [exportFields, setExportFields] = useState([
     'id',
     'first_name',
@@ -104,7 +84,6 @@ function IndividualSearcher({
     last_name: formatMessage(intl, 'individual', 'export.lastName'),
     dob: formatMessage(intl, 'individual', 'export.dob'),
   };
-  const prevSubmittingMutationRef = useRef();
 
   useEffect(() => {
     const canFetchBenefitPlanSchemaFields = !fetchedFieldsFromBfSchema
@@ -127,69 +106,8 @@ function IndividualSearcher({
     return `${modulesManager.getRef('individual.route.individual')}/${individual?.id}`;
   }
 
-  const openDeleteIndividualConfirmDialog = () => coreConfirm(
-    formatMessageWithValues(intl, 'individual', 'individual.delete.confirm.title', {
-      firstName: individualToDelete.firstName,
-      lastName: individualToDelete.lastName,
-    }),
-    formatMessage(intl, 'individual', 'individual.delete.confirm.message'),
-  );
-
-  const openUndoIndividualConfirmDialog = () => coreConfirm(
-    formatMessageWithValues(intl, 'individual', 'individual.undo.confirm.title', {
-      firstName: individualToUndo.firstName,
-      lastName: individualToUndo.lastName,
-    }),
-    formatMessage(intl, 'individual', 'individual.undo.confirm.message'),
-  );
-
   const onDoubleClick = (individual, newTab = false) => rights.includes(RIGHT_INDIVIDUAL_UPDATE)
-  && !deletedIndividualUuids.includes(individual.id)
   && historyPush(modulesManager, history, 'individual.route.individual', [individual?.id], newTab);
-
-  const onDelete = (individual) => setIndividualToDelete(individual);
-  const onUndo = (individual) => setIndividualToUndo(individual);
-
-  useEffect(() => individualToDelete && openDeleteIndividualConfirmDialog(), [individualToDelete]);
-  useEffect(() => individualToUndo && openUndoIndividualConfirmDialog(), [individualToUndo]);
-
-  useEffect(() => {
-    if (individualToDelete && confirmed) {
-      deleteIndividual(
-        individualToDelete,
-        formatMessageWithValues(intl, 'individual', 'individual.delete.mutationLabel', {
-          id: individualToDelete?.id,
-        }),
-      );
-      setDeletedIndividualUuids([...deletedIndividualUuids, individualToDelete.id]);
-    }
-    if (individualToUndo && confirmed) {
-      undoDeleteIndividual(
-        individualToUndo,
-        formatMessageWithValues(intl, 'individual', 'individual.undo.mutationLabel', {
-          id: individualToUndo?.id,
-        }),
-      );
-      setUndoIndividualUuids([...undoIndividualUuids, individualToUndo.id]);
-    }
-    if (individualToDelete && confirmed !== null) {
-      setIndividualToDelete(null);
-    }
-    if (individualToUndo && confirmed !== null) {
-      setIndividualToUndo(null);
-    }
-    return () => confirmed && clearConfirm(false);
-  }, [confirmed]);
-
-  useEffect(() => {
-    if (prevSubmittingMutationRef.current && !submittingMutation) {
-      journalize(mutation);
-    }
-  }, [submittingMutation]);
-
-  useEffect(() => {
-    prevSubmittingMutationRef.current = submittingMutation;
-  });
 
   const fetch = (params) => fetchIndividuals(modulesManager, params);
 
@@ -203,9 +121,6 @@ function IndividualSearcher({
     headers.push(...Array.from({ length: LOC_LEVELS }, (_, i) => `location.locationType.${i}`));
 
     if (rights.includes(RIGHT_INDIVIDUAL_UPDATE)) {
-      headers.push('emptyLabel');
-    }
-    if (rights.includes(RIGHT_INDIVIDUAL_DELETE)) {
       headers.push('emptyLabel');
     }
     return headers;
@@ -229,33 +144,11 @@ function IndividualSearcher({
           <IconButton
             href={individualUpdatePageUrl(individual)}
             onClick={(e) => e.stopPropagation() && onDoubleClick(individual)}
-            disabled={deletedIndividualUuids.includes(individual.id)}
           >
             <EditIcon />
           </IconButton>
         </Tooltip>
       ));
-    }
-    if (rights.includes(RIGHT_INDIVIDUAL_DELETE) && isModalEnrollment === false) {
-      formatters.push((individual) => (!individual?.isDeleted ? (
-        <Tooltip title={formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'deleteButtonTooltip')}>
-          <IconButton
-            onClick={() => onDelete(individual)}
-            disabled={deletedIndividualUuids.includes(individual.id)}
-          >
-            <DeleteIcon />
-          </IconButton>
-        </Tooltip>
-      ) : (
-        <Tooltip title={formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'undoButtonTooltip')}>
-          <IconButton
-            onClick={() => onUndo(individual)}
-            disabled={undoIndividualUuids.includes(individual.id)}
-          >
-            <UndoIcon />
-          </IconButton>
-        </Tooltip>
-      )));
     }
     return formatters;
   };
@@ -267,9 +160,6 @@ function IndividualSearcher({
     ['lastName', true],
     ['dob', true],
   ];
-
-  const isRowDisabled = (_, individual) => deletedIndividualUuids.includes(individual.id)
-      || undoIndividualUuids.includes(individual.id);
 
   const [failedExport, setFailedExport] = useState(false);
 
@@ -345,8 +235,6 @@ function IndividualSearcher({
         rowIdentifier={rowIdentifier}
         onDoubleClick={onDoubleClick}
         defaultFilters={defaultFilters()}
-        rowDisabled={isRowDisabled}
-        rowLocked={isRowDisabled}
         exportable
         exportFetch={downloadIndividuals}
         isCustomFiltering
@@ -394,9 +282,6 @@ const mapStateToProps = (state) => ({
   individuals: state.individual.individuals,
   individualsPageInfo: state.individual.individualsPageInfo,
   individualsTotalCount: state.individual.individualsTotalCount,
-  confirmed: state.core.confirmed,
-  submittingMutation: state.individual.submittingMutation,
-  mutation: state.individual.mutation,
   selectedFilters: state.core.filtersCache.individualsFilterCache,
   fetchingIndividualExport: state.individual.fetchingIndividualsExport,
   fetchedIndividualExport: state.individual.fetchedIndividualExport,
@@ -412,13 +297,8 @@ const mapStateToProps = (state) => ({
 const mapDispatchToProps = (dispatch) => bindActionCreators(
   {
     fetchIndividuals,
-    deleteIndividual,
     downloadIndividuals,
     clearIndividualExport,
-    undoDeleteIndividual,
-    coreConfirm,
-    clearConfirm,
-    journalize,
   },
   dispatch,
 );

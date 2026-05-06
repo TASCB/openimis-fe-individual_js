@@ -514,7 +514,7 @@ export async function exportNonConsentedHouseholdsPdf({
     "JINA LA MKUU WA KAYA",
     "WILAYA",
     "KIJIJI",
-    "NO YA UDADISI",
+    "UFUNGUO WA USAILI",
     "SABABU",
   ];
 

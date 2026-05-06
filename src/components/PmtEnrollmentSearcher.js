@@ -31,7 +31,7 @@ import {
   INDIVIDUAL_MODULE_NAME,
 } from '../constants';
 import PmtEnrollmentSearcherFilter from './PmtEnrollmentSearcherFilter';
-import { exportPmtEnrollmentPdf } from '../util/pmt-export';
+import { exportPmtEnrollmentPdf } from '../util/pdf-export';
 
 const styles = (theme) => ({
   root: {
@@ -43,6 +43,18 @@ const styles = (theme) => ({
     },
   },
 });
+
+const getQueryContext = () => {
+  const search = window?.location?.search || '';
+  const params = new URLSearchParams(search);
+  const districtCode = params.get('district') || '';
+  const cutoff = params.get('cutoff') || '';
+
+  return {
+    districtCode,
+    pmtCutoff: cutoff ? Number(cutoff) : null,
+  };
+};
 
 const getCurrentPmtClassFilter = (params) => {
   const queue = Array.isArray(params) ? [...params] : [params];
@@ -100,10 +112,21 @@ function PmtEnrollmentSearcher({
   const [isExporting, setIsExporting] = useState(false);
   const [currentFilters, setCurrentFilters] = useState({});
   const [districtName, setDistrictName] = useState(null);
+  const initialQueryContextRef = useRef(getQueryContext());
+  const initialDistrictCode = initialQueryContextRef.current.districtCode;
+  const initialPmtCutoff = initialQueryContextRef.current.pmtCutoff;
+  const cacheFiltersKey = initialDistrictCode
+    ? `pmtEnrollmentFilterCache-${initialDistrictCode}-${initialPmtCutoff ?? 'default'}`
+    : 'pmtEnrollmentFilterCache';
 
   const fetch = (params) => {
-    setCurrentFilters(params);
-    return fetchPmtEnrollmentList(modulesManager, params);
+    const nextParams = {
+      ...params,
+      ...(initialDistrictCode ? { districtCode: initialDistrictCode } : {}),
+      ...(initialPmtCutoff !== null ? { pmtCutoff: initialPmtCutoff } : {}),
+    };
+    setCurrentFilters(nextParams);
+    return fetchPmtEnrollmentList(modulesManager, nextParams);
   };
 
   const headers = () => [
@@ -133,7 +156,25 @@ function PmtEnrollmentSearcher({
     ['pmtScore', true],
   ];
 
-  const defaultFilters = () => ({});
+  const defaultFilters = () => {
+    const filters = {};
+
+    if (initialDistrictCode) {
+      filters.districtLocation = {
+        id: 'districtLocation',
+        value: initialDistrictCode,
+        filter: `districtLocation: "${initialDistrictCode}"`,
+      };
+    }
+
+    return filters;
+  };
+
+  useEffect(() => {
+    if (initialDistrictCode && !districtName) {
+      setDistrictName(initialDistrictCode);
+    }
+  }, [initialDistrictCode, districtName]);
 
   const pmtEnrollmentFilterPane = (props) => {
     const wrappedOnChangeFilters = (newFilters) => {
@@ -187,7 +228,7 @@ function PmtEnrollmentSearcher({
         households: allHouseholds,
         generatedDate: new Date(),
         districtCode: districtName,
-        pmtCutoff: 11.01,
+        pmtCutoff: initialPmtCutoff ?? 11.01,
         totalCount: exportedCount,
         pmtClass: getExportPmtClass(currentFilters, allHouseholds),
       });
@@ -234,7 +275,7 @@ function PmtEnrollmentSearcher({
         defaultOrderBy="code"
         rowIdentifier={rowIdentifier}
         defaultFilters={defaultFilters()}
-        cacheFiltersKey="pmtEnrollmentFilterCache"
+        cacheFiltersKey={cacheFiltersKey}
         resetFiltersOnUnmount
         searcherActionsPosition="header-right"
         searcherActions={searcherActions}

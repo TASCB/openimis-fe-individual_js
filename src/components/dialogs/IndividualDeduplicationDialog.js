@@ -44,6 +44,7 @@ const BASIC_FIELDS = [
   { id: 'first_name', name: 'first_name' },
   { id: 'last_name', name: 'last_name' },
   { id: 'dob', name: 'dob' },
+  { id: 'location__name', name: 'location' },
 ];
 
 const FIELD_ALIASES = {
@@ -65,6 +66,10 @@ const FIELD_ALIASES = {
   'Date Of Birth': 'dob',
   'Date of Birth': 'dob',
   'Birth Date': 'dob',
+  location: 'location__name',
+  Location: 'location__name',
+  village: 'location__name',
+  Village: 'location__name',
 };
 
 const normalizeSelectedField = (value) => {
@@ -78,6 +83,9 @@ const normalizeSelectedField = (value) => {
   }
   if (['dob', 'dateofbirth', 'birthdate', 'individualdob'].includes(canonicalField)) {
     return 'dob';
+  }
+  if (['location', 'locationname', 'village', 'villagename'].includes(canonicalField)) {
+    return 'location__name';
   }
   return FIELD_ALIASES[field] || field;
 };
@@ -114,6 +122,13 @@ const parseColumnValues = (input) => {
   }
   return input;
 };
+
+const formatColumnLabel = (key) => String(key)
+  .replace(/__/g, ' ')
+  .replace(/_/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim()
+  .replace(/\b\w/g, (c) => c.toUpperCase());
 
 const fetchDeduplicationRows = async (selectedValues) => {
   const columns = selectedValues
@@ -190,7 +205,7 @@ function IndividualDeduplicationSummaryTable({
   const reshapeColumnValues = (input) => {
     const columnValues = parseColumnValues(input);
     const formattedValues = Object.entries(columnValues).map(([key, value]) => {
-      const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      const formattedKey = formatColumnLabel(key);
       const formattedValue = value !== null ? value : 'null';
       return `${formattedKey}: ${formattedValue}`;
     });
@@ -262,9 +277,13 @@ function IndividualDeduplicationSummaryDialog({
         };
       });
 
+      // createIndividualDeduplicationReview is an OpenIMISMutation (relay
+      // ClientIDMutation), so every argument has to be wrapped in `input: {...}`.
+      // Passing `summary` as a top-level arg fails GraphQL validation -> HTTP 400
+      // and no task gets created.
       const mutation = `
-        mutation CreateIndividualDeduplicationReview($summary: [JSONString!]!) {
-          createIndividualDeduplicationReview(summary: $summary) {
+        mutation CreateIndividualDeduplicationReview($summary: [JSONString]!) {
+          createIndividualDeduplicationReview(input: { summary: $summary }) {
             ok
             errors
           }
@@ -341,7 +360,7 @@ function IndividualDeduplicationSummaryDialog({
                         ).map(([key, value]) => (
                           <div key={key} style={{ marginBottom: 4 }}>
                             <strong>
-                              {key}
+                              {formatColumnLabel(key)}
                               :
                             </strong>
                             {' '}

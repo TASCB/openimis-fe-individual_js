@@ -8,6 +8,7 @@ function GroupFilter({
     { name: 'code_Icontains', label: 'group.code' },
     { name: 'firstName', label: 'group.individual.firstName' },
     { name: 'lastName', label: 'group.individual.lastName' },
+    { name: 'location_Code_Icontains', label: 'group.villageCode' },
   ];
 
   const checkboxFields = [

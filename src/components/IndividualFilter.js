@@ -14,6 +14,7 @@ function IndividualFilter({
   const filterFields = [
     { name: 'firstName', label: 'individual.firstName', lookup: CONTAINS_LOOKUP },
     { name: 'lastName', label: 'individual.lastName', lookup: CONTAINS_LOOKUP },
+    { name: 'location_Code', label: 'individual.villageCode', lookup: CONTAINS_LOOKUP },
   ];
 
   const checkboxFields = [

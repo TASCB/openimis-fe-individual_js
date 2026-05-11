@@ -20,6 +20,7 @@
     "headPanelTitle": "General Information",
     "firstName": "First Name",
     "lastName": "Last Name",
+    "villageCode": "Village Code",
     "dob": "Day of birth",
     "interviewResultsNo": "Reason",
     "isTasafBeneficiary": "Is TASAF Beneficiary",
@@ -200,6 +201,7 @@
     "id": "ID",
     "head": "Head",
     "code": "Code",
+    "villageCode": "Village Code",
     "create": {
       "mutationLabel": "Created Group {id}"
     },

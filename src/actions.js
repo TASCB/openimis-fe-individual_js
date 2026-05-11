@@ -1803,3 +1803,50 @@ export function fetchPmtRunProgress(mutationId) {
     { actionType: ACTION_TYPE.PMT_RUN_PROGRESS },
   );
 }
+
+// ---------------------------------------------------------------------------
+// Real-time Survey Monitoring Dashboard
+// ---------------------------------------------------------------------------
+const SURVEY_DASHBOARD_PROJECTION = `
+  totalInterviews inProgress completed approvedBySupervisor approvedByHq sentToCapital
+  rejectedBySupervisor rejectedByHq rejectionRate supervisorBacklog hqBacklog pendingReviewBacklog
+  avgInterviewDurationMinutes activeEnumerators targetTotal sampleSize hqBaseUrl lastPolledAt
+  questionnaires { identity id title version count }
+  dailyProductivity { date count cumulative }
+  completionSeries { date count cumulative }
+  approvalFunnel { stage count }
+  enumeratorLeaderboard { name supervisorName completed approvedBySupervisor approvedByHq rejected total lastActivity }
+  activityHeatmap { dayOfWeek hour count }
+`;
+
+const SURVEY_INTERVIEW_PROJECTION = `
+  interviewId interviewKey questionnaireId questionnaireTitle questionnaireVersion assignmentId
+  responsibleName responsibleRole supervisorName status errorsCount notAnsweredCount
+  createdAtUtc lastEntryAtUtc statusChangedAt durationMinutes
+`;
+
+export function fetchSurveyDashboard(questionnaireId) {
+  const arg = questionnaireId ? `(questionnaireId: "${formatGQLString(questionnaireId)}")` : "";
+  const payload = `query { surveyDashboard${arg} { ${SURVEY_DASHBOARD_PROJECTION} } }`;
+  return graphql(payload, ACTION_TYPE.SURVEY_DASHBOARD);
+}
+
+export function fetchSurveyInterviews({
+  questionnaireId, status, responsibleName, search, fromDate, first = 50,
+} = {}) {
+  const args = [];
+  if (questionnaireId) args.push(`questionnaireId: "${formatGQLString(questionnaireId)}"`);
+  if (status) args.push(`status: "${status}"`);
+  if (responsibleName) args.push(`responsibleName: "${formatGQLString(responsibleName)}"`);
+  if (search) args.push(`search: "${formatGQLString(search)}"`);
+  if (fromDate) args.push(`fromDate: "${formatGQLString(fromDate)}"`);
+  args.push(`first: ${Number(first) || 50}`);
+  const payload = `query { surveyInterviews(${args.join(", ")}) { ${SURVEY_INTERVIEW_PROJECTION} } }`;
+  return graphql(payload, ACTION_TYPE.SURVEY_INTERVIEWS);
+}
+
+export function refreshSurveyDashboard(questionnaireId) {
+  const arg = questionnaireId ? `(questionnaireId: "${formatGQLString(questionnaireId)}")` : "";
+  const payload = `mutation { refreshSurveyDashboard${arg} { success seen created changed totalCount polledAt message } }`;
+  return graphql(payload, ACTION_TYPE.REFRESH_SURVEY_DASHBOARD);
+}

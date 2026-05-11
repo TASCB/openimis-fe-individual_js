@@ -59,6 +59,9 @@ export const ACTION_TYPE = {
   PMT_RUN_PROGRESS: "PMT_RUN_PROGRESS",
   FETCH_ELIGIBLE_HOUSEHOLDS: "FETCH_ELIGIBLE_HOUSEHOLDS",
   FETCH_ELIGIBLE_MEMBERS: "FETCH_ELIGIBLE_MEMBERS",
+  SURVEY_DASHBOARD: "API_ETL_SURVEY_DASHBOARD",
+  SURVEY_INTERVIEWS: "API_ETL_SURVEY_INTERVIEWS",
+  REFRESH_SURVEY_DASHBOARD: "API_ETL_REFRESH_SURVEY_DASHBOARD",
 };
 
 function reducer(
@@ -232,6 +235,19 @@ function reducer(
     eligibleMembers: [],
     eligibleMembersPageInfo: {},
     eligibleMembersTotalCount: 0,
+
+    // Survey Monitoring Dashboard
+    fetchingSurveyDashboard: false,
+    fetchedSurveyDashboard: false,
+    surveyDashboard: null,
+    errorSurveyDashboard: null,
+    fetchingSurveyInterviews: false,
+    fetchedSurveyInterviews: false,
+    surveyInterviews: [],
+    errorSurveyInterviews: null,
+    refreshingSurveyDashboard: false,
+    surveyDashboardRefreshResult: null,
+    errorSurveyDashboardRefresh: null,
   },
   action
 ) {
@@ -1257,6 +1273,56 @@ function reducer(
         pmtRunProgress: null,
         errorPmtRunProgress: null,
         fetchedPmtRunProgress: false,
+      };
+
+    case REQUEST(ACTION_TYPE.SURVEY_DASHBOARD):
+      return {
+        ...state, fetchingSurveyDashboard: true, errorSurveyDashboard: null,
+      };
+    case SUCCESS(ACTION_TYPE.SURVEY_DASHBOARD):
+      return {
+        ...state,
+        fetchingSurveyDashboard: false,
+        fetchedSurveyDashboard: true,
+        surveyDashboard: action.payload?.data?.surveyDashboard ?? state.surveyDashboard,
+        errorSurveyDashboard: formatGraphQLError(action.payload),
+      };
+    case ERROR(ACTION_TYPE.SURVEY_DASHBOARD):
+      return {
+        ...state, fetchingSurveyDashboard: false, errorSurveyDashboard: formatServerError(action.payload),
+      };
+
+    case REQUEST(ACTION_TYPE.SURVEY_INTERVIEWS):
+      return {
+        ...state, fetchingSurveyInterviews: true, errorSurveyInterviews: null,
+      };
+    case SUCCESS(ACTION_TYPE.SURVEY_INTERVIEWS):
+      return {
+        ...state,
+        fetchingSurveyInterviews: false,
+        fetchedSurveyInterviews: true,
+        surveyInterviews: action.payload?.data?.surveyInterviews ?? [],
+        errorSurveyInterviews: formatGraphQLError(action.payload),
+      };
+    case ERROR(ACTION_TYPE.SURVEY_INTERVIEWS):
+      return {
+        ...state, fetchingSurveyInterviews: false, errorSurveyInterviews: formatServerError(action.payload),
+      };
+
+    case REQUEST(ACTION_TYPE.REFRESH_SURVEY_DASHBOARD):
+      return {
+        ...state, refreshingSurveyDashboard: true, errorSurveyDashboardRefresh: null,
+      };
+    case SUCCESS(ACTION_TYPE.REFRESH_SURVEY_DASHBOARD):
+      return {
+        ...state,
+        refreshingSurveyDashboard: false,
+        surveyDashboardRefreshResult: action.payload?.data?.refreshSurveyDashboard ?? null,
+        errorSurveyDashboardRefresh: formatGraphQLError(action.payload),
+      };
+    case ERROR(ACTION_TYPE.REFRESH_SURVEY_DASHBOARD):
+      return {
+        ...state, refreshingSurveyDashboard: false, errorSurveyDashboardRefresh: formatServerError(action.payload),
       };
 
     default:

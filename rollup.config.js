@@ -30,6 +30,7 @@ export default {
     /^redux.*/,
     "jspdf",
     "html2canvas",
+    "recharts",
   ],
 
   plugins: [

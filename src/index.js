@@ -8,6 +8,7 @@ import { Person, People, Block } from '@material-ui/icons';
 import MenuIcon from '@material-ui/icons/Menu';
 import AssessmentIcon from '@material-ui/icons/Assessment';
 import FormatListBulletedIcon from '@material-ui/icons/FormatListBulleted';
+import TimelineIcon from '@material-ui/icons/Timeline';
 import messages_en from './translations/en.json';
 import reducer from './reducer';
 import IndividualsPage from './pages/IndividualsPage';
@@ -76,6 +77,7 @@ import { BenefitsGroupTabLabel, BenefitsGroupTabPanel } from './components/Benef
 import ImportDataApiPage from './pages/ImportDataApiPage';
 import PmtConfigurationPage from './pages/PmtConfigurationPage';
 import PmtEnrollmentListPage from './pages/PmtEnrollmentListPage';
+import SurveyMonitoringDashboardPage from './pages/SurveyMonitoringDashboardPage';
 
 const ROUTE_INDIVIDUALS = 'individuals';
 const ROUTE_NON_CONSENTED = 'non-consented';
@@ -88,6 +90,7 @@ const ROUTE_GROUP_ENROLLMENT = 'groups/enrollment';
 const ROUTE_API_IMPORTS = 'imports';
 const ROUTE_PMT_CONFIGURATION = 'pmt-configuration';
 const ROUTE_PMT_ENROLLMENT_LIST = 'pmt/enrollment-list';
+const ROUTE_SURVEY_DASHBOARD = 'survey-monitoring';
 
 const ROUTE_ELIGIBLE_HOUSEHOLDS = 'eligible-households';
 const ROUTE_ELIGIBLE_MEMBERS = 'eligible-members';
@@ -111,6 +114,7 @@ const DEFAULT_CONFIG = {
     { path: ROUTE_API_IMPORTS, component: ImportDataApiPage },
     { path: ROUTE_PMT_CONFIGURATION, component: PmtConfigurationPage },
     { path: ROUTE_PMT_ENROLLMENT_LIST, component: PmtEnrollmentListPage },
+    { path: ROUTE_SURVEY_DASHBOARD, component: SurveyMonitoringDashboardPage },
     { path: ROUTE_ELIGIBLE_HOUSEHOLDS, component: EligibleHouseholdsPage },
     { path: ROUTE_ELIGIBLE_MEMBERS, component: EligibleMembersPage },
   ],
@@ -156,6 +160,13 @@ const DEFAULT_CONFIG = {
       route: `/${ROUTE_PMT_ENROLLMENT_LIST}`,
       filter: (rights) => rights.includes(RIGHT_PMT_RERUN),
       id: 'individual.pmt_enrollment_list',
+    },
+    {
+      text: <FormattedMessage module={INDIVIDUAL_MODULE_NAME} id="survey.dashboard.menu" />,
+      icon: <TimelineIcon />,
+      route: `/${ROUTE_SURVEY_DASHBOARD}`,
+      filter: (rights) => rights.includes(RIGHT_INDIVIDUAL_SEARCH),
+      id: 'individual.survey_monitoring',
     },
     {
       text: <FormattedMessage module={INDIVIDUAL_MODULE_NAME} id="menu.eligibleHouseholds" />,

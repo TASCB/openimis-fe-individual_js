@@ -29,9 +29,9 @@
     "hasNoLocation": "Missing Location",
     "addButtonTooltip": "Add Individual to Group",
     "additonalFields": {
-        "label": "Additional Fields",
-        "showAdditionalFields": "Show Additional Fields",
-        "close": "Close"
+      "label": "Additional Fields",
+      "showAdditionalFields": "Show Additional Fields",
+      "close": "Close"
     },
     "mandatoryFieldsEmptyError": "* These fields are required",
     "benefits": {
@@ -53,7 +53,7 @@
     },
     "update": {
       "label": "Update Individual",
-      "mutationLabel":"Update Individual {id}"
+      "mutationLabel": "Update Individual {id}"
     },
     "upload": {
       "buttonLabel": "UPLOAD",
@@ -89,7 +89,7 @@
       "addFilters": "Add Filters",
       "criteria": "Enrollment Criteria",
       "clearAllFilters": "Clear All Filters",
-      "previewEnrollment": "Preview Enrollment Process", 
+      "previewEnrollment": "Preview Enrollment Process",
       "confirmEnrollment": "Confirm Enrollment Process",
       "confirmTitle": "Confirm Enrollment Process",
       "mutationLabel": "Enrollment has been confirmed",
@@ -110,7 +110,6 @@
       "numberOfGroupsNotAssignedToProgramme": "Number Of Groups not Assigned To Programme",
       "numberOfGroupsAssignedToSelectedProgramme": "Number of Groups Assigned to Selected Programme",
       "numberOfGroupsToUpload": "Number of Groups to Upload"
-
     },
     "saveButton.tooltip.enabled": "Save changes",
     "saveButton.tooltip.disabled": "Please fill General Information fields first",
@@ -118,7 +117,7 @@
       "label": "MEMBERS"
     },
     "tasks": {
-        "title": "Individual Tasks"
+      "title": "Individual Tasks"
     },
     "any": "ANY",
     "ok": "ok",
@@ -220,7 +219,7 @@
     "createGroupAndMoveIndividual": {
       "mutationLabel": "Create group and move individual."
     },
-    "tasks" : {
+    "tasks": {
       "create": {
         "title": "Group Create Tasks"
       }
@@ -272,14 +271,14 @@
     },
     "update": {
       "label": "Update Individual",
-      "mutationLabel":"Update Individual {id}"
+      "mutationLabel": "Update Individual {id}"
     },
     "tasks": {
       "update": {
         "title": "Group Update Tasks"
       }
     },
-    "groupIndividualRolePicker.HEAD":  "HEAD",
+    "groupIndividualRolePicker.HEAD": "HEAD",
     "groupIndividualRolePicker.SPOUSE": "SPOUSE",
     "groupIndividualRolePicker.SON": "SON",
     "groupIndividualRolePicker.DAUGHTER": "DAUGHTER",
@@ -296,7 +295,7 @@
     "statusOfMembership": "Status Of Membership"
   },
   "groupIndividualHistoryList": {
-    "searcherResultsTitle": "{groupIndividualHistoryTotalCount} Historical Records Found" 
+    "searcherResultsTitle": "{groupIndividualHistoryTotalCount} Historical Records Found"
   },
   "groupIndividualHistory": {
     "individual": {
@@ -305,7 +304,7 @@
       "individualId": "Individual ID"
     },
     "label": "Group History",
-    "groupIndividualRolePicker.HEAD":  "HEAD",
+    "groupIndividualRolePicker.HEAD": "HEAD",
     "groupIndividualRolePicker.RECIPIENT": "RECIPIENT",
     "groupIndividualRolePicker": "Role"
   },
@@ -441,6 +440,85 @@
       "close": "Close",
       "runInBackground": "Run In Background",
       "viewActive": "View Active Progress"
+    }
+  },
+  "survey": {
+    "dashboard": {
+      "menu": "Survey Monitoring",
+      "title": "Survey Solutions — Field Monitoring",
+      "lastPolled": "Last synced from HQ",
+      "autoRefresh": "Auto-refresh (30s)",
+      "refreshNow": "Sync now",
+      "allQuestionnaires": "All PAAs / questionnaires",
+      "submittedSince": "Submitted since",
+      "filters": "Filters",
+      "clearFilters": "Clear filters",
+      "noQuestionnaires": "(no questionnaires available yet — sync from HQ)",
+      "loadError": "Could not load the dashboard from the backend",
+      "syncOk": "synced sample of",
+      "syncFailed": "Sync failed",
+      "hqReports": "HQ reports",
+      "interviewsWord": "interviews",
+      "statusChanges": "status changes",
+      "sampleNote": "Based on a sample of",
+      "sampleBanner1": "The KPIs and pipeline above are exact.",
+      "sampleBanner2": "The live feed, leaderboard and activity heatmap below are based on a sample of",
+      "sampleBanner3": "interviews",
+      "sampleBanner4": "this Survey Solutions endpoint doesn't allow paging through all interviews, so the sample accumulates as the dashboard polls.",
+      "totalInterviews": "Total interviews",
+      "target": "Target",
+      "ofTotal": "of total",
+      "pipeline": "Data collection pipeline",
+      "bottleneck": "Bottleneck",
+      "only": "only",
+      "passedThrough": "passed through",
+      "waitingHere": "waiting at this step",
+      "clickToFilterFeed": "Click to filter the live feed",
+      "rejectionRate": "Rejection rate",
+      "rejectedTotal": "rejected",
+      "supShort": "sup",
+      "hqShort": "HQ",
+      "rejectionRateTip": "Rejected interviews ÷ interviews that reached review. High values may signal data-quality or training issues.",
+      "awaitingSupervisor": "Awaiting supervisor review",
+      "awaitingSupervisorSub": "completed, not yet reviewed",
+      "awaitingSupervisorTip": "Interviews sitting in the supervisor's review queue right now.",
+      "awaitingHq": "Awaiting HQ approval",
+      "awaitingHqSub": "approved by supervisor / sent to HQ",
+      "awaitingHqTip": "Interviews waiting for Headquarters approval — the main approval bottleneck.",
+      "activeEnumerators": "Active enumerators (24h)",
+      "activeEnumeratorsSub": "synced recently (from sample)",
+      "activeEnumeratorsTip": "Enumerators whose interviews show a last-entry timestamp within the past 24 h (in the synced sample).",
+      "liveFeed": "Live interview activity",
+      "leaderboard": "Enumerator leaderboard",
+      "sCurve": "Cumulative completion (S-curve)",
+      "sCurveEmpty": "No trend yet — the cumulative-completion curve builds up as daily snapshots accumulate.",
+      "cumulative": "Cumulative",
+      "daily": "That day",
+      "dailyProductivity": "Daily productivity",
+      "dailyEmpty": "No daily figures yet — this fills in once snapshots are recorded on subsequent days.",
+      "completedWord": "completed",
+      "heatmap": "Enumerator activity heatmap (day × hour)",
+      "heatmapEmpty": "No recent activity timestamps in the synced sample yet.",
+      "eventsWord": "event(s)",
+      "less": "less",
+      "more": "more",
+      "all": "All",
+      "noData": "No data",
+      "noInterviews": "No interviews to show.",
+      "noInterviewsFiltered": "No interviews match this filter in the synced sample.",
+      "enumerator": "Enumerator",
+      "mixCol": "Done / rejected",
+      "completedShort": "Done",
+      "approvedHqShort": "HQ ✓",
+      "lastSync": "Last sync",
+      "interviewCol": "Interview",
+      "statusCol": "Status",
+      "errorsCol": "Errors",
+      "cardsView": "Cards",
+      "tableView": "Table",
+      "errors": "Validation errors",
+      "changed": "changed",
+      "openInHq": "Open in HQ"
     }
   }
 }

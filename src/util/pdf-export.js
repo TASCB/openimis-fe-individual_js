@@ -301,7 +301,7 @@ function drawSummaryBox({
   doc.setFont(undefined, "normal");
 
   const summaryText =
-    `Jumla ya Kaya: ${total} | Masikini: ${poor} (${poorPct}%) | Matajiri: ${nonPoor} (${nonPoorPct}%)`;
+    `Jumla ya Kaya: ${total} | Masikini: ${poor} (${poorPct}%) | Wasio na vigezo: ${nonPoor} (${nonPoorPct}%)`;
 
   doc.text(summaryText, margin + 3, startY + 12);
 

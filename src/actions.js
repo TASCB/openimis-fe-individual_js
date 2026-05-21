@@ -1471,144 +1471,26 @@ export function fetchPmtAuditSummary(modulesManager, params = {}) {
 }
 
 /**
- * Fetch enrollment list for a specific district with PMT cutoff
- * Handles filters from the Searcher component, including location UUIDs
- * Searcher can pass params as either an array of filter strings OR an object
+ * Fetch enrollment list for a specific district with PMT cutoff.
+ * PMT Enrollment now follows the normal Searcher contract:
+ * filter ids match GraphQL argument names and Searcher serializes them directly.
  */
 export function fetchPmtEnrollmentList(modulesManager, params = {}) {
-  // Handle params being either an array or an object
-  // Sometimes Searcher passes: ['filter1', 'filter2', ...]
-  // Sometimes it passes: {filters: [...], pageInfo: {...}}
-  let paramsObj = {};
-  let filterStrings = [];
-
-  if (Array.isArray(params)) {
-    // Params is an array of filter strings like: ['parentLocation: "UUID"', 'first: 10', 'orderBy: ["code"]']
-    filterStrings = params;
-    // Extract pagination from filter strings
-    filterStrings.forEach((str) => {
-      if (str.includes('first:')) {
-        const match = str.match(/first:\s*(\d+)/);
-        if (match) paramsObj.first = parseInt(match[1], 10);
-      }
-      if (str.includes('offset:')) {
-        const match = str.match(/offset:\s*(\d+)/);
-        if (match) paramsObj.offset = parseInt(match[1], 10);
-      }
-    });
-  } else {
-    // Params is an object
-    paramsObj = params;
-    // Get filters from object
-    if (paramsObj.filters) {
-      const normalizeFilters = (f) => {
-        if (!f) return [];
-        if (Array.isArray(f)) return f.filter(Boolean);
-        if (typeof f === 'object') {
-          return Object.values(f)
-            .map((x) => x?.filter)
-            .filter(Boolean);
-        }
-        return [];
-      };
-      filterStrings = normalizeFilters(paramsObj.filters);
+  const normalizeFilters = (f) => {
+    if (!f) return [];
+    if (Array.isArray(f)) return f.filter(Boolean);
+    if (typeof f === 'object') {
+      return Object.values(f)
+        .map((x) => x?.filter)
+        .filter(Boolean);
     }
-  }
-
-  // Get pagination info
-  const pageSize = paramsObj.first || paramsObj.limit || 10;
-  let offset = paramsObj.offset || 0;
-
-  // Extract and convert location filters
-  let processedFilters = [];
-  let hasLocationFilter = false;
-
-  // Helper function to map Searcher filter expressions to GraphQL parameters
-  const mapFilterExpression = (filter) => {
-    // Map search filters: headName_Icontains and code_Icontains both map to searchText
-    if (filter.includes('headName_Icontains:')) {
-      const match = filter.match(/"([^"]+)"/);
-      return match ? `searchText: "${match[1]}"` : null;
-    }
-    if (filter.includes('code_Icontains:')) {
-      const match = filter.match(/"([^"]+)"/);
-      return match ? `searchText: "${match[1]}"` : null;
-    }
-    // PMT class filter: ensure value is quoted
-    if (filter.includes('pmtClass:')) {
-      const match = filter.match(/pmtClass:\s*(\w+)/);
-      return match ? `pmtClass: "${match[1]}"` : filter;
-    }
-    return filter;
+    return [];
   };
-
-  filterStrings.forEach((filter) => {
-    // Skip pure pagination and ordering filters (but NOT mixed filters like "parentLocation: ..., parentLocationLevel: ...")
-    if (filter.includes('orderBy:') || filter.includes('first:')) {
-      return;
-    }
-
-    // Check if this is a location filter (parentLocation, location, etc)
-    // Note: Filter might be combined like: "parentLocation: \"UUID\", parentLocationLevel: 2"
-    if (filter.includes('parentLocation:') ||
-        filter.includes('location:') ||
-        filter.includes('regionLocation:') ||
-        filter.includes('districtLocation:')) {
-      // Extract location UUID and level from the filter string
-      // Format: "parentLocation: \"UUID\", parentLocationLevel: N"
-      const locationMatch = filter.match(/(parentLocation|location|regionLocation|districtLocation):\s*"([^"]+)"/);
-      const levelMatch = filter.match(/parentLocationLevel:\s*(\d+)/);
-
-      if (locationMatch) {
-        const locationUUID = locationMatch[2];
-        const locationLevel = levelMatch ? parseInt(levelMatch[1], 10) : 1; // Default to district (level 1)
-
-        // Use regionCode for level 0 (regions), districtCode for level 1+ (districts/wards/villages)
-        if (locationLevel === 0) {
-          processedFilters.push(`regionCode: "${locationUUID}"`);
-        } else {
-          processedFilters.push(`districtCode: "${locationUUID}"`);
-        }
-        hasLocationFilter = true;
-      } else {
-        // Fallback: just replace the location field name
-        processedFilters.push(filter.replace(/\b(parentLocation|location|regionLocation|districtLocation):/g, 'districtCode:'));
-        hasLocationFilter = true;
-      }
-    } else if (!filter.includes('parentLocationLevel:')) {
-      // Map filter expression to valid GraphQL parameter, then add it
-      const mappedFilter = mapFilterExpression(filter);
-      if (mappedFilter) {
-        processedFilters.push(mappedFilter);
-      }
-    }
-  });
-
-  if (paramsObj.districtCode) {
-    processedFilters.push(`districtCode: "${paramsObj.districtCode}"`);
-  }
-  if (paramsObj.regionCode) {
-    processedFilters.push(`regionCode: "${paramsObj.regionCode}"`);
-  }
-  if (paramsObj.searchText) {
-    processedFilters.push(`searchText: "${paramsObj.searchText}"`);
-  }
-  if (paramsObj.pmtClass) {
-    processedFilters.push(`pmtClass: "${paramsObj.pmtClass}"`);
-  }
-
-  // Always include pmtCutoff in the query
-  const pmtCutoff = paramsObj.pmtCutoff || 11.01;
-  const pmtCutoffFilter = `pmtCutoff: ${pmtCutoff}`;
-
-  // Combine all filters
-  const allFilters = [pmtCutoffFilter, ...new Set(processedFilters)];
-
-  const graphqlQuery = `pmtEnrollmentList(${allFilters.join(', ')}, offset: ${offset}, limit: ${pageSize})`;
+  const queryParams = Array.isArray(params) ? params.filter(Boolean) : normalizeFilters(params.filters);
 
   const payload = formatQuery(
-    graphqlQuery,
-    [],
+    'pmtEnrollmentList',
+    queryParams,
     [
       'households { groupUuid groupCode hhRep headUuid headName pmtScore pmtClass numberOfMembers locationCode locationName }',
       'totalCount',
@@ -1633,111 +1515,29 @@ export function fetchPmtEnrollmentList(modulesManager, params = {}) {
 }
 
 /**
- * Fetch ALL PMT enrollment records for export (bypasses pagination)
- * Uses same filter extraction as fetchPmtEnrollmentList but with very high limit
+ * Fetch all PMT enrollment records for export.
  */
 export function fetchPmtEnrollmentListForExport(modulesManager, params = {}) {
-  // Handle params being either an array or an object
-  let paramsObj = {};
-  let filterStrings = [];
-
-  if (Array.isArray(params)) {
-    filterStrings = params;
-  } else {
-    paramsObj = params;
-    if (paramsObj.filters) {
-      const normalizeFilters = (f) => {
-        if (!f) return [];
-        if (Array.isArray(f)) return f.filter(Boolean);
-        if (typeof f === 'object') {
-          return Object.values(f)
-            .map((x) => x?.filter)
-            .filter(Boolean);
-        }
-        return [];
-      };
-      filterStrings = normalizeFilters(paramsObj.filters);
+  const normalizeFilters = (f) => {
+    if (!f) return [];
+    if (Array.isArray(f)) return f.filter(Boolean);
+    if (typeof f === 'object') {
+      return Object.values(f)
+        .map((x) => x?.filter)
+        .filter(Boolean);
     }
-  }
-
-  // Extract and convert location filters
-  let processedFilters = [];
-
-  // Helper function to map Searcher filter expressions to GraphQL parameters
-  const mapFilterExpression = (filter) => {
-    if (filter.includes('headName_Icontains:')) {
-      const match = filter.match(/"([^"]+)"/);
-      return match ? `searchText: "${match[1]}"` : null;
-    }
-    if (filter.includes('code_Icontains:')) {
-      const match = filter.match(/"([^"]+)"/);
-      return match ? `searchText: "${match[1]}"` : null;
-    }
-    if (filter.includes('pmtClass:')) {
-      const match = filter.match(/pmtClass:\s*(\w+)/);
-      return match ? `pmtClass: "${match[1]}"` : filter;
-    }
-    return filter;
+    return [];
   };
 
-  filterStrings.forEach((filter) => {
-    if (filter.includes('orderBy:') || filter.includes('first:')) {
-      return;
-    }
+  const queryParams = (Array.isArray(params) ? params : normalizeFilters(params.filters))
+    .filter((param) => !param.startsWith('offset:') && !param.startsWith('limit:'));
 
-    if (filter.includes('parentLocation:') ||
-        filter.includes('location:') ||
-        filter.includes('regionLocation:') ||
-        filter.includes('districtLocation:')) {
-      const locationMatch = filter.match(/(parentLocation|location|regionLocation|districtLocation):\s*"([^"]+)"/);
-      const levelMatch = filter.match(/parentLocationLevel:\s*(\d+)/);
-
-      if (locationMatch) {
-        const locationUUID = locationMatch[2];
-        const locationLevel = levelMatch ? parseInt(levelMatch[1], 10) : 1;
-
-        if (locationLevel === 0) {
-          processedFilters.push(`regionCode: "${locationUUID}"`);
-        } else {
-          processedFilters.push(`districtCode: "${locationUUID}"`);
-        }
-      } else {
-        processedFilters.push(filter.replace(/\b(parentLocation|location|regionLocation|districtLocation):/g, 'districtCode:'));
-      }
-    } else if (!filter.includes('parentLocationLevel:')) {
-      const mappedFilter = mapFilterExpression(filter);
-      if (mappedFilter) {
-        processedFilters.push(mappedFilter);
-      }
-    }
-  });
-
-  if (paramsObj.districtCode) {
-    processedFilters.push(`districtCode: "${paramsObj.districtCode}"`);
-  }
-  if (paramsObj.regionCode) {
-    processedFilters.push(`regionCode: "${paramsObj.regionCode}"`);
-  }
-  if (paramsObj.searchText) {
-    processedFilters.push(`searchText: "${paramsObj.searchText}"`);
-  }
-  if (paramsObj.pmtClass) {
-    processedFilters.push(`pmtClass: "${paramsObj.pmtClass}"`);
-  }
-
-  // Always include pmtCutoff in the query
-  const pmtCutoff = paramsObj.pmtCutoff || 11.01;
-  const pmtCutoffFilter = `pmtCutoff: ${pmtCutoff}`;
-
-  // Combine all filters with NO LIMIT for export
-  const allFilters = [pmtCutoffFilter, ...new Set(processedFilters)];
-
-  // Use very high offset/limit to get all records (set limit to 10000 to cover almost all cases)
-  const graphqlQuery = `pmtEnrollmentList(${allFilters.join(', ')}, offset: 0, limit: 10000)`;
+  queryParams.push('offset: 0');
+  queryParams.push('limit: 10000');
 
   const payload = formatQuery(
-    graphqlQuery,
-    [],
+    'pmtEnrollmentList',
+    queryParams,
     [
       'households { groupUuid groupCode hhRep headUuid headName pmtScore pmtClass numberOfMembers locationCode locationName }',
       'totalCount',
@@ -1810,12 +1610,14 @@ export function fetchPmtRunProgress(mutationId) {
 const SURVEY_DASHBOARD_PROJECTION = `
   totalInterviews inProgress completed approvedBySupervisor approvedByHq sentToCapital
   rejectedBySupervisor rejectedByHq rejectionRate supervisorBacklog hqBacklog pendingReviewBacklog
-  avgInterviewDurationMinutes activeEnumerators targetTotal sampleSize hqBaseUrl lastPolledAt
+  avgInterviewDurationMinutes householdMembersTotal householdSizeAverage householdSizeInterviews householdSizeVariable
+  activeEnumerators targetTotal sampleSize hqBaseUrl lastPolledAt
   questionnaires { identity id title version count }
   dailyProductivity { date count cumulative }
   completionSeries { date count cumulative }
   approvalFunnel { stage count }
   enumeratorLeaderboard { name supervisorName completed approvedBySupervisor approvedByHq rejected total lastActivity }
+  supervisorLeaderboard { name username pendingReview reviewed rejected total teamSize activeInterviewers lastActivity }
   activityHeatmap { dayOfWeek hour count }
 `;
 
@@ -1832,12 +1634,13 @@ export function fetchSurveyDashboard(questionnaireId) {
 }
 
 export function fetchSurveyInterviews({
-  questionnaireId, status, responsibleName, search, fromDate, first = 50,
+  questionnaireId, status, responsibleName, supervisorName, search, fromDate, first = 50,
 } = {}) {
   const args = [];
   if (questionnaireId) args.push(`questionnaireId: "${formatGQLString(questionnaireId)}"`);
   if (status) args.push(`status: "${status}"`);
   if (responsibleName) args.push(`responsibleName: "${formatGQLString(responsibleName)}"`);
+  if (supervisorName) args.push(`supervisorName: "${formatGQLString(supervisorName)}"`);
   if (search) args.push(`search: "${formatGQLString(search)}"`);
   if (fromDate) args.push(`fromDate: "${formatGQLString(fromDate)}"`);
   args.push(`first: ${Number(first) || 50}`);

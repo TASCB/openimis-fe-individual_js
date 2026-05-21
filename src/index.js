@@ -50,6 +50,7 @@ import {
   RIGHT_GROUP_SEARCH,
   RIGHT_INDIVIDUAL_SEARCH,
   RIGHT_PMT_RERUN,
+  RIGHT_SURVEY_DASHBOARD,
 } from './constants';
 import { GroupCreateTaskItemFormatters, GroupCreateTaskTableHeaders } from './components/tasks/GroupCreateTasks';
 import IndividualsUploadDialog from './components/dialogs/IndividualsUploadDialog';
@@ -165,7 +166,7 @@ const DEFAULT_CONFIG = {
       text: <FormattedMessage module={INDIVIDUAL_MODULE_NAME} id="survey.dashboard.menu" />,
       icon: <TimelineIcon />,
       route: `/${ROUTE_SURVEY_DASHBOARD}`,
-      filter: (rights) => rights.includes(RIGHT_INDIVIDUAL_SEARCH),
+      filter: (rights) => rights.includes(RIGHT_SURVEY_DASHBOARD),
       id: 'individual.survey_monitoring',
     },
     {

@@ -69,28 +69,43 @@ function FeedTable({ interviews, theme, hqBaseUrl, formatMessage }) {
 // cards/table view toggle, and the interview list itself.
 function InterviewFeed({
   interviews = [], loading = false, statusFilter, onStatusFilter,
-  responsibleFilter, onClearResponsible, fromDate, onClearFromDate,
-  hqBaseUrl, formatMessage, view = "cards", onViewChange,
+  responsibleFilter, onClearResponsible, supervisorFilter, onClearSupervisor, fromDate, onClearFromDate,
+  hqBaseUrl, formatMessage, view = "cards", onViewChange, listMaxHeight = 560,
 }) {
   const t = (id, fallback) => (formatMessage ? (formatMessage(id) === id ? fallback : formatMessage(id)) : fallback);
   const theme = useTheme();
-  const hasActiveFilter = !!statusFilter || !!responsibleFilter || !!fromDate;
+  const hasActiveFilter = !!statusFilter || !!responsibleFilter || !!supervisorFilter || !!fromDate;
   return (
     <Box>
-      <Box display="flex" justifyContent="flex-end" alignItems="center" style={{ marginBottom: 4 }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" style={{ marginBottom: 8, gap: 8, flexWrap: "wrap" }}>
+        <Typography variant="caption" color="textSecondary">
+          {t("survey.dashboard.feedHint", "Recent interview activity from the synced sample")}
+        </Typography>
         <Tooltip title={t("survey.dashboard.cardsView", "Cards")}>
-          <IconButton size="small" color={view === "cards" ? "primary" : "default"} onClick={() => onViewChange && onViewChange("cards")}>
+          <IconButton
+            size="small"
+            color={view === "cards" ? "primary" : "default"}
+            onClick={() => onViewChange && onViewChange("cards")}
+            aria-label={t("survey.dashboard.cardsView", "Cards")}
+            aria-pressed={view === "cards"}
+          >
             <ViewModuleIcon fontSize="small" />
           </IconButton>
         </Tooltip>
         <Tooltip title={t("survey.dashboard.tableView", "Table")}>
-          <IconButton size="small" color={view === "table" ? "primary" : "default"} onClick={() => onViewChange && onViewChange("table")}>
+          <IconButton
+            size="small"
+            color={view === "table" ? "primary" : "default"}
+            onClick={() => onViewChange && onViewChange("table")}
+            aria-label={t("survey.dashboard.tableView", "Table")}
+            aria-pressed={view === "table"}
+          >
             <ViewListIcon fontSize="small" />
           </IconButton>
         </Tooltip>
       </Box>
       {/* status filter chips — 4 per row, equal width */}
-      <Box style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6, marginBottom: 8 }}>
+      <Box style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(132px, 1fr))", gap: 6, marginBottom: 10 }}>
         <Chip
           size="small"
           label={t("survey.dashboard.all", "All")}
@@ -117,10 +132,13 @@ function InterviewFeed({
         })}
       </Box>
 
-      {(responsibleFilter || fromDate) ? (
+      {(responsibleFilter || supervisorFilter || fromDate) ? (
         <Box mb={1} display="flex" style={{ gap: 6, flexWrap: "wrap" }}>
           {responsibleFilter ? (
             <Chip size="small" color="primary" label={`${t("survey.dashboard.enumerator", "Enumerator")}: ${responsibleFilter}`} onDelete={onClearResponsible} deleteIcon={<CloseIcon />} />
+          ) : null}
+          {supervisorFilter ? (
+            <Chip size="small" color="primary" label={`${t("survey.dashboard.supervisor", "Supervisor")}: ${supervisorFilter}`} onDelete={onClearSupervisor} deleteIcon={<CloseIcon />} />
           ) : null}
           {fromDate ? (
             <Chip size="small" color="primary" variant="outlined" label={`${t("survey.dashboard.submittedSince", "Submitted since")} ${fromDate}`} onDelete={onClearFromDate} deleteIcon={<CloseIcon />} />
@@ -128,16 +146,18 @@ function InterviewFeed({
         </Box>
       ) : null}
 
-      <Box style={{ maxHeight: 560, overflow: "auto", paddingRight: 4 }}>
+      <Box style={{ maxHeight: listMaxHeight, overflow: "auto", paddingRight: 4, borderTop: `1px solid ${theme.palette.divider}`, paddingTop: 10 }}>
         {loading && !interviews.length ? (
           <Box display="flex" justifyContent="center" p={3}><CircularProgress size={28} /></Box>
         ) : null}
         {!loading && !interviews.length ? (
-          <Typography variant="body2" color="textSecondary">
-            {hasActiveFilter
-              ? t("survey.dashboard.noInterviewsFiltered", "No interviews match this filter in the synced sample.")
-              : t("survey.dashboard.noInterviews", "No interviews to show.")}
-          </Typography>
+          <Box p={2}>
+            <Typography variant="body2" color="textSecondary">
+              {hasActiveFilter
+                ? t("survey.dashboard.noInterviewsFiltered", "No interviews match this filter in the synced sample.")
+                : t("survey.dashboard.noInterviews", "No interviews to show.")}
+            </Typography>
+          </Box>
         ) : null}
         {interviews.length ? (
           view === "table"

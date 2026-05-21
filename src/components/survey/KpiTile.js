@@ -30,7 +30,7 @@ function KpiTile({
       onClick={onClick}
       role={clickable ? "button" : undefined}
       tabIndex={clickable ? 0 : undefined}
-      onKeyPress={clickable ? (e) => { if (e.key === "Enter") onClick(e); } : undefined}
+      onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(e); } } : undefined}
       style={{
         height: "100%",
         borderTop: `4px solid ${accent}`,

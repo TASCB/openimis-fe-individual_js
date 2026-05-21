@@ -22,6 +22,10 @@ export const RIGHT_PMT_RERUN = 180005;
 
 export const RIGHT_SCHEMA_SEARCH = 171001;
 
+// Survey Monitoring Dashboard — same code the api_etl backend gates on
+// (ApiEtlConfig.gql_query_api_etl_rule_perms = ["953001"]).
+export const RIGHT_SURVEY_DASHBOARD = 953001;
+
 export const BENEFIT_PLANS_LIST_TAB_VALUE = 'BenefitPlansListTab';
 export const INDIVIDUALS_LIST_TAB_VALUE = 'IndividualsListTab';
 export const INDIVIDUAL_CHANGELOG_TAB_VALUE = 'IndividualChangelogTab';

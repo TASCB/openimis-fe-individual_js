@@ -7,20 +7,17 @@ import {
 } from '@openimis/fe-core';
 import _debounce from 'lodash/debounce';
 import { injectIntl } from 'react-intl';
-import { INDIVIDUAL_MODULE_NAME, CONTAINS_LOOKUP, DEFAULT_DEBOUNCE_TIME } from '../constants';
+import { INDIVIDUAL_MODULE_NAME, DEFAULT_DEBOUNCE_TIME } from '../constants';
 import { defaultFilterStyles } from '../util/styles';
 
+const LOCATION_FILTER_IDS = ['parentLocation', 'location', 'districtLocation', 'regionLocation', 'parentLocationLevel'];
+
 function PmtEnrollmentSearcherFilter({
-  intl, classes, filters, onChangeFilters,
+  intl, classes, filters, onChangeFilters, onLocationNameChange,
 }) {
   const debouncedOnChangeFilters = _debounce(onChangeFilters, DEFAULT_DEBOUNCE_TIME);
 
   const filterValue = (filterName) => {
-    if (!filters) return null;
-    if (Array.isArray(filters)) {
-      const filter = filters.find((f) => f.id === filterName);
-      return filter?.value;
-    }
     return filters?.[filterName]?.value;
   };
 
@@ -30,74 +27,87 @@ function PmtEnrollmentSearcherFilter({
   };
 
   const onChangeStringFilter = (filterName, lookup = null) => (value) => {
+    if (!value) {
+      debouncedOnChangeFilters([{ id: filterName, value: null }]);
+      return;
+    }
+
     if (lookup) {
-      debouncedOnChangeFilters([
-        {
-          id: filterName,
-          value,
-          filter: `${filterName}_${lookup}: "${value}"`,
-        },
-      ]);
+      debouncedOnChangeFilters([{ id: filterName, value, filter: `${filterName}_${lookup}: "${value}"` }]);
     } else {
-      onChangeFilters([
-        {
-          id: filterName,
-          value,
-          filter: `${filterName}: "${value}"`,
-        },
-      ]);
+      debouncedOnChangeFilters([{ id: filterName, value, filter: `${filterName}: "${value}"` }]);
     }
   };
 
   const onChangeFilter = (k, v) => {
-    onChangeFilters([{ id: k, value: v, filter: `${k}: ${v}` }]);
+    if (v === '' || v === null || v === undefined) {
+      onChangeFilters([{ id: k, value: null }]);
+      return;
+    }
+
+    onChangeFilters([{ id: k, value: v, filter: `${k}: "${v}"` }]);
   };
 
-  /**
-   * Handle location filter change from DetailedLocationFilter
-   * Converts location object to filter format
-   */
   const handleLocationFilterChange = (newFilters) => {
-    if (newFilters && Array.isArray(newFilters)) {
-      // Merge with existing filters, replacing location-related ones
-      let nonLocationFilters = [];
+    const nonLocationFilters = Object.entries(filters || {})
+      .filter(([id]) => !LOCATION_FILTER_IDS.includes(id) && !['districtCode', 'regionCode'].includes(id))
+      .map(([id, filter]) => ({
+        id,
+        value: filter?.value,
+        filter: filter?.filter,
+      }));
 
-      if (filters && Array.isArray(filters)) {
-        // Filters is an array - filter out location filters
-        nonLocationFilters = filters.filter(
-          (f) => !['parentLocation', 'location', 'districtLocation', 'regionLocation'].includes(f.id),
-        );
-      } else if (filters && typeof filters === 'object') {
-        // Filters is an object - convert to array format but exclude location filters
-        nonLocationFilters = Object.values(filters).filter(
-          (f) => f && f.id && !['parentLocation', 'location', 'districtLocation', 'regionLocation'].includes(f.id),
-        );
-      }
-
-      onChangeFilters([...nonLocationFilters, ...newFilters]);
-    } else {
-      onChangeFilters(newFilters);
+    if (!Array.isArray(newFilters) || newFilters.length === 0) {
+      onLocationNameChange?.(null);
+      onChangeFilters([
+        ...nonLocationFilters,
+        { id: 'districtCode', value: null },
+        { id: 'regionCode', value: null },
+      ]);
+      return;
     }
+
+    const locationFilter = newFilters.find((filter) => ['parentLocation', 'location', 'districtLocation', 'regionLocation'].includes(filter?.id));
+    const levelFilter = newFilters.find((filter) => filter?.id === 'parentLocationLevel');
+    const locationValue = locationFilter?.value;
+    const locationIdentifier = locationValue?.uuid || locationValue?.id || locationValue?.code || locationValue;
+
+    if (!locationIdentifier) {
+      onLocationNameChange?.(null);
+      onChangeFilters([
+        ...nonLocationFilters,
+        { id: 'districtCode', value: null },
+        { id: 'regionCode', value: null },
+      ]);
+      return;
+    }
+
+    const locationLevel = Number(levelFilter?.value);
+    const backendFilterId = locationFilter?.id === 'regionLocation' || locationLevel === 0
+      ? 'regionCode'
+      : 'districtCode';
+
+    onLocationNameChange?.(locationValue?.name || locationValue?.displayName || null);
+    onChangeFilters([
+      ...nonLocationFilters,
+      { id: 'districtCode', value: null },
+      { id: 'regionCode', value: null },
+      {
+        id: backendFilterId,
+        value: locationIdentifier,
+        filter: `${backendFilterId}: "${locationIdentifier}"`,
+      },
+    ]);
   };
 
   return (
     <Grid container className={classes.form}>
-      {/* Row 1: Search Code, Search Head Name, PMT Status, and Deduplicate */}
       <Grid item xs={12} sm={3}>
         <TextInput
           module={INDIVIDUAL_MODULE_NAME}
-          label="pmt.household.searchCode"
-          value={filterTextFieldValue('code')}
-          onChange={onChangeStringFilter('code', CONTAINS_LOOKUP)}
-        />
-      </Grid>
-
-      <Grid item xs={12} sm={3}>
-        <TextInput
-          module={INDIVIDUAL_MODULE_NAME}
-          label="pmt.household.searchHeadName"
-          value={filterTextFieldValue('headName')}
-          onChange={onChangeStringFilter('headName', CONTAINS_LOOKUP)}
+          label="pmt.household.search"
+          value={filterTextFieldValue('searchText')}
+          onChange={onChangeStringFilter('searchText')}
         />
       </Grid>
 
@@ -115,7 +125,6 @@ function PmtEnrollmentSearcherFilter({
         </FormControl>
       </Grid>
 
-      {/* Row 2: Location Filter - District Required */}
       <Grid item xs={12}>
         <PublishedComponent
           pubRef="location.DetailedLocationFilter"

@@ -15,6 +15,7 @@ import {
 import {
   Helmet,
   withModulesManager,
+  withHistory,
   formatMessage,
   PublishedComponent,
 } from "@openimis/fe-core";
@@ -114,6 +115,7 @@ function PmtConfigurationPage({
   classes,
   theme,
   modulesManager,
+  history,
   intl,
   rights,
   submittingPmtRerun,
@@ -382,7 +384,14 @@ function PmtConfigurationPage({
 
               <PmtAuditSummaryTable
                 onViewDistrict={(districtCode, pmtCutoffValue) => {
-                  window.location.href = `/pmt/enrollment-list?district=${districtCode}&cutoff=${pmtCutoffValue}`;
+                  // SPA navigation (respects the router basename, unlike window.location)
+                  // route registered in index.js as ROUTE_PMT_ENROLLMENT_LIST = 'pmt/enrollment-list'
+                  const qs = new URLSearchParams();
+                  if (districtCode) qs.set("district", districtCode);
+                  if (pmtCutoffValue !== undefined && pmtCutoffValue !== null) {
+                    qs.set("cutoff", pmtCutoffValue);
+                  }
+                  history.push(`/pmt/enrollment-list?${qs.toString()}`);
                 }}
               />
             </Paper>
@@ -435,11 +444,13 @@ const mapDispatchToProps = (dispatch) =>
     dispatch
   );
 
-export default withModulesManager(
-  injectIntl(
-    withTheme(
-      withStyles(styles)(
-        connect(mapStateToProps, mapDispatchToProps)(PmtConfigurationPage)
+export default withHistory(
+  withModulesManager(
+    injectIntl(
+      withTheme(
+        withStyles(styles)(
+          connect(mapStateToProps, mapDispatchToProps)(PmtConfigurationPage)
+        )
       )
     )
   )

@@ -5,9 +5,6 @@ import {
   formatMessage,
   formatMessageWithValues,
   Searcher,
-  withHistory,
-  graphql,
-  formatQuery,
 } from '@openimis/fe-core';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -96,7 +93,6 @@ const getExportPmtClass = (params, households) => {
 function PmtEnrollmentSearcher({
   intl,
   modulesManager,
-  history,
   fetchPmtEnrollmentList,
   fetchPmtEnrollmentListForExport,
   fetchingPmtEnrollmentList,
@@ -106,11 +102,10 @@ function PmtEnrollmentSearcher({
   pmtEnrollmentListPageInfo,
   pmtEnrollmentListTotalCount,
   classes,
-  theme,
 }) {
   const [exportError, setExportError] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [currentFilters, setCurrentFilters] = useState({});
+  const [currentFilters, setCurrentFilters] = useState([]);
   const [districtName, setDistrictName] = useState(null);
   const initialQueryContextRef = useRef(getQueryContext());
   const initialDistrictCode = initialQueryContextRef.current.districtCode;
@@ -119,14 +114,21 @@ function PmtEnrollmentSearcher({
     ? `pmtEnrollmentFilterCache-${initialDistrictCode}-${initialPmtCutoff ?? 'default'}`
     : 'pmtEnrollmentFilterCache';
 
+  const filtersToQueryParams = ({ filters, page, pageSize }) => {
+    const queryParams = Object.keys(filters)
+      .filter((filterId) => !!filters[filterId]?.filter)
+      .map((filterId) => filters[filterId].filter);
+
+    queryParams.push(`offset: ${page * pageSize}`);
+    queryParams.push(`limit: ${pageSize}`);
+    queryParams.push(`pmtCutoff: ${initialPmtCutoff ?? 11.01}`);
+
+    return queryParams;
+  };
+
   const fetch = (params) => {
-    const nextParams = {
-      ...params,
-      ...(initialDistrictCode ? { districtCode: initialDistrictCode } : {}),
-      ...(initialPmtCutoff !== null ? { pmtCutoff: initialPmtCutoff } : {}),
-    };
-    setCurrentFilters(nextParams);
-    return fetchPmtEnrollmentList(modulesManager, nextParams);
+    setCurrentFilters(Array.isArray(params) ? params : []);
+    return fetchPmtEnrollmentList(modulesManager, params);
   };
 
   const headers = () => [
@@ -160,10 +162,10 @@ function PmtEnrollmentSearcher({
     const filters = {};
 
     if (initialDistrictCode) {
-      filters.districtLocation = {
-        id: 'districtLocation',
+      filters.districtCode = {
+        id: 'districtCode',
         value: initialDistrictCode,
-        filter: `districtLocation: "${initialDistrictCode}"`,
+        filter: `districtCode: "${initialDistrictCode}"`,
       };
     }
 
@@ -177,29 +179,13 @@ function PmtEnrollmentSearcher({
   }, [initialDistrictCode, districtName]);
 
   const pmtEnrollmentFilterPane = (props) => {
-    const wrappedOnChangeFilters = (newFilters) => {
-      if (Array.isArray(newFilters)) {
-        newFilters.forEach((filter) => {
-          if ((filter.id === 'parentLocation' || filter.id === 'location') && filter.value) {
-            if (typeof filter.value === 'object') {
-              const locName = filter.value.name || filter.value.displayName;
-              if (locName) {
-                setDistrictName(locName);
-              }
-            }
-          }
-        });
-      }
-
-      props.onChangeFilters(newFilters);
-    };
-
     return (
       <PmtEnrollmentSearcherFilter
         intl={props.intl}
         classes={props.classes}
         filters={props.filters}
-        onChangeFilters={wrappedOnChangeFilters}
+        onChangeFilters={props.onChangeFilters}
+        onLocationNameChange={setDistrictName}
       />
     );
   };
@@ -267,6 +253,7 @@ function PmtEnrollmentSearcher({
           'pmt.enrollment.searcherResultsTitle',
           { pmtEnrollmentTotalCount: pmtEnrollmentListTotalCount },
         )}
+        filtersToQueryParams={filtersToQueryParams}
         headers={headers}
         itemFormatters={itemFormatters}
         sorts={sorts}
@@ -315,13 +302,11 @@ const mapDispatchToProps = (dispatch) => bindActionCreators(
   dispatch,
 );
 
-export default withHistory(
-  withModulesManager(
-    injectIntl(
-      withTheme(
-        withStyles(styles)(
-          connect(mapStateToProps, mapDispatchToProps)(PmtEnrollmentSearcher),
-        ),
+export default withModulesManager(
+  injectIntl(
+    withTheme(
+      withStyles(styles)(
+        connect(mapStateToProps, mapDispatchToProps)(PmtEnrollmentSearcher),
       ),
     ),
   ),

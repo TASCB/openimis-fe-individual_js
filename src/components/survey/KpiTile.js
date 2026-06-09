@@ -2,7 +2,7 @@ import React from "react";
 import {
   Card, CardContent, Typography, Box, Tooltip,
 } from "@material-ui/core";
-import { useTheme, fade } from "@material-ui/core/styles";
+import { useTheme, fade, makeStyles } from "@material-ui/core/styles";
 import Skeleton from "@material-ui/lab/Skeleton";
 import {
   ResponsiveContainer, AreaChart, Area,
@@ -10,13 +10,64 @@ import {
 import { fmtInt } from "./surveyUtils";
 import { surveyPalette, severityColor } from "./surveyTheme";
 
-// Compact KPI tile: label, big (formatted) value, sub-line, accent colour drawn from
-// the theme (primary by default; error/warning/success for a semantic severity), an
-// optional mini sparkline, and an optional tooltip.
+// Flat KPI card matching the Payment Operations dashboard: 1px-bordered surface,
+// 16px radius, a left accent strip, uppercase muted label, big themed value and a
+// caption. All colour comes from the live MUI theme (configured via fe-core), so the
+// card follows branding; only genuine signals (error/warning/success) use a 2nd hue.
+const useStyles = makeStyles((theme) => ({
+  card: {
+    position: "relative",
+    height: "100%",
+    borderRadius: 16,
+    border: `1px solid ${theme.palette.divider}`,
+    boxShadow: "none",
+    overflow: "hidden",
+    transition: "transform .15s ease, box-shadow .15s ease",
+  },
+  clickable: {
+    cursor: "pointer",
+    "&:hover": {
+      transform: "translateY(-2px)",
+      boxShadow: `0 8px 24px ${fade(theme.palette.primary.main, 0.12)}`,
+    },
+  },
+  accent: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: 4,
+    height: "100%",
+  },
+  content: {
+    padding: theme.spacing(2.5),
+    "&:last-child": { paddingBottom: theme.spacing(2.5) },
+  },
+  label: {
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+    fontSize: "0.72rem",
+    fontWeight: 600,
+    color: theme.palette.grey[600],
+  },
+  value: {
+    fontSize: "2.4rem",
+    fontWeight: 700,
+    lineHeight: 1,
+    marginTop: theme.spacing(1),
+  },
+  caption: {
+    fontSize: "0.78rem",
+    color: theme.palette.grey[600],
+    marginTop: theme.spacing(0.75),
+    display: "block",
+  },
+}));
+
 function KpiTile({
   label, value, subtitle, icon, color, severity, sparkline, sparklineKey = "count",
   loading = false, tooltip, onClick, active = false,
 }) {
+  const classes = useStyles();
   const theme = useTheme();
   const pal = surveyPalette(theme);
   const accent = color || (severity ? severityColor(severity, pal) : pal.primary);
@@ -26,31 +77,24 @@ function KpiTile({
 
   const inner = (
     <Card
-      elevation={active ? 5 : 3}
+      className={`${classes.card} ${clickable ? classes.clickable : ""}`.trim()}
       onClick={onClick}
       role={clickable ? "button" : undefined}
       tabIndex={clickable ? 0 : undefined}
       onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(e); } } : undefined}
-      style={{
-        height: "100%",
-        borderTop: `4px solid ${accent}`,
-        cursor: clickable ? "pointer" : "default",
-        background: active ? fade(accent, 0.06) : undefined,
-        boxShadow: active ? `0 0 0 1px ${accent}` : undefined,
-      }}
+      style={active ? { background: fade(accent, 0.06), boxShadow: `0 0 0 1px ${accent}` } : undefined}
     >
-      <CardContent style={{ paddingBottom: 12 }}>
+      <span className={classes.accent} style={{ backgroundColor: accent }} />
+      <CardContent className={classes.content}>
         <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-          <Typography variant="caption" color="textSecondary" style={{ textTransform: "uppercase", letterSpacing: 0.4 }}>
-            {label}
-          </Typography>
+          <Typography className={classes.label}>{label}</Typography>
           {icon ? <Box style={{ color: accent, opacity: 0.85 }}>{icon}</Box> : null}
         </Box>
-        <Box mt={0.5} display="flex" alignItems="flex-end" justifyContent="space-between">
+        <Box display="flex" alignItems="flex-end" justifyContent="space-between">
           {loading ? (
-            <Skeleton variant="text" width={72} height={40} />
+            <Skeleton variant="text" width={84} height={52} />
           ) : (
-            <Typography variant="h4" style={{ fontWeight: 700, color: accent, lineHeight: 1.1 }}>
+            <Typography className={classes.value} style={{ color: accent }}>
               {displayValue}
             </Typography>
           )}
@@ -71,7 +115,7 @@ function KpiTile({
           ) : null}
         </Box>
         {subtitle ? (
-          <Typography variant="caption" color="textSecondary" style={{ display: "block", marginTop: 2 }}>{subtitle}</Typography>
+          <Typography className={classes.caption}>{subtitle}</Typography>
         ) : null}
       </CardContent>
     </Card>

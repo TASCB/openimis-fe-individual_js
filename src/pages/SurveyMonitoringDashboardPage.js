@@ -2,10 +2,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Paper, Grid, Typography, Box, Button, FormControlLabel, Switch, CircularProgress,
-  Select, MenuItem, FormControl, InputLabel, TextField, Divider,
+  Select, MenuItem, FormControl, TextField, Tabs, Tab,
 } from "@material-ui/core";
 import MuiAlert from "@material-ui/lab/Alert";
-import { makeStyles } from "@material-ui/core/styles";
+import { makeStyles, fade } from "@material-ui/core/styles";
 import RefreshIcon from "@material-ui/icons/Refresh";
 import HourglassEmptyIcon from "@material-ui/icons/HourglassEmpty";
 import GavelIcon from "@material-ui/icons/Gavel";
@@ -13,6 +13,9 @@ import ThumbDownIcon from "@material-ui/icons/ThumbDown";
 import GroupIcon from "@material-ui/icons/Group";
 import PeopleIcon from "@material-ui/icons/People";
 import LockOutlinedIcon from "@material-ui/icons/LockOutlined";
+import AssignmentTurnedInIcon from "@material-ui/icons/AssignmentTurnedIn";
+import FilterListIcon from "@material-ui/icons/FilterList";
+import CheckCircleOutlineIcon from "@material-ui/icons/CheckCircleOutline";
 import {
   Helmet, useModulesManager, useTranslations, useToast,
 } from "@openimis/fe-core";
@@ -36,69 +39,193 @@ const POLL_SECONDS = 30;
 
 const useStyles = makeStyles((theme) => ({
   page: theme.page,
-  hero: { ...theme.paper, padding: theme.spacing(2.5), marginBottom: theme.spacing(3) },
-  heroTop: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    flexWrap: "wrap",
-    gap: theme.spacing(2),
+
+  // shared flat-card surface (matches the Payment Operations dashboard)
+  surface: {
+    backgroundColor: theme.palette.background.paper,
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: 16,
+    boxShadow: "none",
   },
-  heroIntro: { maxWidth: 760 },
-  heroTitle: { fontWeight: 700, marginBottom: theme.spacing(0.5) },
-  heroSubtitle: { maxWidth: 700 },
-  heroMeta: {
+
+  // ── hero ──
+  hero: {
+    position: "relative",
+    overflow: "hidden",
+    padding: theme.spacing(4, 4, 3.5, 0),
+    marginBottom: theme.spacing(2),
+  },
+  heroAccent: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: 6,
+    height: "100%",
+    backgroundColor: theme.palette.primary.main,
+  },
+  heroTop: {
+    position: "relative",
+    zIndex: 1,
+    display: "flex",
+    alignItems: "flex-start",
+    gap: theme.spacing(3),
+    paddingLeft: theme.spacing(4),
+  },
+  brandBadge: {
+    flexShrink: 0,
+    width: 72,
+    height: 72,
+    borderRadius: "50%",
+    backgroundColor: fade(theme.palette.primary.main, 0.1),
+    color: theme.palette.primary.main,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    [theme.breakpoints.down("xs")]: { display: "none" },
+  },
+  heroIntro: { flex: 1, minWidth: 0 },
+  heroTitle: { fontWeight: 700, color: theme.palette.text.primary, marginBottom: theme.spacing(0.5) },
+  heroSubtitle: { color: theme.palette.grey[600], maxWidth: 620 },
+  heroStatusRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing(2),
+    flexWrap: "wrap",
+    marginTop: theme.spacing(2.5),
+  },
+  heroControls: {
     display: "flex",
     alignItems: "center",
     gap: theme.spacing(1.5),
     flexWrap: "wrap",
-    justifyContent: "flex-end",
   },
-  divider: { margin: theme.spacing(2, 0) },
-  filterRow: {
+  syncedChip: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: theme.spacing(0.75),
+    fontSize: "0.82rem",
+    color: theme.palette.grey[600],
+    whiteSpace: "nowrap",
+  },
+  syncedIcon: { fontSize: 18, color: theme.palette.primary.main },
+
+  // ── filter card ──
+  filterCard: {
+    padding: theme.spacing(2, 2.5),
+    marginBottom: theme.spacing(3),
+  },
+  filterBar: {
     display: "flex",
     alignItems: "flex-end",
     flexWrap: "wrap",
     gap: theme.spacing(2),
   },
-  filterField: { minWidth: 240, maxWidth: 380 },
+  filterPill: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: theme.spacing(0.75),
+    height: 40,
+    padding: theme.spacing(0, 1.75),
+    borderRadius: 20,
+    backgroundColor: theme.palette.grey[100],
+    color: theme.palette.grey[700],
+    fontWeight: 700,
+    fontSize: "0.72rem",
+    letterSpacing: "0.06em",
+    textTransform: "uppercase",
+    whiteSpace: "nowrap",
+  },
+  filterDivider: {
+    alignSelf: "stretch",
+    width: 1,
+    backgroundColor: theme.palette.divider,
+    margin: theme.spacing(0.5, 0.5),
+  },
+  filterGroup: {
+    display: "flex",
+    flexDirection: "column",
+    gap: theme.spacing(0.75),
+  },
+  filterGroupLabel: {
+    color: theme.palette.grey[600],
+    fontSize: "0.72rem",
+    fontWeight: 600,
+  },
+  filterField: { minWidth: 240, maxWidth: 360 },
   dateField: { maxWidth: 180 },
+  quickRange: { display: "flex", gap: theme.spacing(1), flexWrap: "wrap" },
+  quickBtn: {
+    textTransform: "none",
+    borderRadius: 10,
+    minWidth: 0,
+    padding: theme.spacing(0.75, 1.75),
+    borderColor: theme.palette.divider,
+    color: theme.palette.text.primary,
+    "&:hover": { borderColor: theme.palette.primary.main, backgroundColor: fade(theme.palette.primary.main, 0.04) },
+  },
+  quickBtnActive: {
+    borderColor: theme.palette.primary.main,
+    color: theme.palette.primary.main,
+    backgroundColor: fade(theme.palette.primary.main, 0.08),
+    fontWeight: 700,
+  },
+  clearBtn: { textTransform: "none", color: theme.palette.grey[600] },
+
+  // ── kpi band ──
   kpiGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
     gap: theme.spacing(2),
   },
-  section: {
-    ...theme.paper,
-    padding: theme.spacing(2),
+
+  // ── section headers ──
+  sectionHead: {
+    display: "flex",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: theme.spacing(1),
+    flexWrap: "wrap",
+    marginBottom: theme.spacing(1.5),
+  },
+  sectionTitle: { fontWeight: 700, color: theme.palette.text.primary, fontSize: "1.05rem" },
+  sectionHint: { color: theme.palette.grey[600], fontSize: "0.8rem" },
+
+  // ── analytical tabs ──
+  tabsBar: {
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    marginBottom: theme.spacing(2.5),
+  },
+  tab: {
+    textTransform: "none",
+    fontWeight: 600,
+    fontSize: "0.95rem",
+    minWidth: 0,
+    minHeight: 48,
+  },
+
+  // ── analytical panels ──
+  panel: {
+    padding: theme.spacing(2.5),
     height: "100%",
     display: "flex",
     flexDirection: "column",
   },
-  uniformSection: { minHeight: 640 },
-  sectionBody: {
+  uniformPanel: { minHeight: 600 },
+  panelTitle: { fontWeight: 700, color: theme.palette.text.primary, fontSize: "1rem" },
+  panelNote: { color: theme.palette.grey[600], fontSize: "0.78rem", marginTop: theme.spacing(0.25) },
+  panelBody: {
     flex: 1,
     minHeight: 0,
     marginTop: theme.spacing(1.5),
     display: "flex",
     flexDirection: "column",
   },
-  scrollBody: {
-    flex: 1,
-    minHeight: 0,
-    overflow: "auto",
-    paddingRight: theme.spacing(0.5),
-  },
-  chartBody: {
-    flex: 1,
-    minHeight: 0,
-    display: "flex",
-    alignItems: "stretch",
-  },
-  sectionLead: { marginBottom: theme.spacing(1.5) },
-  sectionTitle: { fontWeight: 600, marginBottom: theme.spacing(0.5) },
-  sectionSubtitle: { maxWidth: 760 },
-  rowMargin: { marginBottom: theme.spacing(3) },
+  scrollBody: { flex: 1, minHeight: 0, overflow: "auto", paddingRight: theme.spacing(0.5) },
+  chartBody: { flex: 1, minHeight: 0, display: "flex", alignItems: "stretch" },
+
+  rowMargin: { marginBottom: theme.spacing(2.5) },
+  sampleNote: { marginBottom: theme.spacing(2.5), borderRadius: 12 },
 }));
 
 function rejectionSeverity(rate) {
@@ -121,6 +248,16 @@ function mergeQuestionnaires(fromDashboard = [], fromHq = []) {
   return Array.from(byId.values()).sort((a, b) => String(a.title || a.identity || "").localeCompare(String(b.title || b.identity || "")));
 }
 
+// Local YYYY-MM-DD for "n days ago" (used by the Quick range presets).
+function isoDaysAgo(n) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, "0");
+  const da = String(d.getDate()).padStart(2, "0");
+  return `${y}-${mo}-${da}`;
+}
+
 function SurveyMonitoringDashboardPage() {
   const classes = useStyles();
   const modulesManager = useModulesManager();
@@ -141,6 +278,7 @@ function SurveyMonitoringDashboardPage() {
   const [questionnaireFilter, setQuestionnaireFilter] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [feedView, setFeedView] = useState("cards");
+  const [analyticsTab, setAnalyticsTab] = useState(0);
   const intervalRef = useRef(null);
   const didMount = useRef(false);
 
@@ -242,11 +380,18 @@ function SurveyMonitoringDashboardPage() {
   })();
   const isPermError = errorMsg && /unauthor|permission|forbidden/i.test(errorMsg);
 
+  const SectionHead = ({ title, hint }) => (
+    <div className={classes.sectionHead}>
+      <Typography className={classes.sectionTitle}>{title}</Typography>
+      {hint ? <Typography className={classes.sectionHint}>{hint}</Typography> : null}
+    </div>
+  );
+
   if (!canView) {
     return (
       <div className={classes.page}>
         <Helmet title={t("survey.dashboard.title", "Survey Solutions — Field Monitoring")} />
-        <Paper className={classes.hero}>
+        <Paper className={`${classes.surface} ${classes.hero}`}>
           <Box display="flex" alignItems="center" style={{ gap: 12 }}>
             <LockOutlinedIcon color="action" />
             <Box>
@@ -267,93 +412,139 @@ function SurveyMonitoringDashboardPage() {
     <div className={classes.page}>
       <Helmet title={t("survey.dashboard.title", "Survey Solutions — Field Monitoring")} />
 
-      <Paper className={classes.hero}>
+      {/* ── Hero: brand badge, title, status row ── */}
+      <Paper className={`${classes.surface} ${classes.hero}`}>
+        <span className={classes.heroAccent} />
         <div className={classes.heroTop}>
+          <div className={classes.brandBadge}>
+            <AssignmentTurnedInIcon style={{ fontSize: 38 }} />
+          </div>
           <Box className={classes.heroIntro}>
-            <Typography variant="h6" className={classes.heroTitle}>{t("survey.dashboard.title", "Survey Solutions — Field Monitoring")}</Typography>
-            <Typography variant="body2" color="textSecondary" className={classes.heroSubtitle}>
+            <Typography variant="h4" className={classes.heroTitle}>
+              {t("survey.dashboard.title", "Survey Solutions — Field Monitoring")}
+            </Typography>
+            <Typography variant="body1" className={classes.heroSubtitle}>
               {t("survey.dashboard.subtitle", "A near-real-time operational view of interview progress, review backlogs, and field activity sourced from Survey Solutions HQ.")}
             </Typography>
-            <Typography variant="caption" color="textSecondary">
-              {t("survey.dashboard.lastPolled", "Last synced from HQ")}: {fmtDateTime(m.lastPolledAt)}
-              {fetchingDashboard ? (
-                <CircularProgress
-                  size={12}
-                  style={{ marginLeft: 8 }}
-                  aria-label={t("survey.dashboard.syncing", "Syncing dashboard")}
+            <div className={classes.heroStatusRow}>
+              <span className={classes.syncedChip}>
+                <CheckCircleOutlineIcon className={classes.syncedIcon} />
+                {t("survey.dashboard.lastPolled", "Last synced from HQ")}: {fmtDateTime(m.lastPolledAt)}
+                {fetchingDashboard ? (
+                  <CircularProgress size={12} style={{ marginLeft: 4 }} aria-label={t("survey.dashboard.syncing", "Syncing dashboard")} />
+                ) : null}
+              </span>
+              <div className={classes.heroControls}>
+                <FormControlLabel
+                  control={<Switch size="small" color="primary" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />}
+                  label={t("survey.dashboard.autoRefresh", `Auto-refresh (${POLL_SECONDS}s)`)}
                 />
-              ) : null}
-            </Typography>
-          </Box>
-          <Box className={classes.heroMeta}>
-            <FormControlLabel
-              control={<Switch size="small" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />}
-              label={t("survey.dashboard.autoRefresh", `Auto-refresh (${POLL_SECONDS}s)`)}
-            />
-            <Button
-              variant="contained"
-              color="primary"
-              size="small"
-              startIcon={refreshing ? <CircularProgress size={16} color="inherit" /> : <RefreshIcon />}
-              onClick={onManualRefresh}
-              disabled={refreshing}
-            >
-              {t("survey.dashboard.refreshNow", "Sync now")}
-            </Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={refreshing ? <CircularProgress size={16} color="inherit" /> : <RefreshIcon />}
+                  onClick={onManualRefresh}
+                  disabled={refreshing}
+                >
+                  {t("survey.dashboard.refreshNow", "Sync now")}
+                </Button>
+              </div>
+            </div>
           </Box>
         </div>
+      </Paper>
 
-        <Divider className={classes.divider} />
+      {/* ── Filter bar (own card) ── */}
+      <Paper className={`${classes.surface} ${classes.filterCard}`}>
+        <div className={classes.filterBar}>
+          <span className={classes.filterPill}>
+            <FilterListIcon style={{ fontSize: 18 }} />
+            {t("survey.dashboard.filters", "Filters")}
+          </span>
 
-        <div className={classes.filterRow}>
-          <Typography variant="subtitle2" color="textSecondary">{t("survey.dashboard.filters", "Filters")}</Typography>
-          {questionnaires.length ? (
-            <FormControl size="small" variant="outlined" className={classes.filterField}>
-              <InputLabel id="survey-paa-filter-label" shrink>
-                {t("survey.dashboard.questionnaire", "PAA / Questionnaire")}
-              </InputLabel>
-              <Select
-                labelId="survey-paa-filter-label"
-                label={t("survey.dashboard.questionnaire", "PAA / Questionnaire")}
-                value={questionnaireFilter}
-                displayEmpty
-                onChange={(e) => {
-                  // Resetting status/responsible/supervisor on scope change makes the
-                  // numbers and feed unambiguous; the date filter is left in place
-                  // because "submitted since" is usually a cross-PAA intent.
-                  setStatusFilter(null);
-                  setResponsibleFilter(null);
-                  setSupervisorFilter(null);
-                  setQuestionnaireFilter(e.target.value);
-                }}
-              >
-                <MenuItem value="">{t("survey.dashboard.allQuestionnaires", "All PAAs / questionnaires")}</MenuItem>
-                {questionnaires.map((q) => (
-                  <MenuItem key={q.identity} value={q.identity}>
-                    {paaLabel(q)}
-                    {q.version ? ` (v${q.version})` : ""}
-                    {q.count ? `  · ${fmtInt(q.count)}` : ""}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          ) : (
-            <Typography variant="caption" color="textSecondary">
-              {t("survey.dashboard.noQuestionnaires", "(no questionnaires available yet — sync from HQ)")}
-            </Typography>
-          )}
-          <TextField
-            size="small"
-            variant="outlined"
-            type="date"
-            label={t("survey.dashboard.submittedSince", "Submitted since")}
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            className={classes.dateField}
-          />
+          <div className={classes.filterDivider} />
+
+          <div className={classes.filterGroup}>
+            <span className={classes.filterGroupLabel}>{t("survey.dashboard.questionnaire", "PAA / Questionnaire")}</span>
+            {questionnaires.length ? (
+              <FormControl size="small" variant="outlined" className={classes.filterField}>
+                <Select
+                  value={questionnaireFilter}
+                  displayEmpty
+                  onChange={(e) => {
+                    // Resetting status/responsible/supervisor on scope change makes the
+                    // numbers and feed unambiguous; the date filter is left in place
+                    // because "submitted since" is usually a cross-PAA intent.
+                    setStatusFilter(null);
+                    setResponsibleFilter(null);
+                    setSupervisorFilter(null);
+                    setQuestionnaireFilter(e.target.value);
+                  }}
+                >
+                  <MenuItem value="">{t("survey.dashboard.allQuestionnaires", "All PAAs / questionnaires")}</MenuItem>
+                  {questionnaires.map((q) => (
+                    <MenuItem key={q.identity} value={q.identity}>
+                      {paaLabel(q)}
+                      {q.version ? ` (v${q.version})` : ""}
+                      {q.count ? `  · ${fmtInt(q.count)}` : ""}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            ) : (
+              <Typography variant="caption" color="textSecondary">
+                {t("survey.dashboard.noQuestionnaires", "(no questionnaires available yet — sync from HQ)")}
+              </Typography>
+            )}
+          </div>
+
+          <div className={classes.filterDivider} />
+
+          <div className={classes.filterGroup}>
+            <span className={classes.filterGroupLabel}>{t("survey.dashboard.submittedSince", "Submitted since")}</span>
+            <TextField
+              size="small"
+              variant="outlined"
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              className={classes.dateField}
+            />
+          </div>
+
+          <div className={classes.filterDivider} />
+
+          <div className={classes.filterGroup}>
+            <span className={classes.filterGroupLabel}>{t("survey.dashboard.quickRange", "Quick range")}</span>
+            <div className={classes.quickRange}>
+              {[
+                { key: "today", label: t("survey.dashboard.today", "Today"), days: 0 },
+                { key: "yesterday", label: t("survey.dashboard.yesterday", "Yesterday"), days: 1 },
+                { key: "last7", label: t("survey.dashboard.last7", "Last 7 days"), days: 7 },
+                { key: "last30", label: t("survey.dashboard.last30", "Last 30 days"), days: 30 },
+              ].map((r) => {
+                const iso = isoDaysAgo(r.days);
+                const active = fromDate === iso;
+                return (
+                  <Button
+                    key={r.key}
+                    variant="outlined"
+                    size="small"
+                    className={`${classes.quickBtn} ${active ? classes.quickBtnActive : ""}`.trim()}
+                    onClick={() => setFromDate(active ? "" : iso)}
+                  >
+                    {r.label}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+
           {anyFilter ? (
-            <Button size="small" onClick={clearAllFilters}>{t("survey.dashboard.clearFilters", "Clear filters")}</Button>
+            <Button size="small" className={classes.clearBtn} onClick={clearAllFilters}>
+              {t("survey.dashboard.clearFilters", "Clear filters")}
+            </Button>
           ) : null}
         </div>
       </Paper>
@@ -366,16 +557,9 @@ function SurveyMonitoringDashboardPage() {
         </MuiAlert>
       ) : null}
 
-      <Box className={classes.sectionLead}>
-        <Typography variant="subtitle1" className={classes.sectionTitle}>
-          {t("survey.dashboard.householdSummaryTitle", "Household summary")}
-        </Typography>
-        <Typography variant="body2" color="textSecondary" className={classes.sectionSubtitle}>
-          {t("survey.dashboard.householdSummarySubtitle", "Household coverage indicators for the current questionnaire scope.")}
-        </Typography>
-      </Box>
-
+      {/* ── Coverage KPIs ── */}
       <Box className={classes.rowMargin}>
+        <SectionHead title={t("survey.dashboard.householdSummaryTitle", "Household summary")} />
         <Box className={classes.kpiGrid}>
           <KpiTile
             label={t("survey.dashboard.totalHouseholds", "Total households")}
@@ -408,11 +592,14 @@ function SurveyMonitoringDashboardPage() {
         </Box>
       </Box>
 
+      {/* ── Approval funnel ── */}
       <Box className={classes.rowMargin}>
         <PipelineStrip stages={stages} activeStatus={statusFilter} onStageClick={setStatusFilter} formatMessage={formatMessage} />
       </Box>
 
+      {/* ── Review queues & throughput KPIs ── */}
       <Box className={classes.rowMargin}>
+        <SectionHead title={t("survey.dashboard.queuesTitle", "Review queues & throughput")} />
         <Box className={classes.kpiGrid}>
           <KpiTile
             label={t("survey.dashboard.rejectionRate", "Rejection rate")}
@@ -456,163 +643,161 @@ function SurveyMonitoringDashboardPage() {
         </Box>
       </Box>
 
-      <SampleBanner sampleSize={m.sampleSize} totalInterviews={m.totalInterviews} formatMessage={formatMessage} />
+      <SampleBanner sampleSize={m.sampleSize} totalInterviews={m.totalInterviews} formatMessage={formatMessage} className={classes.sampleNote} />
 
-      <Box className={classes.sectionLead}>
-        <Typography variant="subtitle1" className={classes.sectionTitle}>
-          {t("survey.dashboard.operationalTitle", "Operational monitoring")}
-        </Typography>
-        <Typography variant="body2" color="textSecondary" className={classes.sectionSubtitle}>
-          {t("survey.dashboard.operationalSubtitle", "Use the live feed and ranking panels together to identify where review queues are building and who is driving current throughput.")}
-        </Typography>
-      </Box>
+      {/* ── Analytical zones — tabbed so only one shows at a time ── */}
+      <div className={classes.tabsBar}>
+        <Tabs
+          value={analyticsTab}
+          onChange={(e, v) => setAnalyticsTab(v)}
+          indicatorColor="primary"
+          textColor="primary"
+          variant="scrollable"
+          scrollButtons="auto"
+        >
+          <Tab disableRipple className={classes.tab} label={t("survey.dashboard.operationalTitle", "Operational monitoring")} />
+          <Tab disableRipple className={classes.tab} label={t("survey.dashboard.activityTitle", "Field activity & accountability")} />
+          <Tab disableRipple className={classes.tab} label={t("survey.dashboard.trendsTitle", "Trends & activity patterns")} />
+        </Tabs>
+      </div>
 
-      <Box className={classes.rowMargin}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} lg={6}>
-            <Paper className={`${classes.section} ${classes.uniformSection}`}>
-              <Typography variant="subtitle1" className={classes.sectionTitle}>
-                {t("survey.dashboard.liveFeed", "Live interview activity")}
-              </Typography>
-              <Box className={classes.sectionBody}>
-                <InterviewFeed
-                  interviews={interviews}
-                  loading={fetchingInterviews}
-                  statusFilter={statusFilter}
-                  onStatusFilter={setStatusFilter}
-                  responsibleFilter={responsibleFilter}
-                  onClearResponsible={() => setResponsibleFilter(null)}
-                  supervisorFilter={supervisorFilter}
-                  onClearSupervisor={() => setSupervisorFilter(null)}
-                  fromDate={fromDate || null}
-                  onClearFromDate={() => setFromDate("")}
-                  hqBaseUrl={m.hqBaseUrl}
-                  listMaxHeight={500}
-                  view={feedView}
-                  onViewChange={setFeedView}
-                  formatMessage={formatMessage}
-                />
-              </Box>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} lg={6}>
-            <Paper className={`${classes.section} ${classes.uniformSection}`}>
-              <Typography variant="subtitle1" className={classes.sectionTitle}>
-                {t("survey.dashboard.supervisorLeaderboard", "Supervisor leaderboard")}
-              </Typography>
-              <Typography variant="caption" color="textSecondary">
-                {t("survey.dashboard.supervisorLeaderboardNote", "Ranks supervisors by reviewed interviews and current queue volume in the synced sample.")}
-              </Typography>
-              <Box className={classes.sectionBody}>
-                <SupervisorLeaderboard
-                  rows={m.supervisorLeaderboard || []}
-                  selected={supervisorFilter}
-                  onSelect={(value) => {
-                    setResponsibleFilter(null);
-                    setSupervisorFilter(value);
-                  }}
-                  formatMessage={formatMessage}
-                  maxHeight={500}
-                />
-              </Box>
-            </Paper>
-          </Grid>
-        </Grid>
-      </Box>
-
-      <Box className={classes.sectionLead}>
-        <Typography variant="subtitle1" className={classes.sectionTitle}>
-          {t("survey.dashboard.activityTitle", "Field activity and accountability")}
-        </Typography>
-        <Typography variant="body2" color="textSecondary" className={classes.sectionSubtitle}>
-          {t("survey.dashboard.activitySubtitle", "Use the hourly activity pattern and enumerator ranking together to spot throughput gaps, uneven field effort, and follow-up needs.")}
-        </Typography>
-      </Box>
-
-      <Box className={classes.rowMargin}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} lg={6}>
-            <Paper className={`${classes.section} ${classes.uniformSection}`}>
-              <Typography variant="subtitle1" className={classes.sectionTitle}>
-                {t("survey.dashboard.heatmap", "Enumerator activity heatmap (day × hour)")}
-              </Typography>
-              <Typography variant="caption" color="textSecondary">
-                {m.sampleSize ? `${t("survey.dashboard.sampleNote", "Based on a sample of")} ${fmtInt(m.sampleSize)}` : ""}
-              </Typography>
-              <Box className={classes.sectionBody}>
-                <Box className={classes.scrollBody}>
-                  <ActivityHeatmap cells={m.activityHeatmap || []} formatMessage={formatMessage} />
-                </Box>
-              </Box>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} lg={6}>
-            <Paper className={`${classes.section} ${classes.uniformSection}`}>
-              <Typography variant="subtitle1" className={classes.sectionTitle}>
-                {t("survey.dashboard.leaderboard", "Enumerator leaderboard")}
-              </Typography>
-              <Typography variant="caption" color="textSecondary">
-                {t("survey.dashboard.enumeratorLeaderboardNote", "Ranks enumerators by completed interviews in the synced sample.")}
-              </Typography>
-              <Box className={classes.sectionBody}>
-                <EnumeratorLeaderboard
-                  rows={m.enumeratorLeaderboard || []}
-                  selected={responsibleFilter}
-                  onSelect={(value) => {
-                    setSupervisorFilter(null);
-                    setResponsibleFilter(value);
-                  }}
-                  formatMessage={formatMessage}
-                  maxHeight={500}
-                />
-              </Box>
-            </Paper>
-          </Grid>
-        </Grid>
-      </Box>
-
-      <Box className={classes.sectionLead}>
-        <Typography variant="subtitle1" className={classes.sectionTitle}>
-          {t("survey.dashboard.trendsTitle", "Trends and activity patterns")}
-        </Typography>
-        <Typography variant="body2" color="textSecondary" className={classes.sectionSubtitle}>
-          {t("survey.dashboard.trendsSubtitle", "These charts help separate short-term operational noise from sustained throughput and activity patterns over time.")}
-        </Typography>
-      </Box>
-
-      <Box className={classes.rowMargin}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={7}>
-            <Paper className={`${classes.section} ${classes.uniformSection}`}>
-              <Box display="flex" justifyContent="space-between" alignItems="baseline">
-                <Typography variant="subtitle1" className={classes.sectionTitle}>
-                  {t("survey.dashboard.sCurve", "Cumulative completion (S-curve)")}
+      {/* Operational monitoring: live feed + supervisor ranking */}
+      {analyticsTab === 0 && (
+        <Box className={classes.rowMargin}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} lg={6}>
+              <Paper className={`${classes.surface} ${classes.panel} ${classes.uniformPanel}`}>
+                <Typography className={classes.panelTitle}>
+                  {t("survey.dashboard.liveFeed", "Live interview activity")}
                 </Typography>
-                <Typography variant="caption" color="textSecondary">
-                  {m.targetTotal ? `${t("survey.dashboard.target", "Target")}: ${fmtInt(m.targetTotal)}` : ""}
+                <Box className={classes.panelBody}>
+                  <InterviewFeed
+                    interviews={interviews}
+                    loading={fetchingInterviews}
+                    statusFilter={statusFilter}
+                    onStatusFilter={setStatusFilter}
+                    responsibleFilter={responsibleFilter}
+                    onClearResponsible={() => setResponsibleFilter(null)}
+                    supervisorFilter={supervisorFilter}
+                    onClearSupervisor={() => setSupervisorFilter(null)}
+                    fromDate={fromDate || null}
+                    onClearFromDate={() => setFromDate("")}
+                    hqBaseUrl={m.hqBaseUrl}
+                    listMaxHeight={500}
+                    view={feedView}
+                    onViewChange={setFeedView}
+                    formatMessage={formatMessage}
+                  />
+                </Box>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} lg={6}>
+              <Paper className={`${classes.surface} ${classes.panel} ${classes.uniformPanel}`}>
+                <Typography className={classes.panelTitle}>
+                  {t("survey.dashboard.supervisorLeaderboard", "Supervisor leaderboard")}
                 </Typography>
-              </Box>
-              <Box className={classes.sectionBody}>
-                <Box className={classes.chartBody}>
-                  <CompletionSCurveChart series={m.completionSeries || []} target={m.targetTotal || 0} height={460} formatMessage={formatMessage} />
+                <Typography className={classes.panelNote}>
+                  {t("survey.dashboard.supervisorLeaderboardNote", "Ranks supervisors by reviewed interviews and current queue volume in the synced sample.")}
+                </Typography>
+                <Box className={classes.panelBody}>
+                  <SupervisorLeaderboard
+                    rows={m.supervisorLeaderboard || []}
+                    selected={supervisorFilter}
+                    onSelect={(value) => {
+                      setResponsibleFilter(null);
+                      setSupervisorFilter(value);
+                    }}
+                    formatMessage={formatMessage}
+                    maxHeight={500}
+                  />
                 </Box>
-              </Box>
-            </Paper>
+              </Paper>
+            </Grid>
           </Grid>
-          <Grid item xs={12} md={5}>
-            <Paper className={`${classes.section} ${classes.uniformSection}`}>
-              <Typography variant="subtitle1" className={classes.sectionTitle}>
-                {t("survey.dashboard.dailyProductivity", "Daily productivity")}
-              </Typography>
-              <Box className={classes.sectionBody}>
-                <Box className={classes.chartBody}>
-                  <DailyProductivityChart data={m.dailyProductivity || []} height={460} formatMessage={formatMessage} />
+        </Box>
+      )}
+
+      {/* Field activity: heatmap + enumerator ranking */}
+      {analyticsTab === 1 && (
+        <Box className={classes.rowMargin}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} lg={6}>
+              <Paper className={`${classes.surface} ${classes.panel} ${classes.uniformPanel}`}>
+                <Typography className={classes.panelTitle}>
+                  {t("survey.dashboard.heatmap", "Enumerator activity heatmap (day × hour)")}
+                </Typography>
+                <Typography className={classes.panelNote}>
+                  {m.sampleSize ? `${t("survey.dashboard.sampleNote", "Based on a sample of")} ${fmtInt(m.sampleSize)}` : ""}
+                </Typography>
+                <Box className={classes.panelBody}>
+                  <Box className={classes.scrollBody}>
+                    <ActivityHeatmap cells={m.activityHeatmap || []} formatMessage={formatMessage} />
+                  </Box>
                 </Box>
-              </Box>
-            </Paper>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} lg={6}>
+              <Paper className={`${classes.surface} ${classes.panel} ${classes.uniformPanel}`}>
+                <Typography className={classes.panelTitle}>
+                  {t("survey.dashboard.leaderboard", "Enumerator leaderboard")}
+                </Typography>
+                <Typography className={classes.panelNote}>
+                  {t("survey.dashboard.enumeratorLeaderboardNote", "Ranks enumerators by completed interviews in the synced sample.")}
+                </Typography>
+                <Box className={classes.panelBody}>
+                  <EnumeratorLeaderboard
+                    rows={m.enumeratorLeaderboard || []}
+                    selected={responsibleFilter}
+                    onSelect={(value) => {
+                      setSupervisorFilter(null);
+                      setResponsibleFilter(value);
+                    }}
+                    formatMessage={formatMessage}
+                    maxHeight={500}
+                  />
+                </Box>
+              </Paper>
+            </Grid>
           </Grid>
-        </Grid>
-      </Box>
+        </Box>
+      )}
+
+      {/* Trends */}
+      {analyticsTab === 2 && (
+        <Box className={classes.rowMargin}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={7}>
+              <Paper className={`${classes.surface} ${classes.panel} ${classes.uniformPanel}`}>
+                <Box display="flex" justifyContent="space-between" alignItems="baseline">
+                  <Typography className={classes.panelTitle}>
+                    {t("survey.dashboard.sCurve", "Cumulative completion (S-curve)")}
+                  </Typography>
+                  <Typography className={classes.panelNote}>
+                    {m.targetTotal ? `${t("survey.dashboard.target", "Target")}: ${fmtInt(m.targetTotal)}` : ""}
+                  </Typography>
+                </Box>
+                <Box className={classes.panelBody}>
+                  <Box className={classes.chartBody}>
+                    <CompletionSCurveChart series={m.completionSeries || []} target={m.targetTotal || 0} height={460} formatMessage={formatMessage} />
+                  </Box>
+                </Box>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} md={5}>
+              <Paper className={`${classes.surface} ${classes.panel} ${classes.uniformPanel}`}>
+                <Typography className={classes.panelTitle}>
+                  {t("survey.dashboard.dailyProductivity", "Daily productivity")}
+                </Typography>
+                <Box className={classes.panelBody}>
+                  <Box className={classes.chartBody}>
+                    <DailyProductivityChart data={m.dailyProductivity || []} height={460} formatMessage={formatMessage} />
+                  </Box>
+                </Box>
+              </Paper>
+            </Grid>
+          </Grid>
+        </Box>
+      )}
     </div>
   );
 }

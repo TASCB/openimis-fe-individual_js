@@ -33,9 +33,17 @@ function PipelineStrip({ stages = [], onStageClick, activeStatus, formatMessage 
   const accentFor = (i) => (bn && bn.real && i === bn.idx ? pal.warning : pal.primary);
 
   return (
-    <Paper elevation={3} style={{ padding: 16 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="baseline" mb={1.5} style={{ flexWrap: "wrap", gap: 8 }}>
-        <Typography variant="subtitle1" style={{ fontWeight: 600 }}>
+    <Paper
+      style={{
+        padding: 20,
+        borderRadius: 16,
+        border: `1px solid ${theme.palette.divider}`,
+        boxShadow: "none",
+        background: pal.paper,
+      }}
+    >
+      <Box display="flex" justifyContent="space-between" alignItems="baseline" mb={2} style={{ flexWrap: "wrap", gap: 8 }}>
+        <Typography style={{ fontWeight: 700, fontSize: "1.05rem", color: theme.palette.text.primary }}>
           {t("survey.dashboard.pipeline", "Data collection pipeline")}
         </Typography>
         {stages.length ? (
@@ -48,7 +56,7 @@ function PipelineStrip({ stages = [], onStageClick, activeStatus, formatMessage 
       {!stages.length ? (
         <Typography variant="body2" color="textSecondary">{t("survey.dashboard.noData", "No data")}</Typography>
       ) : (
-        <Box style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 12 }}>
+        <Box style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16 }}>
           {stages.map((s, i) => {
             const status = STAGE_STATUS[i] || STAGE_STATUS[STAGE_STATUS.length - 1];
             const share = grand ? (s.count || 0) / grand : 0;
@@ -70,28 +78,30 @@ function PipelineStrip({ stages = [], onStageClick, activeStatus, formatMessage 
                       }
                     } : undefined}
                     style={{
+                      position: "relative",
+                      overflow: "hidden",
                       flex: "1 1 0",
-                      minWidth: 140,
+                      minWidth: 150,
                       cursor: clickable ? "pointer" : "default",
                       border: `1px solid ${isActive ? accent : theme.palette.divider}`,
-                      borderTop: `4px solid ${accent}`,
-                      borderRadius: 6,
-                      padding: "10px 12px",
-                      background: isActive ? fade(accent, 0.08) : pal.paper,
-                      boxShadow: isActive ? `0 0 0 1px ${accent}` : "none",
+                      borderRadius: 12,
+                      padding: "14px 16px 14px 18px",
+                      background: isActive ? fade(accent, 0.06) : pal.paper,
                     }}
                   >
-                    <Typography variant="caption" color="textSecondary" style={{ textTransform: "uppercase", letterSpacing: 0.3, lineHeight: 1.2, display: "block" }}>
+                    {/* left accent strip — matches the KPI cards */}
+                    <span style={{ position: "absolute", top: 0, left: 0, width: 4, height: "100%", background: accent }} />
+                    <Typography variant="caption" color="textSecondary" style={{ textTransform: "uppercase", letterSpacing: 0.4, fontWeight: 600, lineHeight: 1.3, display: "block" }}>
                       {s.stage}
                     </Typography>
-                    <Typography variant="h5" style={{ fontWeight: 700, color: accent }}>
+                    <Typography style={{ fontWeight: 700, fontSize: "1.9rem", lineHeight: 1.1, color: accent, marginTop: 4 }}>
                       {fmtInt(s.count)}
                     </Typography>
-                    <Box style={{ background: pal.greyBg, borderRadius: 3, height: 6, marginTop: 4, overflow: "hidden" }}>
+                    <Box style={{ background: pal.greyBg, borderRadius: 3, height: 6, marginTop: 8, overflow: "hidden" }}>
                       <Box style={{ width: `${Math.max(share * 100, 1)}%`, height: "100%", background: accent, transition: "width .4s ease" }} />
                     </Box>
                     {stepIsBottleneck && bn?.lost ? (
-                      <Typography variant="caption" style={{ color: pal.warning, fontWeight: 600 }}>
+                      <Typography variant="caption" style={{ color: pal.warning, fontWeight: 600, display: "block", marginTop: 6 }}>
                         {fmtInt(bn.lost)} {t("survey.dashboard.waitingHere", "waiting at this step")}
                       </Typography>
                     ) : null}

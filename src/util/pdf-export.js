@@ -1,6 +1,28 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
+function createProtectedPdf(options = {}) {
+  const baseOptions = {
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+    ...options
+  };
+
+  try {
+    return new jsPDF({
+      ...baseOptions,
+      encryption: {
+        userPassword: "",
+        ownerPassword: `tasafmis-${Date.now()}`,
+        userPermissions: ["print"]
+      }
+    });
+  } catch (e) {
+    return new jsPDF(baseOptions);
+  }
+}
+
 const getImageFormat = (mimeType) => {
   const normalized = (mimeType || "").toLowerCase();
   if (normalized.includes("png")) return "PNG";
@@ -323,11 +345,7 @@ export async function exportPmtEnrollmentPdf({
   const fileName = getEnrollmentPdfFileName(pmtClass);
   const villageName = getExportVillageName(households);
 
-  const doc = new jsPDF({
-    orientation: "portrait",
-    unit: "mm",
-    format: "a4"
-  });
+  const doc = createProtectedPdf();
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -458,11 +476,7 @@ export async function exportNonConsentedHouseholdsPdf({
   const logo = await loadLogo();
   const governmentLogo = await loadGovernmentLogo();
 
-  const doc = new jsPDF({
-    orientation: "portrait",
-    unit: "mm",
-    format: "a4"
-  });
+  const doc = createProtectedPdf();
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();

@@ -1416,6 +1416,60 @@ export function rerunPmt(modulesManager, districtCode, regionCode = null, pmtCut
   );
 }
 
+export function adjustPmtCutoff(modulesManager, districtCode, regionCode = null, pmtCutoff = 11.01) {
+  const mutation = prepareMutation(
+    `
+      mutation (
+        $clientMutationLabel: String
+        $clientMutationId: String
+        $districtCode: String!
+        $pmtCutoff: Float!
+        $regionCode: String
+      ) {
+        adjustPmtCutoff(
+          input: {
+            clientMutationId: $clientMutationId
+            clientMutationLabel: $clientMutationLabel
+            districtCode: $districtCode
+            pmtCutoff: $pmtCutoff
+            regionCode: $regionCode
+          }
+        ) {
+          clientMutationId
+          internalId
+          ok
+          errors
+          updatedIndividuals
+          updatedGroups
+          mutationId
+          districtCode
+        }
+      }
+    `,
+    {
+      districtCode,
+      pmtCutoff: parseFloat(pmtCutoff),
+      regionCode: regionCode || null,
+    },
+  );
+
+  return graphqlWithVariables(
+    mutation.operation,
+    { ...mutation.variables.input },
+    [
+      REQUEST(ACTION_TYPE.ADJUST_PMT_CUTOFF),
+      SUCCESS(ACTION_TYPE.ADJUST_PMT_CUTOFF),
+      ERROR(ACTION_TYPE.ADJUST_PMT_CUTOFF),
+    ],
+    {
+      actionType: ACTION_TYPE.ADJUST_PMT_CUTOFF,
+      clientMutationId: mutation.variables.input.clientMutationId,
+      clientMutationLabel: mutation.variables.input.clientMutationLabel,
+      requestedDateTime: new Date(),
+    },
+  );
+}
+
 /**
  * Clear PMT households state
  */
@@ -1652,4 +1706,78 @@ export function refreshSurveyDashboard(questionnaireId) {
   const arg = questionnaireId ? `(questionnaireId: "${formatGQLString(questionnaireId)}")` : "";
   const payload = `mutation { refreshSurveyDashboard${arg} { success seen created changed totalCount polledAt message } }`;
   return graphql(payload, ACTION_TYPE.REFRESH_SURVEY_DASHBOARD);
+}
+
+// ============================================================
+// PMT Global Formula (maker-checker)
+// ============================================================
+
+export function fetchPmtGlobalFormula() {
+  const payload = formatQuery(
+    'pmtGlobalFormula',
+    [],
+    ['id', 'isActive', 'formula', 'version', 'dateUpdated', 'updatedBy', 'hasPendingTask'],
+  );
+  return graphql(
+    payload,
+    [
+      REQUEST(ACTION_TYPE.PMT_GLOBAL_FORMULA),
+      SUCCESS(ACTION_TYPE.PMT_GLOBAL_FORMULA),
+      ERROR(ACTION_TYPE.PMT_GLOBAL_FORMULA),
+    ],
+    { actionType: ACTION_TYPE.PMT_GLOBAL_FORMULA },
+  );
+}
+
+/**
+ * Maker action: does NOT write the formula. It submits a tasks_management
+ * approval task; the change applies only after a second user approves it.
+ * `formula` is a plain JS object; it is serialized to the JSONString scalar.
+ */
+export function updatePmtGlobalFormula(modulesManager, id, formula, isActive = true) {
+  const mutation = prepareMutation(
+    `
+      mutation (
+        $clientMutationLabel: String
+        $clientMutationId: String
+        $id: String!
+        $formula: JSONString!
+        $isActive: Boolean
+      ) {
+        updatePmtGlobalFormula(
+          input: {
+            clientMutationId: $clientMutationId
+            clientMutationLabel: $clientMutationLabel
+            id: $id
+            formula: $formula
+            isActive: $isActive
+          }
+        ) {
+          clientMutationId
+          internalId
+        }
+      }
+    `,
+    {
+      id,
+      formula: JSON.stringify(formula),
+      isActive,
+    },
+  );
+
+  return graphqlWithVariables(
+    mutation.operation,
+    { ...mutation.variables.input },
+    [
+      REQUEST(ACTION_TYPE.UPDATE_PMT_GLOBAL_FORMULA),
+      SUCCESS(ACTION_TYPE.UPDATE_PMT_GLOBAL_FORMULA),
+      ERROR(ACTION_TYPE.UPDATE_PMT_GLOBAL_FORMULA),
+    ],
+    {
+      actionType: ACTION_TYPE.UPDATE_PMT_GLOBAL_FORMULA,
+      clientMutationId: mutation.variables.input.clientMutationId,
+      clientMutationLabel: mutation.variables.input.clientMutationLabel,
+      requestedDateTime: new Date(),
+    },
+  );
 }

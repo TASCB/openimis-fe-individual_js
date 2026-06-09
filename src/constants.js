@@ -155,6 +155,28 @@ export const PMT_DEFAULT_CUTOFF = 11.01;
 export const PMT_CUTOFF_MIN = 0;
 export const PMT_CUTOFF_MAX = 50;
 
+// PMT Configuration page — canonical Contributions tab system
+export const PMT_RERUN_TAB_VALUE = 'PmtRerunTab';
+export const PMT_ADJUSTMENT_TAB_VALUE = 'PmtAdjustmentTab';
+export const PMT_FORMULA_TAB_VALUE = 'PmtFormulaTab';
+export const PMT_CONFIG_TABS_LABEL_CONTRIBUTION_KEY = 'pmtConfiguration.TabPanel.label';
+export const PMT_CONFIG_TABS_PANEL_CONTRIBUTION_KEY = 'pmtConfiguration.TabPanel.panel';
+
+// Maker-checker: taskCode/source for the global formula approval task + maker right
+export const PMT_FORMULA_LABEL = 'PmtGlobalFormula';
+export const PMT_FORMULA_TASK_SOURCE = 'PmtGlobalFormulaService';
+export const RIGHT_PMT_FORMULA_UPDATE = 180007;
+
+// Default coefficients shown when the backend hasn't provisioned a formula yet.
+export const PMT_FORMULA_DEFAULTS = {
+  cutoff: 11.01,
+  intercept: 11.688,
+  household_size_coef: -0.10,
+  working_age_coef: -0.043,
+  urban_coef: 0.0,
+  assets: {},
+};
+
 export const PMT_CLASS = {
   POOR: 'POOR',
   NON_POOR: 'NON_POOR',

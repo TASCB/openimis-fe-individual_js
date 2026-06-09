@@ -23,24 +23,28 @@ function PmtConfirmationDialog({
   onCancel,
   config,
   disabled = false,
+  titleKey = 'pmt.confirm.title',
+  messageKey = 'pmt.confirm.message',
+  confirmLabelKey = 'pmt.confirm.yes',
+  cancelLabelKey = 'pmt.confirm.no',
 }) {
   const intl = useIntl();
 
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="sm" fullWidth>
       <DialogTitle>
-        {formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.confirm.title')}
+        {formatMessage(intl, INDIVIDUAL_MODULE_NAME, titleKey)}
       </DialogTitle>
       <DialogContent>
         <Typography>
-          {formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.confirm.message')
+          {formatMessage(intl, INDIVIDUAL_MODULE_NAME, messageKey)
             .replace('{districtName}', config?.districtName || 'selected')
             .replace('{cutoff}', config?.pmtCutoff || 'N/A')}
         </Typography>
       </DialogContent>
       <DialogActions>
         <Button onClick={onCancel} color="default" disabled={disabled}>
-          {formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.confirm.no')}
+          {formatMessage(intl, INDIVIDUAL_MODULE_NAME, cancelLabelKey)}
         </Button>
         <Button
           onClick={onConfirm}
@@ -48,7 +52,7 @@ function PmtConfirmationDialog({
           variant="contained"
           disabled={disabled}
         >
-          {formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.confirm.yes')}
+          {formatMessage(intl, INDIVIDUAL_MODULE_NAME, confirmLabelKey)}
         </Button>
       </DialogActions>
     </Dialog>

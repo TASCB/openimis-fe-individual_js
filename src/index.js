@@ -51,6 +51,9 @@ import {
   RIGHT_INDIVIDUAL_SEARCH,
   RIGHT_PMT_RERUN,
   RIGHT_SURVEY_DASHBOARD,
+  PMT_FORMULA_LABEL,
+  PMT_CONFIG_TABS_LABEL_CONTRIBUTION_KEY,
+  PMT_CONFIG_TABS_PANEL_CONTRIBUTION_KEY,
 } from './constants';
 import { GroupCreateTaskItemFormatters, GroupCreateTaskTableHeaders } from './components/tasks/GroupCreateTasks';
 import IndividualsUploadDialog from './components/dialogs/IndividualsUploadDialog';
@@ -79,6 +82,10 @@ import ImportDataApiPage from './pages/ImportDataApiPage';
 import PmtConfigurationPage from './pages/PmtConfigurationPage';
 import PmtEnrollmentListPage from './pages/PmtEnrollmentListPage';
 import SurveyMonitoringDashboardPage from './pages/SurveyMonitoringDashboardPage';
+import { PmtRerunTabLabel, PmtRerunTabPanel } from './components/pmt/PmtRerunTab';
+import { PmtAdjustmentTabLabel, PmtAdjustmentTabPanel } from './components/pmt/PmtAdjustmentTab';
+import { PmtFormulaTabLabel, PmtFormulaTabPanel } from './components/pmt/PmtFormulaTab';
+import { PmtFormulaTaskTableHeaders, PmtFormulaTaskItemFormatters } from './components/tasks/PmtFormulaTasks';
 
 const ROUTE_INDIVIDUALS = 'individuals';
 const ROUTE_NON_CONSENTED = 'non-consented';
@@ -236,6 +243,16 @@ const DEFAULT_CONFIG = {
   ],
   'individual.BenefitPlansListTabLabel': [BENEFIT_PLAN_TABS_LABEL_REF_KEY],
   'individual.BenefitPlansListTabPanel': [BENEFIT_PLAN_TABS_PANEL_REF_KEY],
+  [PMT_CONFIG_TABS_LABEL_CONTRIBUTION_KEY]: [
+    PmtRerunTabLabel,
+    PmtAdjustmentTabLabel,
+    PmtFormulaTabLabel,
+  ],
+  [PMT_CONFIG_TABS_PANEL_CONTRIBUTION_KEY]: [
+    PmtRerunTabPanel,
+    PmtAdjustmentTabPanel,
+    PmtFormulaTabPanel,
+  ],
   'tasksManagement.tasks': [{
     text: <FormattedMessage module={INDIVIDUAL_MODULE_NAME} id="individual.tasks.title" />,
     tableHeaders: IndividualTaskTableHeaders,
@@ -269,6 +286,13 @@ const DEFAULT_CONFIG = {
     tableHeaders: IndividualDeduplicationTaskTableHeaders,
     itemFormatters: IndividualDeduplicationTaskItemFormatters,
     taskSource: ['CreateDeduplicationIndividualReviewTasksService'],
+  },
+  {
+    text: <FormattedMessage module={INDIVIDUAL_MODULE_NAME} id="pmt.formula.tasks.title" />,
+    tableHeaders: PmtFormulaTaskTableHeaders,
+    itemFormatters: PmtFormulaTaskItemFormatters,
+    taskSource: ['PmtGlobalFormulaService'],
+    taskCode: PMT_FORMULA_LABEL,
   },
   ],
 };

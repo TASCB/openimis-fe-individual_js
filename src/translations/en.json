@@ -360,6 +360,7 @@
       "description": "Recalculate household poverty classification using a new PMT cutoff value"
     },
     "configuration": {
+      "tab": "PMT Rerun",
       "title": "PMT Rerun",
       "cutoff": "PMT Cutoff",
       "cutoffHint": "Score threshold (0-50). Households with score ≤ cutoff are classified as ELIGIBLE",
@@ -369,6 +370,60 @@
       "selectDistrict": "Select District",
       "button": "Apply PMT Cutoff & Refresh Results",
       "info": "This will recalculate PMT scores for all households in the selected district using the new cutoff"
+    },
+    "formula": {
+      "tab": "Formula & Parameters",
+      "version": "Active version",
+      "pendingNotice": "A formula change is awaiting approval. The form is locked until that task is approved or rejected.",
+      "coefficients": {
+        "title": "Coefficients"
+      },
+      "field": {
+        "cutoff": "Cutoff (POOR if score ≤)",
+        "intercept": "Intercept",
+        "household_size_coef": "Household-size coefficient",
+        "working_age_coef": "Working-age (15–64) coefficient",
+        "urban_coef": "Urban coefficient"
+      },
+      "assets": {
+        "title": "Asset coefficients",
+        "code": "Asset code",
+        "coef": "Coefficient",
+        "add": "Add asset",
+        "count": "# Assets"
+      },
+      "submit": {
+        "button": "Submit for approval",
+        "confirm": {
+          "title": "Submit formula for approval",
+          "message": "This creates an approval task. The new formula takes effect only after another user approves it. Continue?"
+        }
+      },
+      "validation": {
+        "coefRequired": "All coefficients are required and must be numeric.",
+        "cutoffRange": "Cutoff must be greater than 0 and at most 50.",
+        "duplicateAsset": "Duplicate asset codes are not allowed.",
+        "assetCoefNumeric": "Asset coefficients must be numeric."
+      },
+      "tasks": {
+        "title": "PMT Formula Changes"
+      }
+    },
+    "adjustment": {
+      "tab": "PMT Cutoff Adjustment",
+      "title": "PMT Cutoff Adjustment",
+      "cutoff": "PMT Cutoff",
+      "cutoffHint": "Score threshold (0-50). Stored household scores will be reclassified against this cutoff",
+      "region": "Region",
+      "district": "District",
+      "button": "Apply PMT Cutoff & Adjust Individuals",
+      "info": "This will reuse each household's stored PMT score, update the household classification, and push the adjusted PMT status to each individual without recalculating scores",
+      "confirm": {
+        "title": "Apply PMT Cutoff Adjustment?",
+        "message": "This will reclassify households and individuals in {districtName} district using the stored PMT score and cutoff {cutoff}. Continue?",
+        "yes": "Adjust",
+        "no": "Cancel"
+      }
     },
     "results": {
       "title": "Household PMT Results",

@@ -54,9 +54,12 @@ export const ACTION_TYPE = {
   FETCH_ACTIVE_MUTATIONS: "FETCH_ACTIVE_MUTATIONS",
   PMT_HOUSEHOLDS: "PMT_HOUSEHOLDS",
   RERUN_PMT: "RERUN_PMT",
+  ADJUST_PMT_CUTOFF: "ADJUST_PMT_CUTOFF",
   PMT_AUDIT_SUMMARY: "PMT_AUDIT_SUMMARY",
   PMT_ENROLLMENT_LIST: "PMT_ENROLLMENT_LIST",
   PMT_RUN_PROGRESS: "PMT_RUN_PROGRESS",
+  PMT_GLOBAL_FORMULA: "PMT_GLOBAL_FORMULA",
+  UPDATE_PMT_GLOBAL_FORMULA: "UPDATE_PMT_GLOBAL_FORMULA",
   FETCH_ELIGIBLE_HOUSEHOLDS: "FETCH_ELIGIBLE_HOUSEHOLDS",
   FETCH_ELIGIBLE_MEMBERS: "FETCH_ELIGIBLE_MEMBERS",
   SURVEY_DASHBOARD: "API_ETL_SURVEY_DASHBOARD",
@@ -198,12 +201,24 @@ function reducer(
     submittingPmtRerun: false,
     pmtRerunMutation: null,
     errorPmtRerun: null,
+    submittingPmtCutoffAdjustment: false,
+    pmtCutoffAdjustmentMutation: null,
+    errorPmtCutoffAdjustment: null,
 
     // PMT Run Progress State
     fetchingPmtRunProgress: false,
     fetchedPmtRunProgress: false,
     pmtRunProgress: null,
     errorPmtRunProgress: null,
+
+    // PMT Global Formula State (maker-checker)
+    fetchingPmtGlobalFormula: false,
+    fetchedPmtGlobalFormula: false,
+    pmtGlobalFormula: null,
+    errorPmtGlobalFormula: null,
+    submittingPmtFormulaUpdate: false,
+    pmtFormulaUpdateMutation: null,
+    errorPmtFormulaUpdate: null,
 
     // PMT Audit Summary State
     fetchingPmtAuditSummary: false,
@@ -1154,6 +1169,89 @@ function reducer(
         submittingPmtRerun: false,
         pmtRerunMutation: { error: action.payload || action.error || action },
         errorPmtRerun: action.payload || action.error || action,
+      };
+
+    case REQUEST(ACTION_TYPE.ADJUST_PMT_CUTOFF):
+      return {
+        ...state,
+        submittingPmtCutoffAdjustment: true,
+        pmtCutoffAdjustmentMutation: null,
+        errorPmtCutoffAdjustment: null,
+      };
+
+    case SUCCESS(ACTION_TYPE.ADJUST_PMT_CUTOFF): {
+      const next = dispatchMutationResp(state, "adjustPmtCutoff", action);
+      const adjustmentData = action.payload?.data?.adjustPmtCutoff || {};
+      return {
+        ...next,
+        submittingPmtCutoffAdjustment: false,
+        pmtCutoffAdjustmentMutation: {
+          ...(next.mutation || {}),
+          data: { adjustPmtCutoff: adjustmentData },
+          mutationId: adjustmentData.mutationId || null,
+        },
+        errorPmtCutoffAdjustment: null,
+      };
+    }
+
+    case ERROR(ACTION_TYPE.ADJUST_PMT_CUTOFF):
+      return {
+        ...state,
+        submittingPmtCutoffAdjustment: false,
+        pmtCutoffAdjustmentMutation: { error: action.payload || action.error || action },
+        errorPmtCutoffAdjustment: action.payload || action.error || action,
+      };
+
+    case REQUEST(ACTION_TYPE.PMT_GLOBAL_FORMULA):
+      return {
+        ...state,
+        fetchingPmtGlobalFormula: true,
+        fetchedPmtGlobalFormula: false,
+        errorPmtGlobalFormula: null,
+      };
+
+    case SUCCESS(ACTION_TYPE.PMT_GLOBAL_FORMULA): {
+      const data = action.payload?.data?.pmtGlobalFormula || null;
+      return {
+        ...state,
+        fetchingPmtGlobalFormula: false,
+        fetchedPmtGlobalFormula: true,
+        pmtGlobalFormula: data,
+        errorPmtGlobalFormula: null,
+      };
+    }
+
+    case ERROR(ACTION_TYPE.PMT_GLOBAL_FORMULA):
+      return {
+        ...state,
+        fetchingPmtGlobalFormula: false,
+        errorPmtGlobalFormula: action.payload || action.error || action,
+      };
+
+    case REQUEST(ACTION_TYPE.UPDATE_PMT_GLOBAL_FORMULA):
+      return {
+        ...state,
+        submittingPmtFormulaUpdate: true,
+        pmtFormulaUpdateMutation: null,
+        errorPmtFormulaUpdate: null,
+      };
+
+    case SUCCESS(ACTION_TYPE.UPDATE_PMT_GLOBAL_FORMULA): {
+      const next = dispatchMutationResp(state, "updatePmtGlobalFormula", action);
+      return {
+        ...next,
+        submittingPmtFormulaUpdate: false,
+        pmtFormulaUpdateMutation: next.mutation || {},
+        errorPmtFormulaUpdate: null,
+      };
+    }
+
+    case ERROR(ACTION_TYPE.UPDATE_PMT_GLOBAL_FORMULA):
+      return {
+        ...state,
+        submittingPmtFormulaUpdate: false,
+        pmtFormulaUpdateMutation: { error: action.payload || action.error || action },
+        errorPmtFormulaUpdate: action.payload || action.error || action,
       };
 
     case REQUEST(ACTION_TYPE.PMT_AUDIT_SUMMARY):

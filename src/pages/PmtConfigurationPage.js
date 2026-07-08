@@ -4,6 +4,7 @@ import { withTheme, withStyles } from '@material-ui/core/styles';
 import {
   Paper, Grid, Typography, Divider, Card, CardContent,
 } from '@material-ui/core';
+import Alert from '@material-ui/lab/Alert';
 import {
   Helmet,
   withModulesManager,
@@ -52,9 +53,9 @@ function PmtConfigurationPage({
         <Helmet title={formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.page.title')} />
         <Card>
           <CardContent>
-            <Typography color="error">
+            <Alert severity="error" variant="outlined">
               {formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.message.permissionDenied')}
-            </Typography>
+            </Alert>
           </CardContent>
         </Card>
       </div>

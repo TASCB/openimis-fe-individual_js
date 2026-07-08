@@ -8,6 +8,7 @@ import { withTheme, withStyles } from '@material-ui/core/styles';
 import {
   Tab, Grid, Typography, Button, Divider, IconButton, CircularProgress,
 } from '@material-ui/core';
+import Alert from '@material-ui/lab/Alert';
 import { Add, Delete } from '@material-ui/icons';
 import {
   formatMessage,
@@ -33,20 +34,8 @@ const styles = (theme) => ({
   paper: { padding: theme.spacing(2) },
   sectionTitle: { fontWeight: 600, marginBottom: theme.spacing(1) },
   meta: { color: theme.palette.text.secondary, marginBottom: theme.spacing(1) },
-  pendingBox: {
-    backgroundColor: '#fff8e1',
-    color: '#8d6e00',
-    padding: theme.spacing(2),
-    borderRadius: theme.shape.borderRadius,
-    marginBottom: theme.spacing(2),
-  },
-  errorBox: {
-    backgroundColor: '#ffebee',
-    color: '#c62828',
-    padding: theme.spacing(2),
-    borderRadius: theme.shape.borderRadius,
-    marginTop: theme.spacing(1),
-  },
+  pendingAlert: { marginBottom: theme.spacing(2) },
+  inlineAlert: { marginTop: theme.spacing(1) },
   assetRow: { display: 'flex', alignItems: 'center', gap: theme.spacing(1) },
   buttonContainer: { marginTop: theme.spacing(2), display: 'flex', gap: theme.spacing(1) },
 });
@@ -204,9 +193,9 @@ function PmtFormulaTabPanelComponent({
         )}
 
         {hasPending && (
-          <div className={classes.pendingBox}>
+          <Alert severity="warning" variant="outlined" className={classes.pendingAlert}>
             {formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.formula.pendingNotice')}
-          </div>
+          </Alert>
         )}
 
         <Typography variant="h6" className={classes.sectionTitle}>
@@ -272,7 +261,9 @@ function PmtFormulaTabPanelComponent({
         )}
 
         {validationError && !readOnly && (
-          <div className={classes.errorBox}>{validationError}</div>
+          <Alert severity="error" variant="outlined" className={classes.inlineAlert}>
+            {validationError}
+          </Alert>
         )}
 
         <div className={classes.buttonContainer}>

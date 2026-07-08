@@ -18,7 +18,7 @@ import {
   CardContent,
   CircularProgress,
 } from "@material-ui/core";
-import { Alert } from "@material-ui/lab";
+import Alert from "@material-ui/lab/Alert";
 import { makeStyles } from "@material-ui/core/styles";
 import { formatMessage } from "@openimis/fe-core";
 
@@ -59,13 +59,7 @@ const useStyles = makeStyles((theme) => ({
     padding: theme.spacing(0.5, 0),
     fontSize: "14px",
   },
-  successMessage: {
-    backgroundColor: "#c8e6c9",
-    color: "#2e7d32",
-    padding: theme.spacing(2),
-    borderRadius: theme.shape.borderRadius,
-    width: "100%",
-  },
+  resultAlert: { width: "100%" },
 }));
 
 function PmtProgressDialog({ open, mutationId, onClose }) {
@@ -206,7 +200,7 @@ function PmtProgressDialog({ open, mutationId, onClose }) {
 
           {/* Completed */}
           {isCompleted && (
-            <Box className={classes.successMessage}>
+            <Alert severity="success" className={classes.resultAlert}>
               <Typography variant="h6">
                 ✓ {formatMessage(intl, INDIVIDUAL_MODULE_NAME, "pmt.progress.success")}
               </Typography>
@@ -216,12 +210,12 @@ function PmtProgressDialog({ open, mutationId, onClose }) {
                   String(progress?.enrollmentsCreated ?? 0)
                 )}
               </Typography>
-            </Box>
+            </Alert>
           )}
 
           {/* Failed */}
           {isFailed && (
-            <Alert severity="error">
+            <Alert severity="error" className={classes.resultAlert}>
               {formatMessage(intl, INDIVIDUAL_MODULE_NAME, "pmt.progress.failed")}
             </Alert>
           )}

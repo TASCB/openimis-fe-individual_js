@@ -6,6 +6,7 @@ import { withTheme, withStyles } from '@material-ui/core/styles';
 import {
   Tab, Grid, Typography, Button, CircularProgress,
 } from '@material-ui/core';
+import Alert from '@material-ui/lab/Alert';
 import {
   formatMessage, PublishedComponent, TextInput, withModulesManager,
 } from '@openimis/fe-core';
@@ -20,21 +21,7 @@ import {
 const styles = (theme) => ({
   paper: { padding: theme.spacing(2) },
   sectionTitle: { fontWeight: 600, marginBottom: theme.spacing(1) },
-  infoBox: {
-    backgroundColor: '#e3f2fd',
-    color: '#1565c0',
-    padding: theme.spacing(2),
-    marginTop: theme.spacing(1),
-    borderRadius: theme.shape.borderRadius,
-    fontSize: '0.875rem',
-  },
-  errorBox: {
-    backgroundColor: '#ffebee',
-    color: '#c62828',
-    padding: theme.spacing(2),
-    marginTop: theme.spacing(1),
-    borderRadius: theme.shape.borderRadius,
-  },
+  inlineAlert: { marginTop: theme.spacing(1) },
   gridContainer: { marginBottom: theme.spacing(2) },
   buttonContainer: { marginTop: theme.spacing(2), display: 'flex', gap: theme.spacing(1) },
 });
@@ -149,15 +136,19 @@ function PmtRerunTabPanelComponent({
           </Grid>
         </Grid>
 
-        <div className={classes.infoBox}>
+        <Alert severity="info" variant="outlined" className={classes.inlineAlert}>
           {formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.configuration.info')}
-        </div>
+        </Alert>
 
-        {configError && <div className={classes.errorBox}>{configError}</div>}
+        {configError && (
+          <Alert severity="error" variant="outlined" className={classes.inlineAlert}>
+            {configError}
+          </Alert>
+        )}
         {errorPmtRerun && (
-          <div className={classes.errorBox}>
+          <Alert severity="error" variant="outlined" className={classes.inlineAlert}>
             {typeof errorPmtRerun === 'string' ? errorPmtRerun : 'Error applying PMT configuration'}
-          </div>
+          </Alert>
         )}
 
         <div className={classes.buttonContainer}>

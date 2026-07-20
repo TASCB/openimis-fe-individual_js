@@ -43,6 +43,7 @@ import {
   applyNumberCircle,
   LOC_LEVELS,
   locationAtLevel,
+  useFixedSearcherLayout,
 } from '../util/searcher-utils';
 
 function IndividualSearcher({
@@ -70,6 +71,7 @@ function IndividualSearcher({
   benefitPlanToEnroll,
 }) {
   const dispatch = useDispatch();
+  const fixed = useFixedSearcherLayout();
   const [appliedCustomFilters, setAppliedCustomFilters] = useState([CLEARED_STATE_FILTER]);
   const [appliedFiltersRowStructure, setAppliedFiltersRowStructure] = useState([CLEARED_STATE_FILTER]);
   const [exportFields, setExportFields] = useState([
@@ -213,7 +215,7 @@ function IndividualSearcher({
   }, [appliedCustomFilters]);
 
   return (
-    <div>
+    <div className={fixed.root}>
       <Searcher
         module="individual"
         FilterPane={IndividualFilter}

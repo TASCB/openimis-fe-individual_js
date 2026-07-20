@@ -38,7 +38,9 @@ import {
   withModulesManager,
   journalize,
   formatMessage,
+  formatMessageWithValues,
   ProgressOrError,
+  Searcher,
 } from "@openimis/fe-core";
 import { injectIntl } from "react-intl";
 
@@ -49,6 +51,7 @@ import {
   fetchMutationByLabel,
   fetchAvailableQuestionnaires,
 } from "../actions";
+import { DEFAULT_PAGE_SIZE, ROWS_PER_PAGE_OPTIONS } from "../constants";
 
 const styles = (theme) => {
   const headerBG =
@@ -156,9 +159,9 @@ function ImportDataApiPage({
   fetchMutationByLabel,
   fetchAvailableQuestionnaires,
 }) {
-  const [pulledQPageSize, setPulledQPageSize] = useState(10);
-  const [pulledQAfter, setPulledQAfter] = useState(null);
-  const [pulledQBefore, setPulledQBefore] = useState(null);
+  
+  const [historyReset, setHistoryReset] = useState(0);
+  const refreshHistory = () => setHistoryReset((k) => k + 1);
 
   const [selectedQuestionnaire, setSelectedQuestionnaire] = useState(null);
   const [questionnaireSearchTerm, setQuestionnaireSearchTerm] = useState("");
@@ -178,51 +181,46 @@ function ImportDataApiPage({
   const isSubmitting =
     submittingLegacyEtl || submittingPaaEtl || submittingMutation;
 
-  const hasNext = !!pulledQPageInfo?.hasNextPage;
-  const hasPrev = !!pulledQPageInfo?.hasPreviousPage;
   const selectedPaaScope = useMemo(
     () => getZanzibarPaaScope(selectedDistrict, selectedRegion),
     [selectedDistrict, selectedRegion],
   );
   const selectedPaaName = selectedPaaScope || selectedDistrict?.name;
 
-  const rangeText = useMemo(() => {
-    const total = pulledQTotalCount ?? (Array.isArray(pulledQ) ? pulledQ.length : 0);
-    const shown = Array.isArray(pulledQ) ? pulledQ.length : 0;
-    if (!total && !shown) return "";
-    return `Showing ${shown} of ${total}`;
-  }, [pulledQTotalCount, pulledQ]);
-
-  const fetchHistory = (opts = {}) => {
-    fetchPulledQuestionnaires(modulesManager, {
-      pageSize: pulledQPageSize,
-      after: pulledQAfter,
-      before: pulledQBefore,
-      regionCode: selectedRegion?.code || null,
-      districtCode: selectedDistrict?.code || null,
-      ...opts,
-    });
-  };
+  const HISTORY_HEADERS = [
+    "ImportDataApiPage.table.paaName",
+    "ImportDataApiPage.table.numberOfHouseholds",
+    "ImportDataApiPage.table.numberOfMembers",
+    "ImportDataApiPage.table.questionnaireVersion",
+    "ImportDataApiPage.table.datePulled",
+    "ImportDataApiPage.table.status",
+  ];
+  const historyHeaders = () => HISTORY_HEADERS;
+  const historyItemFormatters = () => [
+    (item) => item.paaName,
+    (item) => item.numberOfHouseholds || 0,
+    (item) => item.numberOfMembers || 0,
+    (item) => (item.questionnaireVersion ?? ""),
+    (item) => (item.datePulled ? new Date(item.datePulled).toLocaleDateString() : ""),
+    (item) => renderStatusBadge(item.status || "completed", item.errorMessage),
+  ];
+  
+  const historyFiltersToQueryParams = ({ pageSize, afterCursor, beforeCursor }) => ({
+    pageSize,
+    after: afterCursor,
+    before: beforeCursor,
+    regionCode: selectedRegion?.code || null,
+    districtCode: selectedDistrict?.code || null,
+  });
+  const historyFetch = (params) => fetchPulledQuestionnaires(modulesManager, params);
 
   useEffect(() => {
-    if (!fetchedPulledQ && !fetchingPulledQ) {
-      fetchPulledQuestionnaires(modulesManager, { pageSize: pulledQPageSize });
-    }
     fetchApiEtlServices();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    setPulledQAfter(null);
-    setPulledQBefore(null);
-
-    fetchPulledQuestionnaires(modulesManager, {
-      regionCode: selectedRegion?.code || null,
-      districtCode: selectedDistrict?.code || null,
-      pageSize: pulledQPageSize,
-      after: null,
-      before: null,
-    });
+    refreshHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRegion, selectedDistrict]);
 
@@ -236,15 +234,7 @@ function ImportDataApiPage({
       !submittingMutation &&
       !mutation?.error
     ) {
-      setPulledQAfter(null);
-      setPulledQBefore(null);
-      fetchPulledQuestionnaires(modulesManager, {
-        regionCode: selectedRegion?.code || null,
-        districtCode: selectedDistrict?.code || null,
-        pageSize: pulledQPageSize,
-        after: null,
-        before: null,
-      });
+      refreshHistory();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mutation, submittingMutation]);
@@ -274,60 +264,10 @@ function ImportDataApiPage({
 
     if (!hasRunningImports) return undefined;
 
-    const intervalId = setInterval(() => {
-      fetchPulledQuestionnaires(modulesManager, {
-        regionCode: selectedRegion?.code || null,
-        districtCode: selectedDistrict?.code || null,
-        pageSize: pulledQPageSize,
-        after: null,
-        before: null,
-      });
-    }, 12000);
-
+    const intervalId = setInterval(refreshHistory, 12000); 
     return () => clearInterval(intervalId);
-  }, [pulledQ, selectedRegion, selectedDistrict, pulledQPageSize, fetchPulledQuestionnaires, modulesManager]);
-
-  const onNext = () => {
-    if (!hasNext) return;
-    setPulledQBefore(null);
-    const nextAfter = pulledQPageInfo?.endCursor || null;
-    setPulledQAfter(nextAfter);
-    fetchPulledQuestionnaires(modulesManager, {
-      pageSize: pulledQPageSize,
-      after: nextAfter,
-      before: null,
-      regionCode: selectedRegion?.code || null,
-      districtCode: selectedDistrict?.code || null,
-    });
-  };
-
-  const onPrev = () => {
-    if (!hasPrev) return;
-    setPulledQAfter(null);
-    const nextBefore = pulledQPageInfo?.startCursor || null;
-    setPulledQBefore(nextBefore);
-    fetchPulledQuestionnaires(modulesManager, {
-      pageSize: pulledQPageSize,
-      before: nextBefore,
-      after: null,
-      regionCode: selectedRegion?.code || null,
-      districtCode: selectedDistrict?.code || null,
-    });
-  };
-
-  const onPageSizeChange = (e) => {
-    const nextSize = Number(e.target.value);
-    setPulledQPageSize(nextSize);
-    setPulledQAfter(null);
-    setPulledQBefore(null);
-    fetchPulledQuestionnaires(modulesManager, {
-      pageSize: nextSize,
-      after: null,
-      before: null,
-      regionCode: selectedRegion?.code || null,
-      districtCode: selectedDistrict?.code || null,
-    });
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pulledQ, selectedRegion, selectedDistrict]);
 
   const handleTriggerPAAImport = () => {
     if (!selectedRegion || !selectedDistrict) return;
@@ -756,125 +696,28 @@ function ImportDataApiPage({
           </Grid>
 
           <Grid item xs={12}>
-            <Paper className={classes.tablePaper}>
-              <div className={classes.tableHeaderBar}>
-                <Typography variant="h6" className={classes.sectionTitle}>
-                  {formatMessage(intl, "individual", "ImportDataApiPage.pulledQuestionnaires.title")}
-                </Typography>
-              </div>
-
-              <TableContainer component={Paper} elevation={0} className={classes.tableContainerBg}>
-                <Table size="small" stickyHeader className={classes.tealHead}>
-                  <TableHead className={classes.header}>
-                    <TableRow className={classes.headerTitle}>
-                      <TableCell>
-                        {formatMessage(intl, "individual", "ImportDataApiPage.table.paaName")}
-                      </TableCell>
-                      <TableCell>
-                        {formatMessage(intl, "individual", "ImportDataApiPage.table.numberOfHouseholds")}
-                      </TableCell>
-                      <TableCell>
-                        {formatMessage(intl, "individual", "ImportDataApiPage.table.numberOfMembers")}
-                      </TableCell>
-                      <TableCell>
-                        {formatMessage(intl, "individual", "ImportDataApiPage.table.questionnaireVersion")}
-                      </TableCell>
-                      <TableCell>
-                        {formatMessage(intl, "individual", "ImportDataApiPage.table.datePulled")}
-                      </TableCell>
-                      <TableCell>
-                        {formatMessage(intl, "individual", "ImportDataApiPage.table.status")}
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-
-                  <TableBody>
-                    {fetchingPulledQ && (
-                      <TableRow>
-                        <TableCell colSpan={6}>
-                          <div className={classes.loadingBox}>
-                            <CircularProgress />
-                            <Typography variant="body2" style={{ marginTop: 8 }}>
-                              {formatMessage(intl, "individual", "ImportDataApiPage.loadingHistory")}
-                            </Typography>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-
-                    {!!errorPulledQ && !fetchingPulledQ && (
-                      <TableRow>
-                        <TableCell colSpan={6}>
-                          <Typography color="error">
-                            {formatMessage(intl, "individual", "ImportDataApiPage.errorLoadingHistory")}:{" "}
-                            {formatErr(errorPulledQ)}
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    )}
-
-                    {!fetchingPulledQ &&
-                      !errorPulledQ &&
-                      Array.isArray(pulledQ) &&
-                      pulledQ.length > 0 &&
-                      pulledQ.map((item, idx) => (
-                        <TableRow key={`${item.paaName || "row"}_${idx}`}>
-                          <TableCell>{item.paaName}</TableCell>
-                          <TableCell>{item.numberOfHouseholds || 0}</TableCell>
-                          <TableCell>{item.numberOfMembers || 0}</TableCell>
-                          <TableCell>{item.questionnaireVersion ?? ""}</TableCell>
-                          <TableCell>
-                            {item.datePulled ? new Date(item.datePulled).toLocaleDateString() : ""}
-                          </TableCell>
-                          <TableCell>{renderStatusBadge(item.status || "completed", item.errorMessage)}</TableCell>
-                        </TableRow>
-                      ))}
-
-                    {!fetchingPulledQ && !errorPulledQ && (!pulledQ || pulledQ.length === 0) && (
-                      <TableRow>
-                        <TableCell colSpan={6}>
-                          <Typography variant="body2" color="textSecondary" align="center" style={{ padding: 20 }}>
-                            {formatMessage(intl, "individual", "ImportDataApiPage.noHistoryData")}
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "12px 16px",
-                }}
-              >
-                <Typography variant="body2" color="textSecondary">
-                  {rangeText}
-                </Typography>
-
-                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                  <FormControl size="small" style={{ minWidth: 90 }}>
-                    <Select value={pulledQPageSize} onChange={onPageSizeChange}>
-                      {[5, 10, 20, 50].map((n) => (
-                        <MenuItem key={n} value={n}>
-                          {n}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-
-                  <Button variant="outlined" onClick={onPrev} disabled={!hasPrev || fetchingPulledQ}>
-                    Prev
-                  </Button>
-                  <Button variant="outlined" onClick={onNext} disabled={!hasNext || fetchingPulledQ}>
-                    Next
-                  </Button>
-                </div>
-              </div>
-            </Paper>
+            <Searcher
+              key={historyReset}
+              module="individual"
+              fetch={historyFetch}
+              items={pulledQ}
+              itemsPageInfo={{ ...(pulledQPageInfo || {}), totalCount: pulledQTotalCount }}
+              fetchingItems={fetchingPulledQ}
+              fetchedItems={fetchedPulledQ}
+              errorItems={errorPulledQ}
+              tableTitle={formatMessageWithValues(
+                intl,
+                "individual",
+                "ImportDataApiPage.pulledQuestionnaires.searcherResultsTitle",
+                { count: pulledQTotalCount ?? 0 },
+              )}
+              filtersToQueryParams={historyFiltersToQueryParams}
+              headers={historyHeaders}
+              itemFormatters={historyItemFormatters}
+              rowsPerPageOptions={ROWS_PER_PAGE_OPTIONS}
+              defaultPageSize={DEFAULT_PAGE_SIZE}
+              rowIdentifier={(item) => `${item.paaName}-${item.datePulled}-${item.questionnaireVersion}`}
+            />
           </Grid>
         </Grid>
       </div>

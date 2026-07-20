@@ -32,6 +32,10 @@ import { exportPmtEnrollmentPdf } from '../util/pdf-export';
 
 const styles = (theme) => ({
   root: {
+    // Fixed layout so the first column (household code) doesn't balloon; ellipsis truncates long values.
+    '& table': { tableLayout: 'fixed', minWidth: '100%' },
+    '& table th, & table td': { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+    '& table th:first-child, & table td:first-child': { width: 200 },
     '& .MuiTableCell-root': {
       padding: '16px',
     },

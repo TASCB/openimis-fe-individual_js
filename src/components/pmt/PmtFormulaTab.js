@@ -193,7 +193,7 @@ function PmtFormulaTabPanelComponent({
         )}
 
         {hasPending && (
-          <Alert severity="warning" variant="outlined" className={classes.pendingAlert}>
+          <Alert severity="warning" className={classes.pendingAlert}>
             {formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.formula.pendingNotice')}
           </Alert>
         )}
@@ -261,7 +261,7 @@ function PmtFormulaTabPanelComponent({
         )}
 
         {validationError && !readOnly && (
-          <Alert severity="error" variant="outlined" className={classes.inlineAlert}>
+          <Alert severity="error" className={classes.inlineAlert}>
             {validationError}
           </Alert>
         )}

@@ -42,6 +42,7 @@ import {
   applyNumberCircle,
   LOC_LEVELS,
   locationAtLevel,
+  useFixedSearcherLayout,
 } from '../util/searcher-utils';
 
 function EnrolledMembersSearcher({
@@ -141,6 +142,7 @@ function EnrolledMembersSearcher({
     prevSubmittingMutationRef.current = submittingMutation;
   });
 
+  const fixed = useFixedSearcherLayout();
   const fetch = (params) => fetchEnrolledIndividuals(modulesManager, params);
 
   const headers = () => {
@@ -250,7 +252,8 @@ function EnrolledMembersSearcher({
   );
 
   return (
-    <Searcher
+    <div className={fixed.root}>
+      <Searcher
       module="individual"
       FilterPane={individualFilter}
       fetch={fetch}
@@ -284,7 +287,8 @@ function EnrolledMembersSearcher({
       applyNumberCircle={applyNumberCircle}
       rowDisabled={isRowDisabled}
       rowLocked={isRowDisabled}
-    />
+      />
+    </div>
   );
 }
 

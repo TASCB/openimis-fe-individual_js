@@ -22,8 +22,6 @@ export const RIGHT_PMT_RERUN = 180005;
 
 export const RIGHT_SCHEMA_SEARCH = 171001;
 
-// Survey Monitoring Dashboard — same code the api_etl backend gates on
-// (ApiEtlConfig.gql_query_api_etl_rule_perms = ["953001"]).
 export const RIGHT_SURVEY_DASHBOARD = 953001;
 
 export const BENEFIT_PLANS_LIST_TAB_VALUE = 'BenefitPlansListTab';
@@ -149,25 +147,21 @@ export const FAILED = 'FAILED';
 export const ACCEPT = 'ACCEPT';
 export const REJECT = 'REJECT';
 
-// PMT Configuration Constants
 export const ROUTE_PMT_CONFIGURATION = 'pmt-configuration';
 export const PMT_DEFAULT_CUTOFF = 11.01;
 export const PMT_CUTOFF_MIN = 0;
 export const PMT_CUTOFF_MAX = 50;
 
-// PMT Configuration page — canonical Contributions tab system
 export const PMT_RERUN_TAB_VALUE = 'PmtRerunTab';
 export const PMT_ADJUSTMENT_TAB_VALUE = 'PmtAdjustmentTab';
 export const PMT_FORMULA_TAB_VALUE = 'PmtFormulaTab';
 export const PMT_CONFIG_TABS_LABEL_CONTRIBUTION_KEY = 'pmtConfiguration.TabPanel.label';
 export const PMT_CONFIG_TABS_PANEL_CONTRIBUTION_KEY = 'pmtConfiguration.TabPanel.panel';
 
-// Maker-checker: taskCode/source for the global formula approval task + maker right
 export const PMT_FORMULA_LABEL = 'PmtGlobalFormula';
 export const PMT_FORMULA_TASK_SOURCE = 'PmtGlobalFormulaService';
 export const RIGHT_PMT_FORMULA_UPDATE = 180007;
 
-// Default coefficients shown when the backend hasn't provisioned a formula yet.
 export const PMT_FORMULA_DEFAULTS = {
   cutoff: 11.01,
   intercept: 11.688,

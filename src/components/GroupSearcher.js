@@ -19,6 +19,7 @@ import {
   DialogTitle,
   DialogContent,
 } from '@material-ui/core';
+import { makeStyles } from '@material-ui/core/styles';
 import EditIcon from '@material-ui/icons/Edit';
 import {
   downloadGroups, fetchGroups, clearGroupExport,
@@ -35,6 +36,22 @@ import {
   LOC_LEVELS,
   locationAtLevel,
 } from '../util/searcher-utils';
+
+const useStyles = makeStyles(() => ({
+  searcher: {
+    '& table': { tableLayout: 'fixed', minWidth: '100%' },
+    '& table th, & table td': { whiteSpace: 'nowrap' },
+    '& table th:nth-child(-n+7), & table td:nth-child(-n+7)': { overflow: 'hidden', textOverflow: 'ellipsis' },
+    '& table th:nth-child(1), & table td:nth-child(1)': { width: 200 },
+    '& table th:nth-child(2), & table td:nth-child(2)': { width: 200 },
+    '& table th:nth-child(3), & table td:nth-child(3)': { width: 90 },
+    '& table th:nth-child(4), & table td:nth-child(4)': { width: 140 },
+    '& table th:nth-child(5), & table td:nth-child(5)': { width: 140 },
+    '& table th:nth-child(6), & table td:nth-child(6)': { width: 140 },
+    '& table th:nth-child(7), & table td:nth-child(7)': { width: 150 },
+    '& table th:nth-child(8), & table td:nth-child(8)': { width: 56 },
+  },
+}));
 
 function GroupSearcher({
   intl,
@@ -57,6 +74,7 @@ function GroupSearcher({
   benefitPlanToEnroll,
   advancedCriteria,
 }) {
+  const classes = useStyles();
   const [appliedCustomFilters, setAppliedCustomFilters] = useState([CLEARED_STATE_FILTER]);
   const [appliedFiltersRowStructure, setAppliedFiltersRowStructure] = useState([CLEARED_STATE_FILTER]);
 
@@ -166,7 +184,7 @@ function GroupSearcher({
   );
 
   return (
-    <div>
+    <div className={classes.searcher}>
       <Searcher
         module="individual"
         FilterPane={groupFilter}

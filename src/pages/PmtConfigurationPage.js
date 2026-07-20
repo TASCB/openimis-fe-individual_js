@@ -23,9 +23,6 @@ import {
   PMT_CONFIG_TABS_PANEL_CONTRIBUTION_KEY,
 } from '../constants';
 
-// Canonical openIMIS tab styling — mirrors payroll/PayrollTab so the tab bar
-// looks identical to the rest of openIMIS (light-green title band + teal
-// selected tab driven by the core theme's MuiTab overrides).
 const styles = (theme) => ({
   page: theme.page,
   paper: theme.paper.paper,
@@ -53,7 +50,7 @@ function PmtConfigurationPage({
         <Helmet title={formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.page.title')} />
         <Card>
           <CardContent>
-            <Alert severity="error" variant="outlined">
+            <Alert severity="error">
               {formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.message.permissionDenied')}
             </Alert>
           </CardContent>

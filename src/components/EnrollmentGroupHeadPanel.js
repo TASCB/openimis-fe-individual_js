@@ -1,5 +1,3 @@
-/* eslint-disable max-len */
-/* eslint-disable camelcase */
 import React from 'react';
 import { injectIntl } from 'react-intl';
 

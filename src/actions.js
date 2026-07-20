@@ -1486,17 +1486,22 @@ export const clearPmtHouseholds = () => (dispatch) => {
  * @param {Object} params - Query parameters (districtCode, regionCode optional)
  */
 export function fetchPmtAuditSummary(modulesManager, params = {}) {
-  const districtCode = params.districtCode || '';
-  const regionCode = params.regionCode || '';
-  const offset = params.offset || 0;
-  const limit = params.limit || 10;
-
-  const filterArgs = [];
-
-  if (districtCode) filterArgs.push(`districtCode: "${districtCode}"`);
-  if (regionCode) filterArgs.push(`regionCode: "${regionCode}"`);
-  if (offset) filterArgs.push(`offset: ${offset}`);
-  if (limit) filterArgs.push(`limit: ${limit}`);
+  // Accept BOTH the fe-core Searcher's array of "key: value" query-param strings AND the PMT tabs'
+  // { offset, limit } object, so the same action serves the Searcher and the adjustment/rerun tabs.
+  let filterArgs;
+  if (Array.isArray(params)) {
+    filterArgs = params;
+  } else {
+    const districtCode = params.districtCode || '';
+    const regionCode = params.regionCode || '';
+    const offset = params.offset || 0;
+    const limit = params.limit || 10;
+    filterArgs = [];
+    if (districtCode) filterArgs.push(`districtCode: "${districtCode}"`);
+    if (regionCode) filterArgs.push(`regionCode: "${regionCode}"`);
+    if (offset) filterArgs.push(`offset: ${offset}`);
+    if (limit) filterArgs.push(`limit: ${limit}`);
+  }
 
   const payload = formatQuery(
     `pmtAuditSummary(${filterArgs.join(', ')})`,

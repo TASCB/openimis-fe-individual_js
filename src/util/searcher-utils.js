@@ -1,6 +1,14 @@
 import React from 'react';
+import { makeStyles } from '@material-ui/core/styles';
 
-// eslint-disable-next-line import/prefer-default-export
+export const useFixedSearcherLayout = makeStyles(() => ({
+  root: {
+    '& table': { tableLayout: 'fixed', minWidth: '100%' },
+    '& table th, & table td': { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+    '& table th:first-child, & table td:first-child': { width: 200 },
+  },
+}));
+
 export const applyNumberCircle = (number) => (
   <div style={{
     color: '#ffffff',

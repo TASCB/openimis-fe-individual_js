@@ -39,6 +39,7 @@ import {
 } from '../constants';
 import GroupIndividualFilter from './GroupIndividualFilter';
 import GroupIndividualRolePicker from '../pickers/GroupIndividualRolePicker';
+import { useFixedSearcherLayout } from '../util/searcher-utils';
 import GroupChangeDialog from './GroupChangeDialog';
 import GroupIndividualRecipientTypePicker from '../pickers/GroupIndividualRecipientTypePicker';
 
@@ -129,6 +130,7 @@ function GroupIndividualSearcher({
 
   useEffect(() => () => (editedGroupIndividual ? clearGroupIndividuals() : null), [groupId]);
 
+  const fixed = useFixedSearcherLayout();
   const fetch = (params) => fetchGroupIndividuals(params);
 
   const headers = () => {
@@ -342,7 +344,7 @@ function GroupIndividualSearcher({
   );
 
   return (
-    <div>
+    <div className={fixed.root}>
       <GroupChangeDialog
         confirmState={isChangeGroupModalOpen}
         onClose={() => setIsChangeGroupModalOpen(false)}

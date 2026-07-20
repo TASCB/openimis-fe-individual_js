@@ -459,7 +459,16 @@
       "applyConfiguration": "Apply PMT Cutoff",
       "downloadPdf": "Download PDF",
       "export": "Export Results",
-      "deduplicate": "Deduplicate"
+      "deduplicate": "Deduplicate",
+      "view": "View"
+    },
+    "auditSummary": {
+      "paaName": "PAA / District",
+      "cutoff": "PMT Cutoff",
+      "poor": "Poor",
+      "nonPoor": "Non-Poor",
+      "action": "",
+      "searcherResultsTitle": "{count} PAAs"
     },
     "enrollment": {
       "page": {

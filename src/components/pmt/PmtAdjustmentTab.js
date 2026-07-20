@@ -139,17 +139,17 @@ function PmtAdjustmentTabPanelComponent({
           </Grid>
         </Grid>
 
-        <Alert severity="info" variant="outlined" className={classes.inlineAlert}>
+        <Alert severity="info" className={classes.inlineAlert}>
           {formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.adjustment.info')}
         </Alert>
 
         {configError && (
-          <Alert severity="error" variant="outlined" className={classes.inlineAlert}>
+          <Alert severity="error" className={classes.inlineAlert}>
             {configError}
           </Alert>
         )}
         {errorPmtCutoffAdjustment && (
-          <Alert severity="error" variant="outlined" className={classes.inlineAlert}>
+          <Alert severity="error" className={classes.inlineAlert}>
             {typeof errorPmtCutoffAdjustment === 'string' ? errorPmtCutoffAdjustment : 'Error adjusting PMT cutoff'}
           </Alert>
         )}

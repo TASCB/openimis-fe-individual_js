@@ -136,17 +136,17 @@ function PmtRerunTabPanelComponent({
           </Grid>
         </Grid>
 
-        <Alert severity="info" variant="outlined" className={classes.inlineAlert}>
+        <Alert severity="info" className={classes.inlineAlert}>
           {formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.configuration.info')}
         </Alert>
 
         {configError && (
-          <Alert severity="error" variant="outlined" className={classes.inlineAlert}>
+          <Alert severity="error" className={classes.inlineAlert}>
             {configError}
           </Alert>
         )}
         {errorPmtRerun && (
-          <Alert severity="error" variant="outlined" className={classes.inlineAlert}>
+          <Alert severity="error" className={classes.inlineAlert}>
             {typeof errorPmtRerun === 'string' ? errorPmtRerun : 'Error applying PMT configuration'}
           </Alert>
         )}

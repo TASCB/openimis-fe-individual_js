@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { connect } from "react-redux";
 import { bindActionCreators } from "redux";
 
@@ -102,6 +102,12 @@ const styles = (theme) => {
   };
 };
 
+// How often the pulled-history table re-polls while an import is running.
+const PULLED_HISTORY_REFRESH_MS = 120000;
+
+// Double-click guard for the window before the history shows a PAA as running.
+const PAA_SUBMIT_DEBOUNCE_MS = 15000;
+
 const API_WORKFLOW_HEADERS = [
   "ImportPageAPI.apiSelection",
   "ImportPageAPI.triggerImport",
@@ -178,14 +184,36 @@ function ImportDataApiPage({
 
   const [openPAAConfirmDialog, setOpenPAAConfirmDialog] = useState(false);
 
-  const isSubmitting =
-    submittingLegacyEtl || submittingPaaEtl || submittingMutation;
+  // Legacy (non-PAA) pulls have no district scope, so they keep the global flags.
+  const isSubmitting = submittingLegacyEtl || submittingPaaEtl;
 
   const selectedPaaScope = useMemo(
     () => getZanzibarPaaScope(selectedDistrict, selectedRegion),
     [selectedDistrict, selectedRegion],
   );
   const selectedPaaName = selectedPaaScope || selectedDistrict?.name;
+
+  // Per-PAA gating, mirroring the backend's paa_etl_prevent_duplicate_active
+  // guard: different PAAs may import concurrently, only a repeat of the same one
+  // is blocked. Driven by server state so it cannot get stuck.
+  const runningPaaNames = useMemo(
+    () => new Set(
+      (pulledQ || [])
+        .filter((item) => item.status === "running")
+        .map((item) => item.paaName),
+    ),
+    [pulledQ],
+  );
+  const isSelectedPaaImporting = Boolean(
+    selectedPaaName && runningPaaNames.has(selectedPaaName),
+  );
+
+  // Covers the gap before the PAA shows as running; time-based so it self-heals.
+  const lastPaaSubmitRef = useRef({});
+  const isSelectedPaaJustSubmitted = () => {
+    const at = lastPaaSubmitRef.current[selectedPaaName];
+    return Boolean(at && Date.now() - at < PAA_SUBMIT_DEBOUNCE_MS);
+  };
 
   const HISTORY_HEADERS = [
     "ImportDataApiPage.table.paaName",
@@ -228,16 +256,24 @@ function ImportDataApiPage({
     const label = mutation?.clientMutationLabel || "";
     const isEtl = label.startsWith("paa_etl_") || label.startsWith("etl_");
 
-    if (
-      isEtl &&
-      mutation?.clientMutationId &&
-      !submittingMutation &&
-      !mutation?.error
-    ) {
+    // Refresh on failures too, so a rejected import shows why.
+    if (isEtl && mutation?.clientMutationId && !submittingMutation) {
       refreshHistory();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mutation, submittingMutation]);
+
+  // Falling edge of a submit: refresh once, for success and error alike, without
+  // waiting for the poll.
+  const wasSubmittingEtlRef = useRef(false);
+  useEffect(() => {
+    const submitting = submittingPaaEtl || submittingLegacyEtl;
+    if (wasSubmittingEtlRef.current && !submitting) {
+      refreshHistory();
+    }
+    wasSubmittingEtlRef.current = submitting;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submittingPaaEtl, submittingLegacyEtl]);
 
   useEffect(() => {
     fetchMutationByLabel(
@@ -264,7 +300,7 @@ function ImportDataApiPage({
 
     if (!hasRunningImports) return undefined;
 
-    const intervalId = setInterval(refreshHistory, 12000); 
+    const intervalId = setInterval(refreshHistory, PULLED_HISTORY_REFRESH_MS);
     return () => clearInterval(intervalId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pulledQ, selectedRegion, selectedDistrict]);
@@ -277,7 +313,8 @@ function ImportDataApiPage({
   const handleConfirmPAAImport = () => {
     if (!selectedRegion || !selectedDistrict) return;
 
-    if (submittingLegacyEtl || submittingPaaEtl || submittingMutation) return;
+    // Only block a repeat of this same PAA.
+    if (isSelectedPaaImporting || isSelectedPaaJustSubmitted()) return;
 
     const params = {
       paaName: selectedPaaName,
@@ -291,6 +328,8 @@ function ImportDataApiPage({
     } else if (manualQuestionnaireId.trim()) {
       params.questionnaireId = manualQuestionnaireId.trim();
     }
+
+    lastPaaSubmitRef.current[selectedPaaName] = Date.now();
 
     const mutationLabel = `paa_etl_${selectedDistrict.code}_${Date.now()}`;
     confirmPullingDataFromApiEtl("SurveySolutionService", mutationLabel, params);
@@ -632,12 +671,12 @@ function ImportDataApiPage({
                     disabled={
                       !selectedRegion ||
                       !selectedDistrict ||
-                      isSubmitting
+                      isSelectedPaaImporting
                     }
                     fullWidth
-                    startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
+                    startIcon={isSelectedPaaImporting ? <CircularProgress size={20} /> : null}
                   >
-                    {isSubmitting
+                    {isSelectedPaaImporting
                       ? formatMessage(intl, "individual", "ImportDataApiPage.importing")
                       : formatMessage(intl, "individual", "ImportDataApiPage.triggerImport")}
                   </Button>
@@ -772,7 +811,7 @@ function ImportDataApiPage({
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenPAAConfirmDialog(false)} color="primary" disabled={isSubmitting}>
+          <Button onClick={() => setOpenPAAConfirmDialog(false)} color="primary">
             {formatMessage(intl, "individual", "ImportPageAPI.confirmPullingData.cancel")}
           </Button>
 
@@ -781,10 +820,10 @@ function ImportDataApiPage({
             color="primary"
             variant="contained"
             autoFocus
-            disabled={isSubmitting}
-            startIcon={isSubmitting ? <CircularProgress size={18} /> : null}
+            disabled={isSelectedPaaImporting}
+            startIcon={isSelectedPaaImporting ? <CircularProgress size={18} /> : null}
           >
-            {isSubmitting
+            {isSelectedPaaImporting
               ? formatMessage(intl, "individual", "ImportDataApiPage.importing")
               : formatMessage(intl, "individual", "ImportPageAPI.confirmPullingData.confirm")}
           </Button>

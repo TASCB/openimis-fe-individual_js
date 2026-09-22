@@ -168,17 +168,20 @@ function IndividualsUploadDialog({
 
   return (
     <>
-      <MenuItem>
-        <a href={enrollmentPageUrl()} style={{ color: 'inherit', textDecoration: 'none' }}>
-          {formatMessage(intl, 'individual', 'individual.enrollment.buttonLabel')}
-        </a>
-      </MenuItem>
-      <MenuItem
-        onClick={handleOpen}
-      >
-        {formatMessage(intl, 'individual', 'individual.upload.buttonLabel')}
-      </MenuItem>
-      <IndividualsHistoryUploadDialog />
+      {/* One flex item, so the searcher's header grid cannot split these across rows. */}
+      <div style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center' }}>
+        <MenuItem>
+          <a href={enrollmentPageUrl()} style={{ color: 'inherit', textDecoration: 'none' }}>
+            {formatMessage(intl, 'individual', 'individual.enrollment.buttonLabel')}
+          </a>
+        </MenuItem>
+        <MenuItem
+          onClick={handleOpen}
+        >
+          {formatMessage(intl, 'individual', 'individual.upload.buttonLabel')}
+        </MenuItem>
+        <IndividualsHistoryUploadDialog />
+      </div>
       <Dialog
         open={isOpen}
         onClose={handleClose}

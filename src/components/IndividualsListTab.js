@@ -23,6 +23,7 @@ function IndividualsListTabLabel({
 
 function IndividualsListTabPanel({
   value, rights, groupId, individual, editedGroupIndividual, setEditedGroupIndividual,
+  setConfirmedAction,
 }) {
   if (individual) {
     return null;
@@ -39,6 +40,7 @@ function IndividualsListTabPanel({
         groupId={groupId}
         editedGroupIndividual={editedGroupIndividual}
         setEditedGroupIndividual={setEditedGroupIndividual}
+        setConfirmedAction={setConfirmedAction}
         pubRef="individual.GroupIndividualSearcher"
       />
     </PublishedComponent>

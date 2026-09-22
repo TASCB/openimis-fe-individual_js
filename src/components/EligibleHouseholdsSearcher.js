@@ -24,12 +24,11 @@ import {
 import GroupFilter from "./GroupFilter";
 import { LOC_LEVELS, locationAtLevel } from "../util/searcher-utils";
 
+import { searcherTableRules } from '../util/searcher-table';
+
 const styles = (theme) => ({
   tableWrapper: {
-    "& table": { tableLayout: "fixed", minWidth: "100%" },
-    "& table th, & table td": { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
-    "& table th:first-child, & table td:first-child": { width: 200 },
-    "& table th:nth-child(2), & table td:nth-child(2)": { width: 230 },
+    ...searcherTableRules(1),
     "& .MuiTableCell-root": {
       paddingTop: theme.spacing(1.5),
       paddingBottom: theme.spacing(1.5),
@@ -58,7 +57,6 @@ class EligibleHouseholdsSearcher extends Component {
     const { fetchEligibleHouseholds, modulesManager } = this.props;
     fetchEligibleHouseholds(modulesManager, params);
   };
-
 
   onDoubleClick = (group, newTab = false) => {
     const { rights, history, modulesManager } = this.props;

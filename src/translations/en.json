@@ -168,7 +168,12 @@
       "table": {
         "questionnaireVersion": "Qnr Version"
       }
-    }
+    },
+    "groupIndividual.activeState": "Status",
+    "groupIndividual.active": "Active",
+    "groupIndividual.deactivated": "Deactivated",
+    "groupIndividual.allStates": "All",
+    "groupIndividual.deactivatedFlag": "Deactivated"
   },
   "individualHistory": {
     "pageTitle": "Individual {firstName} {lastName}",

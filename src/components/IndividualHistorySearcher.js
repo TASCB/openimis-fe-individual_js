@@ -13,7 +13,7 @@ import { fetchIndividualHistory } from '../actions';
 import { DEFAULT_PAGE_SIZE, EMPTY_STRING, ROWS_PER_PAGE_OPTIONS } from '../constants';
 import IndividualHistoryFilter from './IndividualHistoryFilter';
 import AdditionalFieldsDialog from './dialogs/AdditionalFieldsDialog';
-import { useFixedSearcherLayout } from '../util/searcher-utils';
+import { useSearcherTable } from '../util/searcher-table';
 
 function IndividualHistorySearcher({
   intl,
@@ -27,7 +27,6 @@ function IndividualHistorySearcher({
   individualHistoryTotalCount,
   individualId,
 }) {
-  const fixed = useFixedSearcherLayout();
   const fetch = (params) => fetchIndividualHistory(modulesManager, params);
 
   const headers = () => [
@@ -97,8 +96,10 @@ function IndividualHistorySearcher({
     />
   );
 
+  const tableClasses = useSearcherTable({ actionColumns: 0 });
+
   return (
-    <div className={fixed.root}>
+    <div className={tableClasses.root}>
       <Searcher
         module="individual"
         FilterPane={individualHistoryFilter}

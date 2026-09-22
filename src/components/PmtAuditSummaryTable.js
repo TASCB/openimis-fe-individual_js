@@ -11,7 +11,12 @@ import {
 import { fetchPmtAuditSummary } from '../actions';
 import { INDIVIDUAL_MODULE_NAME, DEFAULT_PAGE_SIZE, ROWS_PER_PAGE_OPTIONS } from '../constants';
 
+import { searcherTableRules } from '../util/searcher-table';
+
 const styles = (theme) => ({
+  // 5 columns - without this, auto layout gives District most of the surplus.
+  // No action pin: the Action column holds a text button, not an icon.
+  tableWrapper: { ...searcherTableRules() },
   actionButton: { marginRight: theme.spacing(1) },
 });
 
@@ -65,6 +70,7 @@ function PmtAuditSummaryTable({
   const fetch = (params) => fetchAction(modulesManager, params);
 
   return (
+    <div className={classes.tableWrapper}>
     <Searcher
       module="individual"
       fetch={fetch}
@@ -86,6 +92,7 @@ function PmtAuditSummaryTable({
       defaultPageSize={DEFAULT_PAGE_SIZE}
       rowIdentifier={(d) => d.districtCode}
     />
+    </div>
   );
 }
 

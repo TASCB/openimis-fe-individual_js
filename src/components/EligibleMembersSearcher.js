@@ -24,12 +24,11 @@ import {
 import { LOC_LEVELS, locationAtLevel } from '../util/searcher-utils';
 import EligibleMembersFilter from './EligibleMembersFilter';
 
+import { searcherTableRules } from '../util/searcher-table';
+
 const styles = (theme) => ({
   tableWrapper: {
-    // Fixed layout so the first column doesn't balloon; ellipsis truncates long values.
-    '& table': { tableLayout: 'fixed', minWidth: '100%' },
-    '& table th, & table td': { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-    '& table th:first-child, & table td:first-child': { width: 200 },
+    ...searcherTableRules(1),
     '& .MuiTableCell-root': {
       paddingTop: theme.spacing(1.5),
       paddingBottom: theme.spacing(1.5),

@@ -43,12 +43,13 @@ import {
   applyNumberCircle,
   LOC_LEVELS,
   locationAtLevel,
-  useFixedSearcherLayout,
 } from '../util/searcher-utils';
+import { useSearcherTable } from '../util/searcher-table';
 
 function IndividualSearcher({
   intl,
   modulesManager,
+  setConfirmedAction,
   history,
   rights,
   fetchIndividuals,
@@ -71,7 +72,12 @@ function IndividualSearcher({
   benefitPlanToEnroll,
 }) {
   const dispatch = useDispatch();
-  const fixed = useFixedSearcherLayout();
+  // One extra column per contributed row action (case_management adds deactivate/reactivate).
+  const rowActions = modulesManager.getContribs('individual.IndividualSearcher.rowAction') || [];
+  const tableClasses = useSearcherTable({
+    actionColumns: (rights.includes(RIGHT_INDIVIDUAL_UPDATE) ? 1 : 0) + rowActions.length,
+  });
+
   const [appliedCustomFilters, setAppliedCustomFilters] = useState([CLEARED_STATE_FILTER]);
   const [appliedFiltersRowStructure, setAppliedFiltersRowStructure] = useState([CLEARED_STATE_FILTER]);
   const [exportFields, setExportFields] = useState([
@@ -125,6 +131,7 @@ function IndividualSearcher({
     if (rights.includes(RIGHT_INDIVIDUAL_UPDATE)) {
       headers.push('emptyLabel');
     }
+    rowActions.forEach(() => headers.push('emptyLabel'));
     return headers;
   };
 
@@ -152,6 +159,16 @@ function IndividualSearcher({
         </Tooltip>
       ));
     }
+    rowActions.forEach((Action, idx) => {
+      formatters.push((individual) => (
+        <Action
+          key={`individual-row-action-${idx}`}
+          individual={individual}
+          rights={rights}
+          setConfirmedAction={setConfirmedAction}
+        />
+      ));
+    });
     return formatters;
   };
 
@@ -215,7 +232,7 @@ function IndividualSearcher({
   }, [appliedCustomFilters]);
 
   return (
-    <div className={fixed.root}>
+    <div className={tableClasses.root}>
       <Searcher
         module="individual"
         FilterPane={IndividualFilter}

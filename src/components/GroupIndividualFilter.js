@@ -1,6 +1,6 @@
 import React from 'react';
 import { injectIntl } from 'react-intl';
-import { TextInput, PublishedComponent, formatMessage } from '@openimis/fe-core';
+import { TextInput, PublishedComponent, SelectInput, formatMessage } from '@openimis/fe-core';
 import { Grid } from '@material-ui/core';
 import { withTheme, withStyles } from '@material-ui/core/styles';
 import _debounce from 'lodash/debounce';
@@ -80,6 +80,27 @@ function GroupIndividualFilter({
               id: 'role',
               value,
               filter: `role: ${value}`,
+            },
+          ])}
+        />
+      </Grid>
+      <Grid item xs={2} className={classes.item}>
+        {/* Deactivated members stay in the list (is_active=false), so the default view filters
+            them out and the member count reflects active members only. */}
+        <SelectInput
+          module="individual"
+          label="groupIndividual.activeState"
+          options={[
+            { value: 'ACTIVE', label: formatMessage(intl, 'individual', 'groupIndividual.active') },
+            { value: 'DEACTIVATED', label: formatMessage(intl, 'individual', 'groupIndividual.deactivated') },
+            { value: 'ALL', label: formatMessage(intl, 'individual', 'groupIndividual.allStates') },
+          ]}
+          value={filterValue('isActive') ?? 'ACTIVE'}
+          onChange={(value) => onChangeFilters([
+            {
+              id: 'isActive',
+              value,
+              filter: value === 'ALL' ? null : `isActive: ${value === 'ACTIVE'}`,
             },
           ])}
         />

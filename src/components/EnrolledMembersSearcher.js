@@ -42,8 +42,8 @@ import {
   applyNumberCircle,
   LOC_LEVELS,
   locationAtLevel,
-  useFixedSearcherLayout,
 } from '../util/searcher-utils';
+import { useSearcherTable } from '../util/searcher-table';
 
 function EnrolledMembersSearcher({
   intl,
@@ -142,7 +142,6 @@ function EnrolledMembersSearcher({
     prevSubmittingMutationRef.current = submittingMutation;
   });
 
-  const fixed = useFixedSearcherLayout();
   const fetch = (params) => fetchEnrolledIndividuals(modulesManager, params);
 
   const headers = () => {
@@ -251,8 +250,11 @@ function EnrolledMembersSearcher({
     />
   );
 
+  const tableClasses = useSearcherTable({ actionColumns: (rights.includes(RIGHT_INDIVIDUAL_UPDATE) ? 1 : 0)
+      + (rights.includes(RIGHT_INDIVIDUAL_DELETE) ? 1 : 0) });
+
   return (
-    <div className={fixed.root}>
+    <div className={tableClasses.root}>
       <Searcher
       module="individual"
       FilterPane={individualFilter}

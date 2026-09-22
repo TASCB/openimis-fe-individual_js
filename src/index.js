@@ -30,7 +30,9 @@ import {
 } from './components/IndividualTaskTab';
 import getBenefitPlansListTab from './contributions/getBenefitPlansListTab';
 import GroupIndividualSearcher from './components/GroupIndividualSearcher';
-import { clearIndividualExport, downloadIndividuals, fetchIndividuals } from './actions';
+import {
+  clearIndividualExport, downloadIndividuals, fetchGroupIndividuals, fetchIndividuals,
+} from './actions';
 import IndividualHistorySearcher from './components/IndividualHistorySearcher';
 import {
   IndividualTaskItemFormatters,
@@ -198,6 +200,8 @@ const DEFAULT_CONFIG = {
     { key: 'individual.route.group', ref: ROUTE_GROUP },
     { key: 'individual.GroupIndividualSearcher', ref: GroupIndividualSearcher },
     { key: 'individual.actions.fetchIndividuals', ref: fetchIndividuals },
+    // lets a contributed row action refresh the members table after its own mutation
+    { key: 'individual.actions.fetchGroupIndividuals', ref: fetchGroupIndividuals },
     { key: 'individual.actions.downloadIndividuals', ref: downloadIndividuals },
     { key: 'individual.actions.clearIndividualExport', ref: clearIndividualExport },
     { key: 'individual.IndividualHistorySearcher', ref: IndividualHistorySearcher },

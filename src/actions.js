@@ -92,6 +92,7 @@ const GROUP_INDIVIDUAL_FULL_PROJECTION = [
   'group {id, code}',
   'role',
   'recipientType',
+  'isActive',
   'isDeleted',
   'dateCreated',
   'dateUpdated',
@@ -225,10 +226,6 @@ export function fetchApiEtlServices() {
   return graphql(payload, ACTION_TYPE.API_ETL_SERVICES);
 }
 
-/**
- * Send a fully-formed GraphQL document via graphqlWithVariables.
- * This avoids any malformed-string issues and supports optional filters.
- */
 export function fetchPulledQuestionnaires(mm, params = {}) {
   const pageSize = params?.pageSize ?? 10;
   const after = params?.after ?? null;
@@ -1314,7 +1311,7 @@ export const clearGroupIndividuals = () => (dispatch) => {
   });
 };
 
-// ============ PMT (Poverty Management Tool) Actions ============
+// ============ PMT (Proxy Means Test) Actions ============
 /**
  * Fetch households with PMT data for a district/region
  * @param {Object} modulesManager - Module manager instance

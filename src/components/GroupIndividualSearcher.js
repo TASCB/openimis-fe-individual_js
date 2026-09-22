@@ -36,12 +36,13 @@ import {
   RIGHT_GROUP_INDIVIDUAL_DELETE,
   RIGHT_GROUP_INDIVIDUAL_UPDATE,
   ROWS_PER_PAGE_OPTIONS,
+  GROUP_INDIVIDUAL_ROW_ACTION_CONTRIBUTION_KEY,
 } from '../constants';
 import GroupIndividualFilter from './GroupIndividualFilter';
 import GroupIndividualRolePicker from '../pickers/GroupIndividualRolePicker';
-import { useFixedSearcherLayout } from '../util/searcher-utils';
 import GroupChangeDialog from './GroupChangeDialog';
 import GroupIndividualRecipientTypePicker from '../pickers/GroupIndividualRecipientTypePicker';
+import { useSearcherTable } from '../util/searcher-table';
 
 function GroupIndividualSearcher({
   intl,
@@ -71,6 +72,7 @@ function GroupIndividualSearcher({
   clearGroupIndividuals,
   setEditedGroupIndividual,
   editedGroupIndividual,
+  setConfirmedAction,
 
 }) {
   const [groupIndividualToDelete, setGroupIndividualToDelete] = useState(null);
@@ -130,7 +132,13 @@ function GroupIndividualSearcher({
 
   useEffect(() => () => (editedGroupIndividual ? clearGroupIndividuals() : null), [groupId]);
 
-  const fixed = useFixedSearcherLayout();
+  // One extra column per contributed row action (case_management adds deactivate-with-reason).
+  // Declared before the styles hook, which needs the count to pin the action columns.
+  const rowActions = modulesManager.getContribs(GROUP_INDIVIDUAL_ROW_ACTION_CONTRIBUTION_KEY) || [];
+  const actionColumns = 1
+    + (rights.includes(RIGHT_GROUP_INDIVIDUAL_UPDATE) ? 1 : 0)
+    + rowActions.length;
+
   const fetch = (params) => fetchGroupIndividuals(params);
 
   const headers = () => {
@@ -145,6 +153,7 @@ function GroupIndividualSearcher({
     if (rights.includes(RIGHT_GROUP_INDIVIDUAL_UPDATE)) {
       headers.push('emptyLabel');
     }
+    rowActions.forEach(() => headers.push('emptyLabel'));
     return headers;
   };
 
@@ -201,8 +210,14 @@ function GroupIndividualSearcher({
     updatedGroupIndividuals.some((item) => item.id === groupIndividual.id));
 
   const isRowDeleted = (groupIndividual) => deletedGroupIndividualUuids.includes(groupIndividual.id);
+  // Deactivated members stay in the list; every built-in action closes for them, and only the
+  // contributed reactivate action stays live.
+  const isRowDeactivated = (groupIndividual) => groupIndividual?.isActive === false;
+  const isRowLocked = (groupIndividual) => isRowDeleted(groupIndividual)
+    || isRowDeactivated(groupIndividual);
 
-  const isRowDisabled = (_, groupIndividual) => isRowDeleted(groupIndividual) || isRowUpdated(groupIndividual);
+  const isRowDisabled = (_, groupIndividual) => isRowLocked(groupIndividual)
+    || isRowUpdated(groupIndividual);
 
   const onChangeGroupConfirm = (groupToBeChanged) => {
     const updateIndividual = {
@@ -230,14 +245,14 @@ function GroupIndividualSearcher({
           ? formatDateFromISO(modulesManager, intl, groupIndividual.individual.dob)
           : EMPTY_STRING
       ),
-      (groupIndividual) => (rights.includes(RIGHT_GROUP_INDIVIDUAL_UPDATE) && !isRowDeleted(groupIndividual) ? (
+      (groupIndividual) => (rights.includes(RIGHT_GROUP_INDIVIDUAL_UPDATE) && !isRowLocked(groupIndividual) ? (
         <GroupIndividualRolePicker
           withLabel={false}
           value={groupIndividual.role}
           onChange={(role) => handleRoleOnChange(groupIndividual, role)}
         />
       ) : groupIndividual.role),
-      (groupIndividual) => (rights.includes(RIGHT_GROUP_INDIVIDUAL_UPDATE) && !isRowDeleted(groupIndividual) ? (
+      (groupIndividual) => (rights.includes(RIGHT_GROUP_INDIVIDUAL_UPDATE) && !isRowLocked(groupIndividual) ? (
         <GroupIndividualRecipientTypePicker
           withLabel={false}
           value={groupIndividual.recipientType}
@@ -249,7 +264,7 @@ function GroupIndividualSearcher({
           <Tooltip title={formatMessage(intl, 'individual', 'changeGroupButtonTooltip')}>
             <IconButton
               onClick={() => handleGroupChange(groupIndividual)}
-              disabled={isRowDeleted(groupIndividual)}
+              disabled={isRowLocked(groupIndividual)}
             >
               <GroupIcon />
             </IconButton>
@@ -263,25 +278,29 @@ function GroupIndividualSearcher({
           <IconButton
             href={groupIndividualUpdatePageUrl(groupIndividual)}
             onClick={(e) => e.stopPropagation() && onDoubleClick(groupIndividual)}
-            disabled={isRowDeleted(groupIndividual)}
+            disabled={isRowLocked(groupIndividual)}
           >
             <EditIcon />
           </IconButton>
         </Tooltip>
       ));
     }
-    if (rights.includes(RIGHT_GROUP_INDIVIDUAL_DELETE)) {
+    // The delete action is intentionally NOT rendered: a member leaving the household is
+    // recorded as a deactivation with a reason. deleteGroupIndividual and
+    // RIGHT_GROUP_INDIVIDUAL_DELETE are left untouched on the backend.
+    rowActions.forEach((Action, idx) => {
       formatters.push((groupIndividual) => (
-        <Tooltip title={formatMessage(intl, 'individual', 'deleteButtonTooltip')}>
-          <IconButton
-            onClick={() => onDelete(groupIndividual)}
-            disabled={isRowDeleted(groupIndividual)}
-          >
-            <DeleteIcon />
-          </IconButton>
-        </Tooltip>
+        <Action
+          key={`row-action-${idx}`}
+          groupIndividual={groupIndividual}
+          groupId={groupId}
+          rights={rights}
+          setConfirmedAction={setConfirmedAction}
+          disabled={isRowLocked(groupIndividual)}
+          deactivated={isRowDeactivated(groupIndividual)}
+        />
       ));
-    }
+    });
     return formatters;
   };
 
@@ -319,6 +338,12 @@ function GroupIndividualSearcher({
         value: false,
         filter: 'isDeleted: false',
       },
+      // Active-only by default: deactivated members stay in the data but out of the working list,
+      // so "N Household Members Found" counts active members.
+      isActive: {
+        value: 'ACTIVE',
+        filter: 'isActive: true',
+      },
       individual_IsDeleted: {
         value: false,
         filter: 'individual_IsDeleted: false',
@@ -343,8 +368,10 @@ function GroupIndividualSearcher({
     />
   );
 
+  const tableClasses = useSearcherTable({ actionColumns: actionColumns });
+
   return (
-    <div className={fixed.root}>
+    <div className={tableClasses.root}>
       <GroupChangeDialog
         confirmState={isChangeGroupModalOpen}
         onClose={() => setIsChangeGroupModalOpen(false)}
@@ -367,6 +394,8 @@ function GroupIndividualSearcher({
         })}
         headers={headers}
         itemFormatters={itemFormatters}
+        rowDisabled={isRowDisabled}
+        rowLocked={(_, gi) => isRowDeactivated(gi)}
         sorts={sorts}
         rowsPerPageOptions={ROWS_PER_PAGE_OPTIONS}
         defaultPageSize={DEFAULT_PAGE_SIZE}

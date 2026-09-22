@@ -19,7 +19,6 @@ import {
   DialogTitle,
   DialogContent,
 } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
 import EditIcon from '@material-ui/icons/Edit';
 import {
   downloadGroups, fetchGroups, clearGroupExport,
@@ -36,26 +35,12 @@ import {
   LOC_LEVELS,
   locationAtLevel,
 } from '../util/searcher-utils';
-
-const useStyles = makeStyles(() => ({
-  searcher: {
-    '& table': { tableLayout: 'fixed', minWidth: '100%' },
-    '& table th, & table td': { whiteSpace: 'nowrap' },
-    '& table th:nth-child(-n+7), & table td:nth-child(-n+7)': { overflow: 'hidden', textOverflow: 'ellipsis' },
-    '& table th:nth-child(1), & table td:nth-child(1)': { width: 200 },
-    '& table th:nth-child(2), & table td:nth-child(2)': { width: 200 },
-    '& table th:nth-child(3), & table td:nth-child(3)': { width: 90 },
-    '& table th:nth-child(4), & table td:nth-child(4)': { width: 140 },
-    '& table th:nth-child(5), & table td:nth-child(5)': { width: 140 },
-    '& table th:nth-child(6), & table td:nth-child(6)': { width: 140 },
-    '& table th:nth-child(7), & table td:nth-child(7)': { width: 150 },
-    '& table th:nth-child(8), & table td:nth-child(8)': { width: 56 },
-  },
-}));
+import { useSearcherTable } from '../util/searcher-table';
 
 function GroupSearcher({
   intl,
   modulesManager,
+  setConfirmedAction,
   history,
   rights,
   fetchGroups,
@@ -74,7 +59,10 @@ function GroupSearcher({
   benefitPlanToEnroll,
   advancedCriteria,
 }) {
-  const classes = useStyles();
+  // One extra column per contributed row action (case_management adds deactivate/reactivate).
+  // Use the literal key, not an imported constant: getContribs(undefined) returns nothing and
+  // fails silently.
+  const rowActions = modulesManager.getContribs('individual.GroupSearcher.rowAction') || [];
   const [appliedCustomFilters, setAppliedCustomFilters] = useState([CLEARED_STATE_FILTER]);
   const [appliedFiltersRowStructure, setAppliedFiltersRowStructure] = useState([CLEARED_STATE_FILTER]);
 
@@ -99,6 +87,7 @@ function GroupSearcher({
     if (rights.includes(RIGHT_GROUP_UPDATE)) {
       headers.push('emptyLabel');
     }
+    rowActions.forEach(() => headers.push('emptyLabel'));
     return headers;
   };
 
@@ -128,6 +117,16 @@ function GroupSearcher({
         </Tooltip>
       ));
     }
+    rowActions.forEach((Action, idx) => {
+      formatters.push((group) => (
+        <Action
+          key={`group-row-action-${idx}`}
+          group={group}
+          rights={rights}
+          setConfirmedAction={setConfirmedAction}
+        />
+      ));
+    });
     return formatters;
   };
 
@@ -183,8 +182,10 @@ function GroupSearcher({
     />
   );
 
+  const tableClasses = useSearcherTable({ actionColumns: (rights.includes(RIGHT_GROUP_UPDATE) ? 1 : 0) + rowActions.length });
+
   return (
-    <div className={classes.searcher}>
+    <div className={tableClasses.root}>
       <Searcher
         module="individual"
         FilterPane={groupFilter}

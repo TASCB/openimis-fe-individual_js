@@ -12,14 +12,13 @@ import {
 import { DEFAULT_PAGE_SIZE, EMPTY_STRING, ROWS_PER_PAGE_OPTIONS } from '../constants';
 import GroupIndividualHistoryFilter from './GroupIndividualHistoryFilter';
 import { fetchGroupIndividualHistory } from '../actions';
-import { useFixedSearcherLayout } from '../util/searcher-utils';
+import { useSearcherTable } from '../util/searcher-table';
 
 function GroupIndividualHistorySearcher({
   individualId,
 }) {
   const modulesManager = useModulesManager();
   const dispatch = useDispatch();
-  const fixed = useFixedSearcherLayout();
   const { formatDateFromISO, formatMessageWithValues } = useTranslations('individual', modulesManager);
 
   const fetchingGroupIndividualHistory = useSelector((state) => state.individual.fetchingGroupIndividualHistory);
@@ -84,8 +83,10 @@ function GroupIndividualHistorySearcher({
     />
   );
 
+  const searcherClasses = useSearcherTable({ actionColumns: 0 });
+
   return (
-    <div className={fixed.root}>
+    <div className={searcherClasses.root}>
       <Searcher
         module="individual"
         FilterPane={groupIndividualHistoryFilter}

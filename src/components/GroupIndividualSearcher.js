@@ -403,8 +403,6 @@ function GroupIndividualSearcher({
         rowIdentifier={rowIdentifier}
         onDoubleClick={onDoubleClick}
         defaultFilters={defaultFilters()}
-        rowDisabled={isRowDisabled}
-        rowLocked={isRowDisabled}
         exportable
         exportFetch={downloadGroupIndividuals}
         exportFields={[

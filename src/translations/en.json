@@ -173,7 +173,23 @@
     "groupIndividual.active": "Active",
     "groupIndividual.deactivated": "Deactivated",
     "groupIndividual.allStates": "All",
-    "groupIndividual.deactivatedFlag": "Deactivated"
+    "groupIndividual.deactivatedFlag": "Deactivated",
+    "gender": "Gender",
+    "phoneNumber": "Phone Number",
+    "nin": "NIN",
+    "isHead": "Is Head",
+    "isHhrep": "Is HHREP",
+    "premNumber": "PREM Number",
+    "status": "Status",
+    "yes": "Yes",
+    "no": "No",
+    "memberStatus": {
+      "ACTIVE": "Enrolled (active)",
+      "POTENTIAL": "Potential",
+      "SUSPENDED": "Suspended",
+      "GRADUATED": "Graduated",
+      "NOT_ENROLLED": "Not enrolled"
+    }
   },
   "individualHistory": {
     "pageTitle": "Individual {firstName} {lastName}",
@@ -232,7 +248,11 @@
       }
     },
     "hhSize": "HH Size",
-    "members": "Members"
+    "members": "Members",
+    "hhrep": "HHREP",
+    "interviewKey": "Interview Key",
+    "locationName": "Location Name",
+    "headPhone": "Head Phone"
   },
   "groupHistory": {
     "pageTitle": "Group {id}",
@@ -477,7 +497,7 @@
     },
     "enrollment": {
       "page": {
-        "title": "PMT Enrollment List"
+        "title": "PMT Household List"
       },
       "searcherResultsTitle": "{pmtEnrollmentTotalCount} Households Found"
     },
@@ -626,5 +646,10 @@
       "changed": "changed",
       "openInHq": "Open in HQ"
     }
-  }
+  },
+  "pctEnrolment.tasks.title": "PCT enrolment of imported POOR households",
+  "pctEnrolment.task.import": "Import",
+  "pctEnrolment.task.households": "Households to enrol",
+  "pctEnrolment.task.members": "Members",
+  "pctEnrolment.task.plan": "Benefit plan"
 }

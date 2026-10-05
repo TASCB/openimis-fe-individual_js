@@ -10,6 +10,7 @@ import {
 import { injectIntl } from 'react-intl';
 import { withTheme, withStyles } from '@material-ui/core/styles';
 import { EMPTY_STRING } from '../constants';
+import GroupAdditionalFieldsDialog, { groupHeadName, groupRepName } from './dialogs/GroupAdditionalFieldsDialog';
 
 const styles = (theme) => ({
   tableTitle: theme.table.title,
@@ -63,6 +64,19 @@ class GroupHeadPanel extends FormPanel {
               value={group?.code ?? EMPTY_STRING}
             />
           </Grid>
+          {!!groupId && (
+            <>
+              <Grid item xs={3} className={classes.item}>
+                <TextInput readOnly module="individual" label="group.head" value={groupHeadName(group)} />
+              </Grid>
+              <Grid item xs={3} className={classes.item}>
+                <TextInput readOnly module="individual" label="group.hhrep" value={groupRepName(group)} />
+              </Grid>
+              <Grid item xs={3} className={classes.item}>
+                <GroupAdditionalFieldsDialog group={group} />
+              </Grid>
+            </>
+          )}
           <Grid item xs={12}>
             <PublishedComponent
               pubRef="location.DetailedLocation"

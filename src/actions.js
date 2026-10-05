@@ -67,11 +67,34 @@ const INDIVIDUAL_FULL_PROJECTION = (mm, withGroupIndividuals = false) => {
   if (withGroupIndividuals) {
     fields.push(
       'groupindividuals (isDeleted: false) { edges { node { group { id } } } }',
+      'gender',
+      'phoneNumber',
+      'nin',
+      'premNumber',
+      'isHead',
+      'isHhrep',
+      'status',
     );
   }
 
   return fields;
 };
+
+const GROUP_LIST_PROJECTION = (mm) => [
+  'id',
+  'code',
+  'head {firstName, lastName, uuid}',
+  'memberCount',
+  `location${mm.getProjection('location.Location.FlatProjection')}`,
+];
+
+const INDIVIDUAL_LIST_PROJECTION = (mm) => [
+  'id',
+  'firstName',
+  'lastName',
+  'dob',
+  `location${mm.getProjection('location.Location.FlatProjection')}`,
+];
 
 const NON_CONSENTED_INDIVIDUAL_PROJECTION = (mm) => [
   'id',
@@ -103,7 +126,7 @@ const GROUP_FULL_PROJECTION = (mm) => [
   'id',
   'code',
   'isDeleted',
-  'head {firstName, lastName, uuid}',
+  'head {firstName, lastName, uuid, phoneNumber}',
   'groupindividuals(isDeleted: false) { edges { node { id } } }',
   'dateCreated',
   'dateUpdated',
@@ -188,9 +211,6 @@ const ELIGIBLE_MEMBER_PROJECTION = (mm) => [
   "firstName",
   "lastName",
   "dob",
-  "dateCreated",
-  "dateUpdated",
-  "jsonExt",
   `location {
     id
     uuid
@@ -339,11 +359,13 @@ export function fetchGroupEnrollmentSummary(params) {
   return graphql(payload, ACTION_TYPE.ENROLLMENT_GROUP_SUMMARY);
 }
 
-export function fetchIndividuals(mm, params) {
+export const fetchIndividualsList = (mm, params) => fetchIndividuals(mm, params, INDIVIDUAL_LIST_PROJECTION(mm));
+
+export function fetchIndividuals(mm, params, projection = null) {
   const payload = formatPageQueryWithCount(
     'individual',
     params,
-    INDIVIDUAL_FULL_PROJECTION(mm),
+    projection || INDIVIDUAL_FULL_PROJECTION(mm),
   );
   return graphql(payload, ACTION_TYPE.SEARCH_INDIVIDUALS);
 }
@@ -542,11 +564,13 @@ export function fetchGroupIndividuals(params) {
   return graphql(payload, ACTION_TYPE.SEARCH_GROUP_INDIVIDUALS);
 }
 
-export function fetchGroups(mm, params) {
+export const fetchGroupsList = (mm, params) => fetchGroups(mm, params, GROUP_LIST_PROJECTION(mm));
+
+export function fetchGroups(mm, params, projection = null) {
   const payload = formatPageQueryWithCount(
     'group',
     params,
-    GROUP_FULL_PROJECTION(mm),
+    projection || GROUP_FULL_PROJECTION(mm),
   );
   return graphql(payload, ACTION_TYPE.SEARCH_GROUPS);
 }
@@ -1548,7 +1572,7 @@ export function fetchPmtEnrollmentList(modulesManager, params = {}) {
     'pmtEnrollmentList',
     queryParams,
     [
-      'households { groupUuid groupCode hhRep headUuid headName pmtScore pmtClass numberOfMembers locationCode locationName }',
+      'households { groupUuid groupCode hhRep headUuid headName pmtScore pmtClass numberOfMembers locationCode locationName villageName wardName districtName }',
       'totalCount',
       'hasNext',
       'hasPrevious',
@@ -1595,7 +1619,7 @@ export function fetchPmtEnrollmentListForExport(modulesManager, params = {}) {
     'pmtEnrollmentList',
     queryParams,
     [
-      'households { groupUuid groupCode hhRep headUuid headName pmtScore pmtClass numberOfMembers locationCode locationName }',
+      'households { groupUuid groupCode hhRep headUuid headName pmtScore pmtClass numberOfMembers locationCode locationName villageName wardName districtName }',
       'totalCount',
       'hasNext',
       'hasPrevious',

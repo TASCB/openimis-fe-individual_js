@@ -132,13 +132,9 @@ class EligibleHouseholdsSearcher extends Component {
       value: false,
       filter: "isDeleted: false",
     },
-    isNonConsented: {
-      value: false,
-      filter: "isNonConsented: false",
-    },
-    pmtEligible: {
+    pctEnrolled: {
       value: true,
-      filter: "pmtEligible: true",
+      filter: "pctEnrolled: true",
     },
   });
 

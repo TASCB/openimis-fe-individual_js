@@ -23,7 +23,7 @@ import {
 } from '@material-ui/core';
 import EditIcon from '@material-ui/icons/Edit';
 import {
-  fetchIndividuals,
+  fetchIndividualsList,
   downloadIndividuals,
   clearIndividualExport,
 } from '../actions';
@@ -52,7 +52,7 @@ function IndividualSearcher({
   setConfirmedAction,
   history,
   rights,
-  fetchIndividuals,
+  fetchIndividualsList,
   fetchingIndividuals,
   fetchedIndividuals,
   errorIndividuals,
@@ -117,7 +117,7 @@ function IndividualSearcher({
   const onDoubleClick = (individual, newTab = false) => rights.includes(RIGHT_INDIVIDUAL_UPDATE)
   && historyPush(modulesManager, history, 'individual.route.individual', [individual?.id], newTab);
 
-  const fetch = (params) => fetchIndividuals(modulesManager, params);
+  const fetch = (params) => fetchIndividualsList(modulesManager, params);
 
   const headers = () => {
     const headers = [
@@ -315,7 +315,7 @@ const mapStateToProps = (state) => ({
 
 const mapDispatchToProps = (dispatch) => bindActionCreators(
   {
-    fetchIndividuals,
+    fetchIndividualsList,
     downloadIndividuals,
     clearIndividualExport,
   },

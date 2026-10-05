@@ -226,28 +226,20 @@ function drawMetadataBoxes({
   pageWidth,
   startY,
   generatedDate,
-  districtCode,
+  districtName,
+  wardName,
   villageName
 }) {
+  const metadataItems = [
+    { label: "Tarehe:", value: generatedDate?.toLocaleString() || "-" },
+    { label: "Wilaya:", value: districtName || "-" },
+    { label: "Kata:", value: wardName || "-" },
+    { label: "Kijiji:", value: villageName || "-" }
+  ];
   const contentWidth = pageWidth - (margin * 2);
   const gap = 3;
   const boxHeight = 14;
-  const boxWidth = (contentWidth - (gap * 2)) / 3;
-
-  const metadataItems = [
-    {
-      label: "Tarehe:",
-      value: generatedDate?.toLocaleString() || "-"
-    },
-    {
-      label: "Wilaya:",
-      value: districtCode || "-"
-    },
-    {
-      label: "Kijiji:",
-      value: villageName || "-"
-    }
-  ];
+  const boxWidth = (contentWidth - (gap * (metadataItems.length - 1))) / metadataItems.length;
 
   let x = margin;
 
@@ -280,14 +272,10 @@ function drawMetadataBoxes({
   return startY + boxHeight;
 }
 
-const getExportVillageName = (households) => {
-  const villages = new Set((households || []).map((household) => household?.locationName).filter(Boolean));
-  if (villages.size === 1) {
-    return [...villages][0];
-  }
-  if (villages.size > 1) {
-    return "Vijiji Mbalimbali";
-  }
+const getExportLocationName = (households, field, several) => {
+  const names = new Set((households || []).map((household) => household?.[field]).filter(Boolean));
+  if (names.size === 1) return [...names][0];
+  if (names.size > 1) return `${several} Mbalimbali`;
   return null;
 };
 
@@ -343,7 +331,10 @@ export async function exportPmtEnrollmentPdf({
   const governmentLogo = await loadGovernmentLogo();
   const title = getEnrollmentPdfTitle(pmtClass);
   const fileName = getEnrollmentPdfFileName(pmtClass);
-  const villageName = getExportVillageName(households);
+  const districtName = getExportLocationName(households, "districtName", "Wilaya") || districtCode;
+  const wardName = getExportLocationName(households, "wardName", "Kata");
+  const villageName = getExportLocationName(households, "villageName", "Vijiji")
+    || getExportLocationName(households, "locationName", "Vijiji");
 
   const doc = createProtectedPdf();
 
@@ -368,7 +359,8 @@ export async function exportPmtEnrollmentPdf({
     pageWidth,
     startY: contentY,
     generatedDate,
-    districtCode,
+    districtName,
+    wardName,
     villageName
   });
 
@@ -470,6 +462,7 @@ const NON_CONSENTED_TITLE = "KAYA AMBAZO HAZIJAHOJIWA";
 export async function exportNonConsentedHouseholdsPdf({
   households = [],
   districtName,
+  wardName,
   villageName,
   generatedDate,
 }) {
@@ -499,7 +492,8 @@ export async function exportNonConsentedHouseholdsPdf({
     pageWidth,
     startY: contentY,
     generatedDate,
-    districtCode: districtName,
+    districtName,
+    wardName,
     villageName
   });
 

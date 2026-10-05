@@ -10,7 +10,7 @@ import {
 } from '@openimis/fe-core';
 import { injectIntl } from 'react-intl';
 import { withTheme, withStyles } from '@material-ui/core/styles';
-import AdditionalFieldsDialog from './dialogs/AdditionalFieldsDialog';
+import IndividualAdditionalFieldsDialog from './dialogs/IndividualAdditionalFieldsDialog';
 
 const styles = (theme) => ({
   tableTitle: theme.table.title,
@@ -89,9 +89,7 @@ class IndividualHeadPanel extends FormPanel {
             />
           </Grid>
           <Grid item xs={3} className={classes.item}>
-            <AdditionalFieldsDialog
-              individualJsonExt={individual?.jsonExt}
-            />
+            <IndividualAdditionalFieldsDialog individual={individual} />
           </Grid>
           <Grid item xs={12}>
             <PublishedComponent

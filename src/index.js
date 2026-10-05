@@ -88,6 +88,7 @@ import { PmtRerunTabLabel, PmtRerunTabPanel } from './components/pmt/PmtRerunTab
 import { PmtAdjustmentTabLabel, PmtAdjustmentTabPanel } from './components/pmt/PmtAdjustmentTab';
 import { PmtFormulaTabLabel, PmtFormulaTabPanel } from './components/pmt/PmtFormulaTab';
 import { PmtFormulaTaskTableHeaders, PmtFormulaTaskItemFormatters } from './components/tasks/PmtFormulaTasks';
+import { PctEnrolmentTaskTableHeaders, PctEnrolmentTaskItemFormatters } from './components/tasks/PctEnrolmentTasks';
 
 const ROUTE_INDIVIDUALS = 'individuals';
 const ROUTE_NON_CONSENTED = 'non-consented';
@@ -297,6 +298,12 @@ const DEFAULT_CONFIG = {
     itemFormatters: PmtFormulaTaskItemFormatters,
     taskSource: ['PmtGlobalFormulaService'],
     taskCode: PMT_FORMULA_LABEL,
+  },
+  {
+    text: <FormattedMessage module={INDIVIDUAL_MODULE_NAME} id="pctEnrolment.tasks.title" />,
+    tableHeaders: PctEnrolmentTaskTableHeaders,
+    itemFormatters: PctEnrolmentTaskItemFormatters,
+    taskSource: ['pct_enrolment'],
   },
   ],
 };

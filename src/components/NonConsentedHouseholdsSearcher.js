@@ -255,6 +255,17 @@ class NonConsentedHouseholdsSearcher extends Component {
     return null;
   };
 
+  getWardLabel = (households) => {
+    const wards = new Set(
+      (households || [])
+        .map((individual) => this.getLocationChain(individual?.location).find((loc) => loc?.type === "W")?.name)
+        .filter(Boolean),
+    );
+    if (wards.size === 1) return [...wards][0];
+    if (wards.size > 1) return "Kata Mbalimbali";
+    return null;
+  };
+
   getVillageLabel = (households) => {
     const villages = new Set(
       (households || []).map((individual) => this.getVillageName(individual)).filter(Boolean).filter((v) => v !== "-")
@@ -296,6 +307,7 @@ class NonConsentedHouseholdsSearcher extends Component {
           interviewReason: this.getInterviewResultReason(individual),
         })),
         districtName: this.getDistrictLabel(exportItems),
+        wardName: this.getWardLabel(exportItems),
         villageName: this.getVillageLabel(exportItems),
         generatedDate: new Date(),
       });

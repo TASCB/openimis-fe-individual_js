@@ -124,13 +124,9 @@ class EligibleMembersSearcher extends Component {
       value: false,
       filter: 'isDeleted: false',
     },
-    groupPmtEligible: {
+    groupPctEnrolled: {
       value: true,
-      filter: 'groupPmtEligible: true',
-    },
-    groupIsNonConsented: {
-      value: false,
-      filter: 'groupIsNonConsented: false',
+      filter: 'groupPctEnrolled: true',
     },
   });
 

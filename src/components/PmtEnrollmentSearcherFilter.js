@@ -10,8 +10,6 @@ import { injectIntl } from 'react-intl';
 import { INDIVIDUAL_MODULE_NAME, DEFAULT_DEBOUNCE_TIME } from '../constants';
 import { defaultFilterStyles } from '../util/styles';
 
-const LOCATION_FILTER_IDS = ['parentLocation', 'location', 'districtLocation', 'regionLocation', 'parentLocationLevel'];
-
 function PmtEnrollmentSearcherFilter({
   intl, classes, filters, onChangeFilters, onLocationNameChange,
 }) {
@@ -49,54 +47,18 @@ function PmtEnrollmentSearcherFilter({
   };
 
   const handleLocationFilterChange = (newFilters) => {
-    const nonLocationFilters = Object.entries(filters || {})
-      .filter(([id]) => !LOCATION_FILTER_IDS.includes(id) && !['districtCode', 'regionCode'].includes(id))
-      .map(([id, filter]) => ({
-        id,
-        value: filter?.value,
-        filter: filter?.filter,
-      }));
+    const anchor = (newFilters || []).find((f) => f?.id === 'parentLocation');
+    const selected = anchor?.value || null;
+    const level = Number((anchor?.filter || '').match(/Level:\s*(\d+)/)?.[1]);
+    const codeFilter = (id, active) => (active
+      ? { id, value: selected.uuid, filter: `${id}: "${selected.uuid}"` }
+      : { id, value: null });
 
-    if (!Array.isArray(newFilters) || newFilters.length === 0) {
-      onLocationNameChange?.(null);
-      onChangeFilters([
-        ...nonLocationFilters,
-        { id: 'districtCode', value: null },
-        { id: 'regionCode', value: null },
-      ]);
-      return;
-    }
-
-    const locationFilter = newFilters.find((filter) => ['parentLocation', 'location', 'districtLocation', 'regionLocation'].includes(filter?.id));
-    const levelFilter = newFilters.find((filter) => filter?.id === 'parentLocationLevel');
-    const locationValue = locationFilter?.value;
-    const locationIdentifier = locationValue?.uuid || locationValue?.id || locationValue?.code || locationValue;
-
-    if (!locationIdentifier) {
-      onLocationNameChange?.(null);
-      onChangeFilters([
-        ...nonLocationFilters,
-        { id: 'districtCode', value: null },
-        { id: 'regionCode', value: null },
-      ]);
-      return;
-    }
-
-    const locationLevel = Number(levelFilter?.value);
-    const backendFilterId = locationFilter?.id === 'regionLocation' || locationLevel === 0
-      ? 'regionCode'
-      : 'districtCode';
-
-    onLocationNameChange?.(locationValue?.name || locationValue?.displayName || null);
+    onLocationNameChange?.(selected?.name || null);
     onChangeFilters([
-      ...nonLocationFilters,
-      { id: 'districtCode', value: null },
-      { id: 'regionCode', value: null },
-      {
-        id: backendFilterId,
-        value: locationIdentifier,
-        filter: `${backendFilterId}: "${locationIdentifier}"`,
-      },
+      ...(newFilters || []).map((f) => ({ ...f, filter: null })),
+      codeFilter('regionCode', !!selected && level === 0),
+      codeFilter('districtCode', !!selected && level !== 0),
     ]);
   };
 

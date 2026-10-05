@@ -21,7 +21,7 @@ import {
 } from '@material-ui/core';
 import EditIcon from '@material-ui/icons/Edit';
 import {
-  downloadGroups, fetchGroups, clearGroupExport,
+  downloadGroups, fetchGroupsList, clearGroupExport,
 } from '../actions';
 import {
   DEFAULT_PAGE_SIZE,
@@ -43,7 +43,7 @@ function GroupSearcher({
   setConfirmedAction,
   history,
   rights,
-  fetchGroups,
+  fetchGroupsList,
   fetchingGroups,
   fetchedGroups,
   errorGroups,
@@ -73,7 +73,7 @@ function GroupSearcher({
   const onDoubleClick = (group, newTab = false) => rights.includes(RIGHT_GROUP_UPDATE)
   && historyPush(modulesManager, history, 'individual.route.group', [group?.id], newTab);
 
-  const fetch = (params) => fetchGroups(modulesManager, params);
+  const fetch = (params) => fetchGroupsList(modulesManager, params);
 
   const headers = () => {
     const headers = [
@@ -97,7 +97,7 @@ function GroupSearcher({
       (group) => (group?.head
         ? `${group?.head?.firstName} ${group?.head?.lastName}`
         : formatMessage(intl, 'group', 'noHeadSpecified')),
-      (group) => group?.groupindividuals?.edges?.length ?? 0,
+      (group) => group?.memberCount ?? group?.groupindividuals?.edges?.length ?? 0,
     ];
 
     const locations = Array.from({ length: LOC_LEVELS }, (_, i) => (group) => (
@@ -268,7 +268,7 @@ const mapStateToProps = (state) => ({
 
 const mapDispatchToProps = (dispatch) => bindActionCreators(
   {
-    fetchGroups,
+    fetchGroupsList,
     downloadGroups,
     clearGroupExport,
   },

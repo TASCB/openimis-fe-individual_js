@@ -441,14 +441,19 @@
       "cutoffHint": "Score threshold (0-50). Stored household scores will be reclassified against this cutoff",
       "region": "Region",
       "district": "District",
-      "button": "Apply PMT Cutoff & Adjust Individuals",
+      "button": "Apply PMT Cutoff",
       "info": "This will reuse each household's stored PMT score, update the household classification, and push the adjusted PMT status to each individual without recalculating scores",
       "confirm": {
         "title": "Apply PMT Cutoff Adjustment?",
-        "message": "This will reclassify households and individuals in {districtName} district using the stored PMT score and cutoff {cutoff}. Continue?",
+        "message": "This will reclassify households and individuals in {districtName} using the stored PMT score and cutoff {cutoff}, and auto-enrol the POOR households in PCT. Continue?",
         "yes": "Adjust",
-        "no": "Cancel"
-      }
+        "no": "Cancel",
+        "messageAll": "This will reclassify every household and individual in the database using the stored PMT score and cutoff {cutoff}, and auto-enrol the POOR households in PCT. Continue?"
+      },
+      "showAdvancedOptions": "Advanced options (limit to a region or district)",
+      "infoAll": "Applies the new cutoff to every household in the database: each household and its members are reclassified from their stored PMT score (no scores are recalculated), then newly POOR households are auto-enrolled in PCT. Suspended or graduated PCT beneficiaries are left unchanged. PMT Results by PAA is updated when it finishes.",
+      "infoScoped": "Applies the new cutoff only to the selected region / district: households and members there are reclassified from their stored PMT score, then newly POOR households are auto-enrolled in PCT. Suspended or graduated PCT beneficiaries are left unchanged.",
+      "formulaWarning": "The global PMT formula still uses cutoff {formulaCutoff}: newly imported households will be classified with it. Change it on the Formula & Parameters tab (needs approval) if this new cutoff should apply to imports too."
     },
     "results": {
       "title": "Household PMT Results",
@@ -488,12 +493,22 @@
       "view": "View"
     },
     "auditSummary": {
-      "paaName": "PAA / District",
+      "paaName": "PAA",
       "cutoff": "PMT Cutoff",
       "poor": "Poor",
       "nonPoor": "Non-Poor",
       "action": "",
-      "searcherResultsTitle": "{count} PAAs"
+      "searcherResultsTitle": "{count} PAAs",
+      "title": "PMT Results by PAA",
+      "tab": "PMT Results by PAA",
+      "region": "Region",
+      "date": "PMT Date",
+      "source": "Cutoff Source",
+      "source.FORMULA": "Formula",
+      "source.RUN": "Rerun / Adjustment",
+      "total": "Total",
+      "poorShare": "% Poor",
+      "viewTooltip": "View households"
     },
     "enrollment": {
       "page": {
@@ -531,6 +546,43 @@
       "close": "Close",
       "runInBackground": "Run In Background",
       "viewActive": "View Active Progress"
+    },
+    "audit": {
+      "tab": "Audit",
+      "runs": {
+        "searcherResultsTitle": "{count} PMT runs found",
+        "paa": "PAA",
+        "operation": "Operation",
+        "operation.RERUN": "PMT Rerun",
+        "operation.CUTOFF_ADJUSTMENT": "Cutoff Adjustment",
+        "operation.null": "Any",
+        "cutoff": "PMT Cutoff",
+        "poor": "Eligible",
+        "nonPoor": "Non-Eligible",
+        "households": "Households",
+        "status": "Status",
+        "status.STARTED": "Started",
+        "status.CALCULATING": "Calculating",
+        "status.ENROLLING": "Enrolling",
+        "status.COMPLETED": "Completed",
+        "status.FAILED": "Failed",
+        "status.null": "Any",
+        "dateFrom": "Date From",
+        "dateTo": "Date To",
+        "date": "Date",
+        "user": "User",
+        "allPaas": "All PAAs"
+      },
+      "formula": {
+        "searcherResultsTitle": "{count} PMT formula versions found",
+        "version": "Version",
+        "cutoff": "Cutoff",
+        "dateUpdated": "Date Updated",
+        "formula": "Formula",
+        "dateFrom": "Date Updated From",
+        "dateTo": "Date Updated To",
+        "userUpdated": "User Updated"
+      }
     }
   },
   "survey": {

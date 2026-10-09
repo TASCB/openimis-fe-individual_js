@@ -84,9 +84,10 @@ import ImportDataApiPage from './pages/ImportDataApiPage';
 import PmtConfigurationPage from './pages/PmtConfigurationPage';
 import PmtEnrollmentListPage from './pages/PmtEnrollmentListPage';
 import SurveyMonitoringDashboardPage from './pages/SurveyMonitoringDashboardPage';
-import { PmtRerunTabLabel, PmtRerunTabPanel } from './components/pmt/PmtRerunTab';
 import { PmtAdjustmentTabLabel, PmtAdjustmentTabPanel } from './components/pmt/PmtAdjustmentTab';
 import { PmtFormulaTabLabel, PmtFormulaTabPanel } from './components/pmt/PmtFormulaTab';
+import { PmtResultsTabLabel, PmtResultsTabPanel } from './components/pmt/PmtResultsTab';
+import { PmtAuditTabLabel, PmtAuditTabPanel } from './components/pmt/PmtAuditTab';
 import { PmtFormulaTaskTableHeaders, PmtFormulaTaskItemFormatters } from './components/tasks/PmtFormulaTasks';
 import { PctEnrolmentTaskTableHeaders, PctEnrolmentTaskItemFormatters } from './components/tasks/PctEnrolmentTasks';
 
@@ -249,14 +250,16 @@ const DEFAULT_CONFIG = {
   'individual.BenefitPlansListTabLabel': [BENEFIT_PLAN_TABS_LABEL_REF_KEY],
   'individual.BenefitPlansListTabPanel': [BENEFIT_PLAN_TABS_PANEL_REF_KEY],
   [PMT_CONFIG_TABS_LABEL_CONTRIBUTION_KEY]: [
-    PmtRerunTabLabel,
     PmtAdjustmentTabLabel,
     PmtFormulaTabLabel,
+    PmtResultsTabLabel,
+    PmtAuditTabLabel,
   ],
   [PMT_CONFIG_TABS_PANEL_CONTRIBUTION_KEY]: [
-    PmtRerunTabPanel,
     PmtAdjustmentTabPanel,
     PmtFormulaTabPanel,
+    PmtResultsTabPanel,
+    PmtAuditTabPanel,
   ],
   'tasksManagement.tasks': [{
     text: <FormattedMessage module={INDIVIDUAL_MODULE_NAME} id="individual.tasks.title" />,

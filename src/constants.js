@@ -173,6 +173,10 @@ export const PMT_CUTOFF_MAX = 50;
 export const PMT_RERUN_TAB_VALUE = 'PmtRerunTab';
 export const PMT_ADJUSTMENT_TAB_VALUE = 'PmtAdjustmentTab';
 export const PMT_FORMULA_TAB_VALUE = 'PmtFormulaTab';
+export const PMT_RESULTS_TAB_VALUE = 'PmtResultsTab';
+export const PMT_AUDIT_TAB_VALUE = 'PmtAuditTab';
+export const PMT_RUN_OPERATIONS = ['RERUN', 'CUTOFF_ADJUSTMENT'];
+export const PMT_RUN_STATUSES = ['STARTED', 'CALCULATING', 'ENROLLING', 'COMPLETED', 'FAILED'];
 export const PMT_CONFIG_TABS_LABEL_CONTRIBUTION_KEY = 'pmtConfiguration.TabPanel.label';
 export const PMT_CONFIG_TABS_PANEL_CONTRIBUTION_KEY = 'pmtConfiguration.TabPanel.panel';
 
@@ -194,6 +198,8 @@ export const PMT_CLASS = {
   NON_POOR: 'NON_POOR',
   ALL: 'ALL',
 };
+
+export const PMT_CLASS_LABEL_KEYS = { POOR: 'pmt.status.poor', NON_POOR: 'pmt.status.nonPoor' };
 
 export const PMT_CLASS_LABELS = {
   POOR: 'Poor',

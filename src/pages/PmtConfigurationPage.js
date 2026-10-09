@@ -2,23 +2,21 @@ import React, { useState } from 'react';
 import { injectIntl } from 'react-intl';
 import { withTheme, withStyles } from '@material-ui/core/styles';
 import {
-  Paper, Grid, Typography, Divider, Card, CardContent,
+  Paper, Grid, Card, CardContent,
 } from '@material-ui/core';
 import Alert from '@material-ui/lab/Alert';
 import {
   Helmet,
   withModulesManager,
-  withHistory,
   formatMessage,
   Contributions,
 } from '@openimis/fe-core';
 import { connect } from 'react-redux';
 
-import PmtAuditSummaryTable from '../components/PmtAuditSummaryTable';
 import {
   RIGHT_PMT_RERUN,
   INDIVIDUAL_MODULE_NAME,
-  PMT_RERUN_TAB_VALUE,
+  PMT_ADJUSTMENT_TAB_VALUE,
   PMT_CONFIG_TABS_LABEL_CONTRIBUTION_KEY,
   PMT_CONFIG_TABS_PANEL_CONTRIBUTION_KEY,
 } from '../constants';
@@ -26,19 +24,16 @@ import {
 const styles = (theme) => ({
   page: theme.page,
   paper: theme.paper.paper,
-  tablePaper: { ...theme.paper.paper, padding: 0, overflow: 'hidden' },
   tableTitle: theme.table.title,
-  tableHeaderBar: { padding: theme.spacing(2) },
-  sectionTitle: { fontWeight: 600 },
   tabs: { display: 'flex', alignItems: 'center' },
   selectedTab: { borderBottom: '4px solid white' },
   unselectedTab: { borderBottom: '4px solid transparent' },
 });
 
 function PmtConfigurationPage({
-  classes, theme, history, intl, rights,
+  classes, intl, rights,
 }) {
-  const [activeTab, setActiveTab] = useState(PMT_RERUN_TAB_VALUE);
+  const [activeTab, setActiveTab] = useState(PMT_ADJUSTMENT_TAB_VALUE);
 
   const isSelected = (tab) => tab === activeTab;
   const tabStyle = (tab) => (isSelected(tab) ? classes.selectedTab : classes.unselectedTab);
@@ -84,27 +79,6 @@ function PmtConfigurationPage({
               />
             </Paper>
           </Grid>
-
-          <Grid item xs={12}>
-            <Paper className={classes.tablePaper}>
-              <div className={classes.tableHeaderBar}>
-                <Typography variant="h6" className={classes.sectionTitle}>
-                  {formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.auditSummary.title')}
-                </Typography>
-              </div>
-              <Divider style={{ marginBottom: theme.spacing(2) }} />
-              <PmtAuditSummaryTable
-                onViewDistrict={(districtCode, pmtCutoffValue) => {
-                  const qs = new URLSearchParams();
-                  if (districtCode) qs.set('district', districtCode);
-                  if (pmtCutoffValue !== undefined && pmtCutoffValue !== null) {
-                    qs.set('cutoff', pmtCutoffValue);
-                  }
-                  history.push(`/pmt/enrollment-list?${qs.toString()}`);
-                }}
-              />
-            </Paper>
-          </Grid>
         </Grid>
       </div>
     </>
@@ -115,8 +89,6 @@ const mapStateToProps = (state) => ({
   rights: state.core?.user?.i_user?.rights || [],
 });
 
-export default withHistory(
-  withModulesManager(
-    injectIntl(withTheme(withStyles(styles)(connect(mapStateToProps)(PmtConfigurationPage)))),
-  ),
+export default withModulesManager(
+  injectIntl(withTheme(withStyles(styles)(connect(mapStateToProps)(PmtConfigurationPage)))),
 );

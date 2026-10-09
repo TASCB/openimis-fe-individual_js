@@ -1443,7 +1443,7 @@ export function adjustPmtCutoff(modulesManager, districtCode, regionCode = null,
       mutation (
         $clientMutationLabel: String
         $clientMutationId: String
-        $districtCode: String!
+        $districtCode: String
         $pmtCutoff: Float!
         $regionCode: String
       ) {
@@ -1468,7 +1468,7 @@ export function adjustPmtCutoff(modulesManager, districtCode, regionCode = null,
       }
     `,
     {
-      districtCode,
+      districtCode: districtCode || null,
       pmtCutoff: parseFloat(pmtCutoff),
       regionCode: regionCode || null,
     },
@@ -1506,6 +1506,39 @@ export const clearPmtHouseholds = () => (dispatch) => {
  * @param {Object} modulesManager - Module manager instance
  * @param {Object} params - Query parameters (districtCode, regionCode optional)
  */
+const PMT_RUN_HISTORY_PROJECTION = [
+  'id',
+  'operation',
+  'status',
+  'districtCode',
+  'districtName',
+  'pmtCutoff',
+  'poorAfter',
+  'nonPoorAfter',
+  'totalGroups',
+  'startedAt',
+  'completedAt',
+  'userUpdated {username}',
+];
+
+const PMT_FORMULA_HISTORY_PROJECTION = [
+  'id',
+  'version',
+  'formula',
+  'dateUpdated',
+  'userUpdated {username}',
+];
+
+export function fetchPmtRunHistory(mm, params) {
+  const payload = formatPageQueryWithCount('pmtRunHistory', params, PMT_RUN_HISTORY_PROJECTION);
+  return graphql(payload, ACTION_TYPE.SEARCH_PMT_RUN_HISTORY);
+}
+
+export function fetchPmtFormulaHistory(mm, params) {
+  const payload = formatPageQueryWithCount('pmtGlobalFormulaHistory', params, PMT_FORMULA_HISTORY_PROJECTION);
+  return graphql(payload, ACTION_TYPE.SEARCH_PMT_FORMULA_HISTORY);
+}
+
 export function fetchPmtAuditSummary(modulesManager, params = {}) {
   // Accept BOTH the fe-core Searcher's array of "key: value" query-param strings AND the PMT tabs'
   // { offset, limit } object, so the same action serves the Searcher and the adjustment/rerun tabs.

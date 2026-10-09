@@ -20,6 +20,7 @@ import {
   ROWS_PER_PAGE_OPTIONS,
   INDIVIDUAL_MODULE_NAME,
   RIGHT_GROUP_UPDATE,
+  PMT_CLASS_LABEL_KEYS,
 } from "../constants";
 import GroupFilter from "./GroupFilter";
 import { LOC_LEVELS, locationAtLevel } from "../util/searcher-utils";
@@ -95,11 +96,13 @@ class EligibleHouseholdsSearcher extends Component {
         group?.head
           ? `${group?.head?.firstName || ""} ${group?.head?.lastName || ""}`.trim() || "-"
           : "-",
-      (group) =>
-        group?.pmtScoreHousehold !== null && group?.pmtScoreHousehold !== undefined
-          ? group.pmtScoreHousehold
-          : "-",
-      (group) => group?.pmtClassHousehold || "-",
+      (group) => {
+        const score = parseFloat(group?.pmtScoreHousehold);
+        return Number.isNaN(score) ? "-" : score.toFixed(2);
+      },
+      (group) => (PMT_CLASS_LABEL_KEYS[group?.pmtClassHousehold]
+        ? formatMessage(intl, INDIVIDUAL_MODULE_NAME, PMT_CLASS_LABEL_KEYS[group.pmtClassHousehold])
+        : group?.pmtClassHousehold || "-"),
       ...Array.from({ length: LOC_LEVELS }, (_, i) => (group) =>
         locationAtLevel(group?.location, LOC_LEVELS - i - 1) || "-",
       ),

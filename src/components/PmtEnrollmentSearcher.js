@@ -26,6 +26,7 @@ import {
   DEFAULT_PAGE_SIZE,
   ROWS_PER_PAGE_OPTIONS,
   INDIVIDUAL_MODULE_NAME,
+  PMT_CLASS_LABEL_KEYS,
 } from '../constants';
 import PmtEnrollmentSearcherFilter from './PmtEnrollmentSearcherFilter';
 import { exportPmtEnrollmentPdf } from '../util/pdf-export';
@@ -147,9 +148,11 @@ function PmtEnrollmentSearcher({
     (household) => household.headName || '-',
     (household) => household.locationName || '-',
     (household) => (household.pmtScore !== undefined && household.pmtScore !== null
-      ? household.pmtScore.toFixed(3)
+      ? household.pmtScore.toFixed(2)
       : '-'),
-    (household) => household.pmtClass || '-',
+    (household) => (PMT_CLASS_LABEL_KEYS[household.pmtClass]
+      ? formatMessage(intl, INDIVIDUAL_MODULE_NAME, PMT_CLASS_LABEL_KEYS[household.pmtClass])
+      : household.pmtClass || '-'),
   ];
 
   const rowIdentifier = (household) => household.groupUuid;

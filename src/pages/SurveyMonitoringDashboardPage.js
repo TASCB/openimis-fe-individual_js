@@ -5,9 +5,8 @@ import {
   Select, MenuItem, FormControl, TextField, Tabs, Tab, Tooltip,
 } from "@material-ui/core";
 import MuiAlert from "@material-ui/lab/Alert";
-import { makeStyles, fade, useTheme } from "@material-ui/core/styles";
+import { makeStyles, fade } from "@material-ui/core/styles";
 import SyncIcon from "@material-ui/icons/Sync";
-import WarningIcon from "@material-ui/icons/ReportProblemOutlined";
 import LockOutlinedIcon from "@material-ui/icons/LockOutlined";
 import InfoOutlinedIcon from "@material-ui/icons/InfoOutlined";
 import {
@@ -26,7 +25,7 @@ import SupervisorLeaderboard from "../components/survey/SupervisorLeaderboard";
 import PipelineHistoryChart from "../components/survey/PipelineHistoryChart";
 import StageMovementChart from "../components/survey/StageMovementChart";
 import {
-  inPeriod, movements, lastChange, fmtDay,
+  inPeriod, movements, trendStatus, fmtDay,
 } from "../components/survey/surveyTrends";
 import ActivityHeatmap from "../components/survey/ActivityHeatmap";
 import { fmtInt, fmtDateTime, paaLabel } from "../components/survey/surveyUtils";
@@ -229,11 +228,8 @@ const useStyles = makeStyles((theme) => ({
     marginBottom: theme.spacing(2),
   },
   trendHeadline: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: theme.spacing(1),
-    fontWeight: 600,
     fontSize: "0.95rem",
+    color: theme.palette.text.primary,
   },
 }));
 
@@ -268,7 +264,6 @@ function isoDaysAgo(n) {
 
 function SurveyMonitoringDashboardPage() {
   const classes = useStyles();
-  const theme = useTheme();
   const modulesManager = useModulesManager();
   const { formatMessage } = useTranslations(INDIVIDUAL_MODULE_NAME, modulesManager);
   const t = (id, fallback) => {
@@ -382,7 +377,7 @@ function SurveyMonitoringDashboardPage() {
   const dailySpark = (m.dailyProductivity || []).map((d) => ({ count: d.count || 0 }));
   const stages = m.approvalFunnel || [];
   const history = m.statusHistory || [];
-  const unchanged = lastChange(history);
+  const trend = trendStatus(history);
   const activeFilterCount = [questionnaireFilter, fromDate, statusFilter, responsibleFilter, supervisorFilter].filter(Boolean).length;
   const periods = [
     { key: "today", label: t("survey.dashboard.today", "Today"), iso: isoDaysAgo(0) },
@@ -606,7 +601,13 @@ function SurveyMonitoringDashboardPage() {
         </Box>
       </Box>
       <Box className={classes.rowMargin}>
-        <PipelineStrip stages={stages} activeStatus={statusFilter} onStageClick={setStatusFilter} formatMessage={formatMessage} />
+        <PipelineStrip
+          stages={stages}
+          groupCounts={{ awaitingSupervisor: m.completed, awaitingHq: m.hqBacklog, approved: m.approvedByHq }}
+          activeStatus={statusFilter}
+          onStageClick={setStatusFilter}
+          formatMessage={formatMessage}
+        />
       </Box>
       <Box className={classes.rowMargin}>
         <SectionHead title={t("survey.dashboard.queuesTitle", "Review queues & throughput")} />
@@ -760,16 +761,20 @@ function SurveyMonitoringDashboardPage() {
       {analyticsTab === 2 && (
         <Box className={classes.rowMargin}>
           <div className={classes.trendBar}>
-            {unchanged && unchanged.days >= 2 ? (
-              <span className={classes.trendHeadline} style={{ color: theme.palette.warning.dark }}>
-                <WarningIcon fontSize="small" />
-                {t("survey.dashboard.noMovementSince", "No movement since")} {fmtDay(unchanged.t, true)} ({unchanged.days} {t("survey.dashboard.daysWord", "days")})
-              </span>
-            ) : (
-              <span className={classes.trendHeadline} style={{ color: theme.palette.text.secondary }}>
-                {unchanged ? `${t("survey.dashboard.lastMovement", "Last movement")}: ${fmtDay(unchanged.t, true)}` : ""}
-              </span>
-            )}
+            <span className={classes.trendHeadline}>
+              {trend ? (
+                <>
+                  {{
+                    stale: t("survey.dashboard.noSnapshotSince", "No snapshot since"),
+                    idle: t("survey.dashboard.noMovementSince", "No movement since"),
+                    moving: t("survey.dashboard.lastMovement", "Last movement:"),
+                  }[trend.kind]}
+                  {" "}
+                  {fmtDay(trend.t, true)}
+                  {trend.kind !== "moving" ? ` (${trend.days} ${t("survey.dashboard.daysWord", "days")})` : ""}
+                </>
+              ) : null}
+            </span>
             <div className={classes.periodRow}>
               {[
                 { days: 30, label: t("survey.dashboard.last30", "Last 30 days") },

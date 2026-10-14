@@ -10,7 +10,7 @@ import { statusGroup, feedStatusLabel, toneColors } from "./surveyStatus";
 import { surveyPalette } from "./surveyTheme";
 import { fmtAgo, paaLabel } from "./surveyUtils";
 
-export function StatusBadge({ status }) {
+export function StatusBadge({ status, t }) {
   const theme = useTheme();
   const { fg } = toneColors(statusGroup(status)?.tone, theme);
   return (
@@ -26,7 +26,7 @@ export function StatusBadge({ status }) {
         color: darken(fg, 0.35),
       }}
     >
-      {feedStatusLabel(status)}
+      {feedStatusLabel(status, t)}
     </span>
   );
 }
@@ -53,7 +53,7 @@ function InterviewFeedCard({ interview, hqBaseUrl, formatMessage }) {
         <Typography style={{ fontWeight: 700, fontSize: "0.95rem", color: pal.primaryDark }}>
           {interview.interviewKey || (interview.interviewId ? interview.interviewId.slice(0, 8) : "—")}
         </Typography>
-        <StatusBadge status={interview.status} />
+        <StatusBadge status={interview.status} t={t} />
       </Box>
       <Box display="flex" alignItems="center" mt={0.75} style={{ gap: 6, flexWrap: "wrap", color: pal.textSecondary }}>
         <PersonOutlineIcon style={{ fontSize: 15 }} />

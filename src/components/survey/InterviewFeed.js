@@ -50,7 +50,7 @@ function FeedTable({ interviews, theme, hqBaseUrl, formatMessage }) {
                 ) : null}
               </TableCell>
               <TableCell>
-                <StatusBadge status={iv.status} />
+                <StatusBadge status={iv.status} t={t} />
               </TableCell>
               <TableCell>
                 <Typography variant="body2">{iv.responsibleName || "—"}</Typography>

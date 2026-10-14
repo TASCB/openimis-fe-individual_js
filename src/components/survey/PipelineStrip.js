@@ -3,28 +3,17 @@ import { Paper, Box, Typography, Tooltip } from "@material-ui/core";
 import { useTheme, fade } from "@material-ui/core/styles";
 import { fmtInt } from "./surveyUtils";
 import { surveyPalette } from "./surveyTheme";
+import { STATUS_GROUPS } from "./surveyStatus";
 
 const STAGE_STATUS = ["all", "awaitingSupervisor", "awaitingHq", "approved"];
 
-export function findBottleneck(stages = []) {
-  if (!stages.length) return null;
-  let idx = -1;
-  let worst = Infinity;
-  for (let i = 1; i < stages.length; i += 1) {
-    const prev = stages[i - 1].count || 0;
-    const conv = prev > 0 ? (stages[i].count || 0) / prev : 1;
-    if (conv < worst) { worst = conv; idx = i; }
-  }
-  const real = idx > 0 && worst < 0.9;
-  return { idx, worst, real, lost: real ? (stages[idx - 1].count || 0) - (stages[idx].count || 0) : 0 };
-}
-
-function PipelineStrip({ stages = [], onStageClick, activeStatus, formatMessage }) {
+function PipelineStrip({
+  stages = [], groupCounts = {}, onStageClick, activeStatus, formatMessage,
+}) {
   const t = (id, fallback) => (formatMessage ? (formatMessage(id) === id ? fallback : formatMessage(id)) : fallback);
   const theme = useTheme();
   const pal = surveyPalette(theme);
   const grand = stages[0]?.count || 0;
-  const bn = findBottleneck(stages);
   const ink = pal.primaryDark;
 
   return (
@@ -46,7 +35,7 @@ function PipelineStrip({ stages = [], onStageClick, activeStatus, formatMessage 
             const share = grand ? (s.count || 0) / grand : 0;
             const isActive = activeStatus === status || (status === "all" && !activeStatus);
             const clickable = !!onStageClick;
-            const stepIsBottleneck = bn && bn.real && i === bn.idx;
+            const group = STATUS_GROUPS.find((g) => g.key === status);
             const select = () => onStageClick(status === "all" ? null : status);
             return (
               <Tooltip key={s.stage} title={clickable ? t("survey.dashboard.clickToFilterFeed", "Click to filter the live feed") : ""}>
@@ -77,9 +66,9 @@ function PipelineStrip({ stages = [], onStageClick, activeStatus, formatMessage 
                   <Box style={{ background: pal.greyBg, borderRadius: 4, height: 7, marginTop: 12, overflow: "hidden" }}>
                     <Box style={{ width: `${Math.max(share * 100, 1)}%`, height: "100%", background: ink, borderRadius: 4, transition: "width .4s ease" }} />
                   </Box>
-                  {stepIsBottleneck && bn?.lost ? (
+                  {clickable && group ? (
                     <Typography style={{ fontSize: "0.78rem", color: theme.palette.text.secondary, display: "block", marginTop: 10 }}>
-                      {fmtInt(bn.lost)} {t("survey.dashboard.waitingHere", "waiting at this step")}
+                      {t("survey.dashboard.opens", "Opens")} {fmtInt(groupCounts[status])} · {t(`survey.dashboard.group.${group.key}`, group.label)} →
                     </Typography>
                   ) : null}
                 </Box>

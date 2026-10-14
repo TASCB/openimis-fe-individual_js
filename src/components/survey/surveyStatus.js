@@ -60,10 +60,10 @@ export function toneColors(tone, theme) {
   }
 }
 
-export function feedStatusLabel(status) {
+export function feedStatusLabel(status, t = (id, fallback) => fallback) {
   const g = statusGroup(status);
   if (!g) return SURVEY_STATUS_LABEL[status] || status || "Unknown";
-  if (status === "RejectedBySupervisor") return "Rejected · supervisor";
-  if (status === "RejectedByHeadquarters") return "Rejected · HQ";
-  return g.label;
+  const label = t(`survey.dashboard.group.${g.key}`, g.label);
+  const sub = REJECTED_SUBGROUPS.find((x) => x.statuses.includes(status));
+  return sub ? `${label} · ${t(`survey.dashboard.group.${sub.key}`, sub.label)}` : label;
 }

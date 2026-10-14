@@ -57,7 +57,7 @@ export function movements(history, periodDays) {
   return out;
 }
 
-export function lastChange(history) {
+function lastChange(history) {
   for (let i = history.length - 1; i > 0; i -= 1) {
     const a = pipelineGroups(history[i - 1]);
     const b = pipelineGroups(history[i]);
@@ -67,4 +67,14 @@ export function lastChange(history) {
     }
   }
   return null;
+}
+
+export function trendStatus(history) {
+  if (!history.length) return null;
+  const latest = toTime(history[history.length - 1].date);
+  const staleDays = Math.floor((Date.now() - latest) / DAY_MS);
+  if (staleDays > 2) return { kind: "stale", t: latest, days: staleDays };
+  const change = lastChange(history);
+  if (!change) return null;
+  return { kind: change.days >= 2 ? "idle" : "moving", ...change };
 }

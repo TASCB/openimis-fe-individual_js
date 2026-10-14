@@ -1727,7 +1727,7 @@ const SURVEY_DASHBOARD_PROJECTION = `
   activeEnumerators targetTotal sampleSize hqBaseUrl lastPolledAt
   questionnaires { identity id title version count }
   dailyProductivity { date count cumulative }
-  completionSeries { date count cumulative }
+  statusHistory { date inProgress completed approvedBySupervisor sentToCapi approvedByHq rejectedBySupervisor rejectedByHq cumulativeCompleted }
   approvalFunnel { stage count }
   enumeratorLeaderboard { name supervisorName completed approvedBySupervisor approvedByHq rejected total lastActivity }
   supervisorLeaderboard { name username pendingReview reviewed rejected total teamSize activeInterviewers lastActivity }

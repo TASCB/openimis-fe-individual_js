@@ -5,8 +5,9 @@ import {
   Select, MenuItem, FormControl, TextField, Tabs, Tab, Tooltip,
 } from "@material-ui/core";
 import MuiAlert from "@material-ui/lab/Alert";
-import { makeStyles, fade } from "@material-ui/core/styles";
+import { makeStyles, fade, useTheme } from "@material-ui/core/styles";
 import SyncIcon from "@material-ui/icons/Sync";
+import WarningIcon from "@material-ui/icons/ReportProblemOutlined";
 import LockOutlinedIcon from "@material-ui/icons/LockOutlined";
 import InfoOutlinedIcon from "@material-ui/icons/InfoOutlined";
 import {
@@ -22,8 +23,11 @@ import KpiTile from "../components/survey/KpiTile";
 import InterviewFeed from "../components/survey/InterviewFeed";
 import EnumeratorLeaderboard from "../components/survey/EnumeratorLeaderboard";
 import SupervisorLeaderboard from "../components/survey/SupervisorLeaderboard";
-import CompletionSCurveChart from "../components/survey/CompletionSCurveChart";
-import DailyProductivityChart from "../components/survey/DailyProductivityChart";
+import PipelineHistoryChart from "../components/survey/PipelineHistoryChart";
+import StageMovementChart from "../components/survey/StageMovementChart";
+import {
+  inPeriod, movements, lastChange, fmtDay,
+} from "../components/survey/surveyTrends";
 import ActivityHeatmap from "../components/survey/ActivityHeatmap";
 import { fmtInt, fmtDateTime, paaLabel } from "../components/survey/surveyUtils";
 import { statusesForFilter, isRejectedFilter } from "../components/survey/surveyStatus";
@@ -216,6 +220,21 @@ const useStyles = makeStyles((theme) => ({
   chartBody: { flex: 1, minHeight: 0, display: "flex", alignItems: "stretch" },
 
   rowMargin: { marginBottom: theme.spacing(3.5) },
+  trendBar: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing(2),
+    flexWrap: "wrap",
+    marginBottom: theme.spacing(2),
+  },
+  trendHeadline: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: theme.spacing(1),
+    fontWeight: 600,
+    fontSize: "0.95rem",
+  },
 }));
 
 function rejectionSeverity(rate) {
@@ -249,6 +268,7 @@ function isoDaysAgo(n) {
 
 function SurveyMonitoringDashboardPage() {
   const classes = useStyles();
+  const theme = useTheme();
   const modulesManager = useModulesManager();
   const { formatMessage } = useTranslations(INDIVIDUAL_MODULE_NAME, modulesManager);
   const t = (id, fallback) => {
@@ -269,6 +289,7 @@ function SurveyMonitoringDashboardPage() {
   const [customPeriod, setCustomPeriod] = useState(false);
   const [feedView, setFeedView] = useState("table");
   const [analyticsTab, setAnalyticsTab] = useState(0);
+  const [trendPeriod, setTrendPeriod] = useState(0);
   const intervalRef = useRef(null);
   const didMount = useRef(false);
 
@@ -360,6 +381,8 @@ function SurveyMonitoringDashboardPage() {
   const rejected = (m.rejectedBySupervisor || 0) + (m.rejectedByHq || 0);
   const dailySpark = (m.dailyProductivity || []).map((d) => ({ count: d.count || 0 }));
   const stages = m.approvalFunnel || [];
+  const history = m.statusHistory || [];
+  const unchanged = lastChange(history);
   const activeFilterCount = [questionnaireFilter, fromDate, statusFilter, responsibleFilter, supervisorFilter].filter(Boolean).length;
   const periods = [
     { key: "today", label: t("survey.dashboard.today", "Today"), iso: isoDaysAgo(0) },
@@ -736,20 +759,43 @@ function SurveyMonitoringDashboardPage() {
       )}
       {analyticsTab === 2 && (
         <Box className={classes.rowMargin}>
+          <div className={classes.trendBar}>
+            {unchanged && unchanged.days >= 2 ? (
+              <span className={classes.trendHeadline} style={{ color: theme.palette.warning.dark }}>
+                <WarningIcon fontSize="small" />
+                {t("survey.dashboard.noMovementSince", "No movement since")} {fmtDay(unchanged.t, true)} ({unchanged.days} {t("survey.dashboard.daysWord", "days")})
+              </span>
+            ) : (
+              <span className={classes.trendHeadline} style={{ color: theme.palette.text.secondary }}>
+                {unchanged ? `${t("survey.dashboard.lastMovement", "Last movement")}: ${fmtDay(unchanged.t, true)}` : ""}
+              </span>
+            )}
+            <div className={classes.periodRow}>
+              {[
+                { days: 30, label: t("survey.dashboard.last30", "Last 30 days") },
+                { days: 90, label: t("survey.dashboard.last90", "Last 90 days") },
+                { days: 0, label: t("survey.dashboard.allTime", "All") },
+              ].map((p) => (
+                <Button
+                  key={p.days}
+                  variant="outlined"
+                  className={`${classes.quickBtn} ${trendPeriod === p.days ? classes.quickBtnActive : ""}`.trim()}
+                  onClick={() => setTrendPeriod(p.days)}
+                >
+                  {p.label}
+                </Button>
+              ))}
+            </div>
+          </div>
           <Grid container spacing={2}>
             <Grid item xs={12} md={7}>
               <Paper className={`${classes.surface} ${classes.panel} ${classes.uniformPanel}`}>
-                <Box display="flex" justifyContent="space-between" alignItems="baseline">
-                  <Typography className={classes.panelTitle}>
-                    {t("survey.dashboard.sCurve", "Cumulative completion (S-curve)")}
-                  </Typography>
-                  <Typography className={classes.panelNote}>
-                    {m.targetTotal ? `${t("survey.dashboard.target", "Target")}: ${fmtInt(m.targetTotal)}` : ""}
-                  </Typography>
-                </Box>
+                <Typography className={classes.panelTitle}>
+                  {t("survey.dashboard.pipelineHistory", "Pipeline over time")}
+                </Typography>
                 <Box className={classes.panelBody}>
                   <Box className={classes.chartBody}>
-                    <CompletionSCurveChart series={m.completionSeries || []} target={m.targetTotal || 0} height={460} formatMessage={formatMessage} />
+                    <PipelineHistoryChart history={inPeriod(history, trendPeriod)} height={480} formatMessage={formatMessage} />
                   </Box>
                 </Box>
               </Paper>
@@ -757,11 +803,11 @@ function SurveyMonitoringDashboardPage() {
             <Grid item xs={12} md={5}>
               <Paper className={`${classes.surface} ${classes.panel} ${classes.uniformPanel}`}>
                 <Typography className={classes.panelTitle}>
-                  {t("survey.dashboard.dailyProductivity", "Daily productivity")}
+                  {t("survey.dashboard.movement", "Movement between snapshots")}
                 </Typography>
                 <Box className={classes.panelBody}>
                   <Box className={classes.chartBody}>
-                    <DailyProductivityChart data={m.dailyProductivity || []} height={460} formatMessage={formatMessage} />
+                    <StageMovementChart rows={movements(history, trendPeriod)} height={480} formatMessage={formatMessage} />
                   </Box>
                 </Box>
               </Paper>

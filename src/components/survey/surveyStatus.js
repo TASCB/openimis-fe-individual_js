@@ -1,6 +1,5 @@
 import { statusColor, surveyPalette } from "./surveyTheme";
 
-// Human label per Survey Solutions interview status.
 export const SURVEY_STATUS_LABEL = {
   Restored: "Restored",
   Created: "Created",
@@ -8,6 +7,7 @@ export const SURVEY_STATUS_LABEL = {
   InterviewerAssigned: "In progress",
   ReadyForInterview: "Ready",
   RejectedBySupervisor: "Rejected by supervisor",
+  SentToCapi: "Sent to HQ",
   SentToCapital: "Sent to HQ",
   Completed: "Completed",
   ApprovedBySupervisor: "Approved by supervisor",
@@ -16,7 +16,6 @@ export const SURVEY_STATUS_LABEL = {
   Deleted: "Deleted",
 };
 
-// Returns { color, label } for a status. Pass the MUI theme so the colour follows branding.
 export function statusMeta(status, theme) {
   const pal = surveyPalette(theme);
   return {
@@ -25,13 +24,46 @@ export function statusMeta(status, theme) {
   };
 }
 
-// Statuses worth surfacing as filter chips on the dashboard.
-export const SURVEY_FILTERABLE_STATUSES = [
-  "InterviewerAssigned",
-  "Completed",
-  "ApprovedBySupervisor",
-  "ApprovedByHeadquarters",
-  "RejectedBySupervisor",
-  "RejectedByHeadquarters",
-  "SentToCapital",
+export const STATUS_GROUPS = [
+  { key: "inProgress", label: "In progress", tone: "neutral", statuses: ["Created", "SupervisorAssigned", "InterviewerAssigned", "ReadyForInterview", "Restored", "Restarted"] },
+  { key: "awaitingSupervisor", label: "Awaiting supervisor", tone: "warn", statuses: ["Completed"] },
+  { key: "awaitingHq", label: "Awaiting HQ", tone: "warn", statuses: ["ApprovedBySupervisor", "SentToCapi"] },
+  { key: "approved", label: "Approved", tone: "positive", statuses: ["ApprovedByHeadquarters"] },
+  { key: "rejected", label: "Rejected", tone: "bad", statuses: ["RejectedBySupervisor", "RejectedByHeadquarters"] },
 ];
+
+export const REJECTED_SUBGROUPS = [
+  { key: "rejectedSup", label: "by supervisor", statuses: ["RejectedBySupervisor"] },
+  { key: "rejectedHq", label: "by HQ", statuses: ["RejectedByHeadquarters"] },
+];
+
+export function isRejectedFilter(filter) {
+  return filter === "rejected" || REJECTED_SUBGROUPS.some((g) => g.key === filter);
+}
+
+export function statusesForFilter(filter) {
+  const g = STATUS_GROUPS.find((x) => x.key === filter) || REJECTED_SUBGROUPS.find((x) => x.key === filter);
+  return g ? g.statuses.join(",") : undefined;
+}
+
+export function statusGroup(status) {
+  return STATUS_GROUPS.find((g) => g.statuses.includes(status)) || null;
+}
+
+export function toneColors(tone, theme) {
+  const pal = surveyPalette(theme);
+  switch (tone) {
+    case "bad": return { fg: pal.error, dot: pal.error };
+    case "warn": return { fg: pal.warning, dot: pal.warning };
+    case "positive": return { fg: pal.primary, dot: null };
+    default: return { fg: pal.grey, dot: null };
+  }
+}
+
+export function feedStatusLabel(status) {
+  const g = statusGroup(status);
+  if (!g) return SURVEY_STATUS_LABEL[status] || status || "Unknown";
+  if (status === "RejectedBySupervisor") return "Rejected · supervisor";
+  if (status === "RejectedByHeadquarters") return "Rejected · HQ";
+  return g.label;
+}

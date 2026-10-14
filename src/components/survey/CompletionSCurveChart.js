@@ -7,8 +7,6 @@ import {
 import { fmtInt, fmtShortDate } from "./surveyUtils";
 import { surveyPalette } from "./surveyTheme";
 
-// Cumulative completion ("S-curve") vs. a flat planned-target line. Built from the
-// daily snapshot history, so it fills in over time — empty/“building” state until then.
 function CompletionSCurveChart({ series = [], target = 0, height = 240, formatMessage }) {
   const t = (id, fallback) => (formatMessage ? (formatMessage(id) === id ? fallback : formatMessage(id)) : fallback);
   const theme = useTheme();

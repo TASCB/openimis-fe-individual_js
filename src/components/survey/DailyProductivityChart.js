@@ -7,7 +7,6 @@ import {
 import { fmtInt, fmtShortDate } from "./surveyUtils";
 import { surveyPalette } from "./surveyTheme";
 
-// Interviews completed per day (from the daily snapshot deltas).
 function DailyProductivityChart({ data = [], height = 220, formatMessage }) {
   const t = (id, fallback) => (formatMessage ? (formatMessage(id) === id ? fallback : formatMessage(id)) : fallback);
   const theme = useTheme();

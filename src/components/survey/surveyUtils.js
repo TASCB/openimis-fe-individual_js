@@ -1,5 +1,3 @@
-// Shared formatting helpers for the Survey Monitoring dashboard.
-
 export function fmtInt(n) {
   if (n === null || n === undefined || n === "") return "—";
   const v = Number(n);
@@ -39,7 +37,6 @@ export function fmtShortDate(iso) {
   return s.length >= 10 ? s.slice(5) : s; // "MM-DD"
 }
 
-// "DODOSO LA KAYA - RM4-IFAKARATC" -> "IFAKARATC" ; leaves other titles untouched.
 export function paaLabel(q) {
   if (!q) return "";
   const title = String(q.title || q.identity || "").trim();

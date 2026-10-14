@@ -8,8 +8,10 @@ import ViewModuleIcon from "@material-ui/icons/ViewModule";
 import ViewListIcon from "@material-ui/icons/ViewList";
 import CloseIcon from "@material-ui/icons/Close";
 import OpenInNewIcon from "@material-ui/icons/OpenInNew";
-import InterviewFeedCard from "./InterviewFeedCard";
-import { SURVEY_FILTERABLE_STATUSES, statusMeta } from "./surveyStatus";
+import InterviewFeedCard, { StatusBadge } from "./InterviewFeedCard";
+import {
+  STATUS_GROUPS, REJECTED_SUBGROUPS, isRejectedFilter, toneColors,
+} from "./surveyStatus";
 import { surveyPalette } from "./surveyTheme";
 import { fmtAgo } from "./surveyUtils";
 
@@ -34,7 +36,6 @@ function FeedTable({ interviews, theme, hqBaseUrl, formatMessage }) {
       </TableHead>
       <TableBody>
         {interviews.map((iv) => {
-          const meta = statusMeta(iv.status, theme);
           const link = hqInterviewUrl(hqBaseUrl, iv.interviewId);
           return (
             <TableRow key={iv.interviewId} hover>
@@ -49,7 +50,7 @@ function FeedTable({ interviews, theme, hqBaseUrl, formatMessage }) {
                 ) : null}
               </TableCell>
               <TableCell>
-                <Chip size="small" label={meta.label} style={{ background: meta.color, color: theme.palette.getContrastText(meta.color) }} />
+                <StatusBadge status={iv.status} />
               </TableCell>
               <TableCell>
                 <Typography variant="body2">{iv.responsibleName || "—"}</Typography>
@@ -65,8 +66,29 @@ function FeedTable({ interviews, theme, hqBaseUrl, formatMessage }) {
   );
 }
 
-// Scrollable live feed: status filter chips, an active-filter indicator, a
-// cards/table view toggle, and the interview list itself.
+function FilterChip({
+  label, dot, active, subtle, onClick, theme,
+}) {
+  const ink = subtle ? theme.palette.error.dark : theme.palette.primary.dark;
+  return (
+    <Chip
+      size="small"
+      label={label}
+      onClick={onClick}
+      icon={dot ? <span style={{ width: 8, height: 8, borderRadius: "50%", background: active ? "#fff" : dot, marginLeft: 8 }} /> : undefined}
+      style={{
+        borderRadius: 4,
+        height: 28,
+        fontSize: "0.78rem",
+        fontWeight: active ? 600 : 400,
+        border: `1px solid ${active ? ink : theme.palette.divider}`,
+        background: active ? ink : theme.palette.background.paper,
+        color: active ? theme.palette.primary.contrastText : theme.palette.text.primary,
+      }}
+    />
+  );
+}
+
 function InterviewFeed({
   interviews = [], loading = false, statusFilter, onStatusFilter,
   responsibleFilter, onClearResponsible, supervisorFilter, onClearSupervisor, fromDate, onClearFromDate,
@@ -77,59 +99,65 @@ function InterviewFeed({
   const hasActiveFilter = !!statusFilter || !!responsibleFilter || !!supervisorFilter || !!fromDate;
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" style={{ marginBottom: 8, gap: 8, flexWrap: "wrap" }}>
-        <Typography variant="caption" color="textSecondary">
-          {t("survey.dashboard.feedHint", "Recent interview activity from the synced sample")}
-        </Typography>
-        <Tooltip title={t("survey.dashboard.cardsView", "Cards")}>
-          <IconButton
-            size="small"
-            color={view === "cards" ? "primary" : "default"}
-            onClick={() => onViewChange && onViewChange("cards")}
-            aria-label={t("survey.dashboard.cardsView", "Cards")}
-            aria-pressed={view === "cards"}
-          >
-            <ViewModuleIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title={t("survey.dashboard.tableView", "Table")}>
-          <IconButton
-            size="small"
-            color={view === "table" ? "primary" : "default"}
-            onClick={() => onViewChange && onViewChange("table")}
-            aria-label={t("survey.dashboard.tableView", "Table")}
-            aria-pressed={view === "table"}
-          >
-            <ViewListIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Box>
-      {/* status filter chips — 4 per row, equal width */}
-      <Box style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(132px, 1fr))", gap: 6, marginBottom: 10 }}>
-        <Chip
-          size="small"
-          label={t("survey.dashboard.all", "All")}
-          color={!statusFilter ? "primary" : "default"}
-          onClick={() => onStatusFilter && onStatusFilter(null)}
-          style={{ width: "100%" }}
-        />
-        {SURVEY_FILTERABLE_STATUSES.map((s) => {
-          const m = statusMeta(s, theme);
-          const active = statusFilter === s;
-          return (
-            <Tooltip key={s} title={m.label}>
-              <Chip
-                size="small"
-                label={m.label}
-                onClick={() => onStatusFilter && onStatusFilter(active ? null : s)}
-                style={active
-                  ? { width: "100%", background: m.color, color: theme.palette.getContrastText(m.color) }
-                  : { width: "100%", borderColor: m.color, color: m.color }}
-                variant={active ? "default" : "outlined"}
+      <Box display="flex" alignItems="flex-start" style={{ gap: 8, marginBottom: 12 }}>
+        <Box display="flex" style={{ gap: 6, flexWrap: "wrap", flex: 1 }}>
+          <FilterChip
+            theme={theme}
+            label={t("survey.dashboard.all", "All")}
+            active={!statusFilter}
+            onClick={() => onStatusFilter && onStatusFilter(null)}
+          />
+          {STATUS_GROUPS.map((g) => {
+            const active = g.key === "rejected" ? isRejectedFilter(statusFilter) : statusFilter === g.key;
+            return (
+              <FilterChip
+                key={g.key}
+                theme={theme}
+                label={t(`survey.dashboard.group.${g.key}`, g.label)}
+                dot={toneColors(g.tone, theme).dot}
+                active={active}
+                onClick={() => onStatusFilter && onStatusFilter(active ? null : g.key)}
               />
-            </Tooltip>
-          );
-        })}
+            );
+          })}
+          {isRejectedFilter(statusFilter) ? REJECTED_SUBGROUPS.map((g) => {
+            const active = statusFilter === g.key;
+            return (
+              <FilterChip
+                key={g.key}
+                theme={theme}
+                label={t(`survey.dashboard.group.${g.key}`, g.label)}
+                active={active}
+                subtle
+                onClick={() => onStatusFilter && onStatusFilter(active ? "rejected" : g.key)}
+              />
+            );
+          }) : null}
+        </Box>
+        <Box display="flex" style={{ flexShrink: 0 }}>
+          <Tooltip title={t("survey.dashboard.cardsView", "Cards")}>
+            <IconButton
+              size="small"
+              color={view === "cards" ? "primary" : "default"}
+              onClick={() => onViewChange && onViewChange("cards")}
+              aria-label={t("survey.dashboard.cardsView", "Cards")}
+              aria-pressed={view === "cards"}
+            >
+              <ViewModuleIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={t("survey.dashboard.tableView", "Table")}>
+            <IconButton
+              size="small"
+              color={view === "table" ? "primary" : "default"}
+              onClick={() => onViewChange && onViewChange("table")}
+              aria-label={t("survey.dashboard.tableView", "Table")}
+              aria-pressed={view === "table"}
+            >
+              <ViewListIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
 
       {(responsibleFilter || supervisorFilter || fromDate) ? (

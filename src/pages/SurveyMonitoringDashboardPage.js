@@ -2,20 +2,13 @@ import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Paper, Grid, Typography, Box, Button, FormControlLabel, Switch, CircularProgress,
-  Select, MenuItem, FormControl, TextField, Tabs, Tab,
+  Select, MenuItem, FormControl, TextField, Tabs, Tab, Tooltip,
 } from "@material-ui/core";
 import MuiAlert from "@material-ui/lab/Alert";
 import { makeStyles, fade } from "@material-ui/core/styles";
-import RefreshIcon from "@material-ui/icons/Refresh";
-import HourglassEmptyIcon from "@material-ui/icons/HourglassEmpty";
-import GavelIcon from "@material-ui/icons/Gavel";
-import ThumbDownIcon from "@material-ui/icons/ThumbDown";
-import GroupIcon from "@material-ui/icons/Group";
-import PeopleIcon from "@material-ui/icons/People";
+import SyncIcon from "@material-ui/icons/Sync";
 import LockOutlinedIcon from "@material-ui/icons/LockOutlined";
-import AssignmentTurnedInIcon from "@material-ui/icons/AssignmentTurnedIn";
-import FilterListIcon from "@material-ui/icons/FilterList";
-import CheckCircleOutlineIcon from "@material-ui/icons/CheckCircleOutline";
+import InfoOutlinedIcon from "@material-ui/icons/InfoOutlined";
 import {
   Helmet, useModulesManager, useTranslations, useToast,
 } from "@openimis/fe-core";
@@ -32,109 +25,77 @@ import SupervisorLeaderboard from "../components/survey/SupervisorLeaderboard";
 import CompletionSCurveChart from "../components/survey/CompletionSCurveChart";
 import DailyProductivityChart from "../components/survey/DailyProductivityChart";
 import ActivityHeatmap from "../components/survey/ActivityHeatmap";
-import SampleBanner from "../components/survey/SampleBanner";
 import { fmtInt, fmtDateTime, paaLabel } from "../components/survey/surveyUtils";
+import { statusesForFilter, isRejectedFilter } from "../components/survey/surveyStatus";
 
 const POLL_SECONDS = 30;
 
 const useStyles = makeStyles((theme) => ({
   page: theme.page,
 
-  // shared flat-card surface (matches the Payment Operations dashboard)
   surface: {
     backgroundColor: theme.palette.background.paper,
     border: `1px solid ${theme.palette.divider}`,
-    borderRadius: 16,
+    borderRadius: 8,
     boxShadow: "none",
   },
 
-  // ── hero ──
-  hero: {
-    position: "relative",
-    overflow: "hidden",
-    padding: theme.spacing(4, 4, 3.5, 0),
-    marginBottom: theme.spacing(2),
-  },
-  heroAccent: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: 6,
-    height: "100%",
-    backgroundColor: theme.palette.primary.main,
-  },
-  heroTop: {
-    position: "relative",
-    zIndex: 1,
+  header: {
     display: "flex",
     alignItems: "flex-start",
-    gap: theme.spacing(3),
-    paddingLeft: theme.spacing(4),
-  },
-  brandBadge: {
-    flexShrink: 0,
-    width: 72,
-    height: 72,
-    borderRadius: "50%",
-    backgroundColor: fade(theme.palette.primary.main, 0.1),
-    color: theme.palette.primary.main,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    [theme.breakpoints.down("xs")]: { display: "none" },
-  },
-  heroIntro: { flex: 1, minWidth: 0 },
-  heroTitle: { fontWeight: 700, color: theme.palette.text.primary, marginBottom: theme.spacing(0.5) },
-  heroSubtitle: { color: theme.palette.grey[600], maxWidth: 620 },
-  heroStatusRow: {
-    display: "flex",
-    alignItems: "center",
     justifyContent: "space-between",
-    gap: theme.spacing(2),
+    gap: theme.spacing(3),
     flexWrap: "wrap",
-    marginTop: theme.spacing(2.5),
+    padding: theme.spacing(1, 0, 0),
+    marginBottom: theme.spacing(3),
   },
-  heroControls: {
-    display: "flex",
-    alignItems: "center",
-    gap: theme.spacing(1.5),
-    flexWrap: "wrap",
-  },
+  heroIntro: { flex: "1 1 420px", minWidth: 0 },
+  heroTitle: { fontWeight: 700, color: theme.palette.primary.dark, marginBottom: theme.spacing(1) },
+  heroSubtitle: { color: theme.palette.grey[600], maxWidth: 620 },
   syncedChip: {
     display: "inline-flex",
     alignItems: "center",
     gap: theme.spacing(0.75),
-    fontSize: "0.82rem",
+    marginTop: theme.spacing(2.5),
+    fontSize: "0.78rem",
     color: theme.palette.grey[600],
-    whiteSpace: "nowrap",
   },
-  syncedIcon: { fontSize: 18, color: theme.palette.primary.main },
+  syncedIcon: { fontSize: 18, color: theme.palette.grey[700] },
+  heroControls: {
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing(2.5),
+    flexWrap: "wrap",
+    marginTop: theme.spacing(1),
+  },
+  autoRefreshLabel: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: theme.spacing(1),
+    fontSize: "0.85rem",
+    color: theme.palette.text.secondary,
+  },
+  autoRefreshControl: { margin: 0 },
+  syncBtn: {
+    backgroundColor: theme.palette.primary.dark,
+    color: theme.palette.primary.contrastText,
+    fontWeight: 700,
+    padding: theme.spacing(1.25, 2.25),
+    borderRadius: 4,
+    "&:hover": { backgroundColor: theme.palette.primary.main },
+  },
 
-  // ── filter card ──
   filterCard: {
     padding: theme.spacing(2, 2.5),
-    marginBottom: theme.spacing(3),
+    marginBottom: theme.spacing(4),
+    borderRadius: 4,
+    backgroundColor: fade(theme.palette.primary.main, 0.03),
   },
   filterBar: {
     display: "flex",
     alignItems: "flex-end",
     flexWrap: "wrap",
     gap: theme.spacing(2),
-  },
-  filterPill: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: theme.spacing(0.75),
-    height: 40,
-    padding: theme.spacing(0, 1.75),
-    borderRadius: 20,
-    backgroundColor: theme.palette.grey[100],
-    color: theme.palette.grey[700],
-    fontWeight: 700,
-    fontSize: "0.72rem",
-    letterSpacing: "0.06em",
-    textTransform: "uppercase",
-    whiteSpace: "nowrap",
   },
   filterDivider: {
     alignSelf: "stretch",
@@ -148,38 +109,57 @@ const useStyles = makeStyles((theme) => ({
     gap: theme.spacing(0.75),
   },
   filterGroupLabel: {
-    color: theme.palette.grey[600],
-    fontSize: "0.72rem",
+    color: theme.palette.grey[700],
+    fontSize: "0.78rem",
     fontWeight: 600,
   },
-  filterField: { minWidth: 240, maxWidth: 360 },
-  dateField: { maxWidth: 180 },
-  quickRange: { display: "flex", gap: theme.spacing(1), flexWrap: "wrap" },
+  control: {
+    height: 40,
+    backgroundColor: theme.palette.background.paper,
+  },
+  filterField: { minWidth: 260, maxWidth: 360 },
+  dateField: {
+    width: 170,
+    "& .MuiOutlinedInput-root": { height: 40, backgroundColor: theme.palette.background.paper },
+  },
+  periodRow: { display: "flex", alignItems: "center", gap: theme.spacing(1), flexWrap: "wrap" },
   quickBtn: {
+    height: 40,
     textTransform: "none",
-    borderRadius: 10,
+    borderRadius: 4,
     minWidth: 0,
-    padding: theme.spacing(0.75, 1.75),
+    padding: theme.spacing(0, 2),
     borderColor: theme.palette.divider,
+    backgroundColor: theme.palette.background.paper,
     color: theme.palette.text.primary,
     "&:hover": { borderColor: theme.palette.primary.main, backgroundColor: fade(theme.palette.primary.main, 0.04) },
   },
   quickBtnActive: {
-    borderColor: theme.palette.primary.main,
-    color: theme.palette.primary.main,
-    backgroundColor: fade(theme.palette.primary.main, 0.08),
-    fontWeight: 700,
+    borderColor: theme.palette.primary.dark,
+    color: theme.palette.primary.contrastText,
+    backgroundColor: theme.palette.primary.dark,
+    fontWeight: 600,
+    "&:hover": { borderColor: theme.palette.primary.main, backgroundColor: theme.palette.primary.main },
   },
-  clearBtn: { textTransform: "none", color: theme.palette.grey[600] },
+  filterStatus: {
+    marginLeft: "auto",
+    height: 40,
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing(1),
+    fontSize: "0.82rem",
+    color: theme.palette.grey[600],
+    whiteSpace: "nowrap",
+  },
+  filterCount: { fontWeight: 600, color: theme.palette.primary.dark },
+  clearBtn: { textTransform: "none", fontWeight: 600, color: theme.palette.primary.dark, minWidth: 0 },
 
-  // ── kpi band ──
   kpiGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
     gap: theme.spacing(2),
   },
 
-  // ── section headers ──
   sectionHead: {
     display: "flex",
     alignItems: "baseline",
@@ -188,13 +168,25 @@ const useStyles = makeStyles((theme) => ({
     flexWrap: "wrap",
     marginBottom: theme.spacing(1.5),
   },
-  sectionTitle: { fontWeight: 700, color: theme.palette.text.primary, fontSize: "1.05rem" },
+  sectionTitle: { fontWeight: 700, color: theme.palette.text.primary, fontSize: "1.15rem" },
   sectionHint: { color: theme.palette.grey[600], fontSize: "0.8rem" },
 
-  // ── analytical tabs ──
   tabsBar: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing(2),
+    flexWrap: "wrap",
     borderBottom: `1px solid ${theme.palette.divider}`,
     marginBottom: theme.spacing(2.5),
+  },
+  sampleNote: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: theme.spacing(0.5),
+    fontSize: "0.78rem",
+    color: theme.palette.grey[600],
+    cursor: "help",
   },
   tab: {
     textTransform: "none",
@@ -204,7 +196,6 @@ const useStyles = makeStyles((theme) => ({
     minHeight: 48,
   },
 
-  // ── analytical panels ──
   panel: {
     padding: theme.spacing(2.5),
     height: "100%",
@@ -212,7 +203,7 @@ const useStyles = makeStyles((theme) => ({
     flexDirection: "column",
   },
   uniformPanel: { minHeight: 600 },
-  panelTitle: { fontWeight: 700, color: theme.palette.text.primary, fontSize: "1rem" },
+  panelTitle: { fontWeight: 700, color: theme.palette.text.primary, fontSize: "1.1rem", marginBottom: theme.spacing(0.5) },
   panelNote: { color: theme.palette.grey[600], fontSize: "0.78rem", marginTop: theme.spacing(0.25) },
   panelBody: {
     flex: 1,
@@ -224,8 +215,7 @@ const useStyles = makeStyles((theme) => ({
   scrollBody: { flex: 1, minHeight: 0, overflow: "auto", paddingRight: theme.spacing(0.5) },
   chartBody: { flex: 1, minHeight: 0, display: "flex", alignItems: "stretch" },
 
-  rowMargin: { marginBottom: theme.spacing(2.5) },
-  sampleNote: { marginBottom: theme.spacing(2.5), borderRadius: 12 },
+  rowMargin: { marginBottom: theme.spacing(3.5) },
 }));
 
 function rejectionSeverity(rate) {
@@ -248,7 +238,6 @@ function mergeQuestionnaires(fromDashboard = [], fromHq = []) {
   return Array.from(byId.values()).sort((a, b) => String(a.title || a.identity || "").localeCompare(String(b.title || b.identity || "")));
 }
 
-// Local YYYY-MM-DD for "n days ago" (used by the Quick range presets).
 function isoDaysAgo(n) {
   const d = new Date();
   d.setDate(d.getDate() - n);
@@ -277,7 +266,8 @@ function SurveyMonitoringDashboardPage() {
   const [supervisorFilter, setSupervisorFilter] = useState(null);
   const [questionnaireFilter, setQuestionnaireFilter] = useState("");
   const [fromDate, setFromDate] = useState("");
-  const [feedView, setFeedView] = useState("cards");
+  const [customPeriod, setCustomPeriod] = useState(false);
+  const [feedView, setFeedView] = useState("table");
   const [analyticsTab, setAnalyticsTab] = useState(0);
   const intervalRef = useRef(null);
   const didMount = useRef(false);
@@ -297,7 +287,7 @@ function SurveyMonitoringDashboardPage() {
 
   const reloadFeed = () => dispatch(fetchSurveyInterviews({
     questionnaireId: qid,
-    status: statusFilter || undefined,
+    status: statusesForFilter(statusFilter),
     responsibleName: responsibleFilter || undefined,
     supervisorName: supervisorFilter || undefined,
     fromDate: fromDateArg,
@@ -315,8 +305,6 @@ function SurveyMonitoringDashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canView]);
 
-  // Fall back to the legacy HQ list only if the dashboard didn't supply questionnaires.
-  // Avoids an extra slow HQ round-trip on every mount when the backend is up-to-date.
   useEffect(() => {
     if (!canView) return;
     if (m.questionnaires && m.questionnaires.length) return;
@@ -362,6 +350,7 @@ function SurveyMonitoringDashboardPage() {
   const clearAllFilters = () => {
     setQuestionnaireFilter("");
     setFromDate("");
+    setCustomPeriod(false);
     setStatusFilter(null);
     setResponsibleFilter(null);
     setSupervisorFilter(null);
@@ -371,7 +360,15 @@ function SurveyMonitoringDashboardPage() {
   const rejected = (m.rejectedBySupervisor || 0) + (m.rejectedByHq || 0);
   const dailySpark = (m.dailyProductivity || []).map((d) => ({ count: d.count || 0 }));
   const stages = m.approvalFunnel || [];
-  const anyFilter = !!questionnaireFilter || !!fromDate || !!statusFilter || !!responsibleFilter || !!supervisorFilter;
+  const activeFilterCount = [questionnaireFilter, fromDate, statusFilter, responsibleFilter, supervisorFilter].filter(Boolean).length;
+  const periods = [
+    { key: "today", label: t("survey.dashboard.today", "Today"), iso: isoDaysAgo(0) },
+    { key: "yesterday", label: t("survey.dashboard.sinceYesterday", "Since yesterday"), iso: isoDaysAgo(1) },
+    { key: "last7", label: t("survey.dashboard.last7", "Last 7 days"), iso: isoDaysAgo(7) },
+    { key: "last30", label: t("survey.dashboard.last30", "Last 30 days"), iso: isoDaysAgo(30) },
+  ];
+  const activePeriod = customPeriod ? null : periods.find((p) => p.iso === fromDate)?.key;
+  const showCustom = customPeriod || (!!fromDate && !activePeriod);
   const errorMsg = (() => {
     if (!errorDashboard) return null;
     if (typeof errorDashboard === "string") return errorDashboard;
@@ -391,7 +388,7 @@ function SurveyMonitoringDashboardPage() {
     return (
       <div className={classes.page}>
         <Helmet title={t("survey.dashboard.title", "Survey Solutions — Field Monitoring")} />
-        <Paper className={`${classes.surface} ${classes.hero}`}>
+        <Paper className={classes.surface} style={{ padding: 24 }}>
           <Box display="flex" alignItems="center" style={{ gap: 12 }}>
             <LockOutlinedIcon color="action" />
             <Box>
@@ -412,69 +409,57 @@ function SurveyMonitoringDashboardPage() {
     <div className={classes.page}>
       <Helmet title={t("survey.dashboard.title", "Survey Solutions — Field Monitoring")} />
 
-      {/* ── Hero: brand badge, title, status row ── */}
-      <Paper className={`${classes.surface} ${classes.hero}`}>
-        <span className={classes.heroAccent} />
-        <div className={classes.heroTop}>
-          <div className={classes.brandBadge}>
-            <AssignmentTurnedInIcon style={{ fontSize: 38 }} />
-          </div>
-          <Box className={classes.heroIntro}>
-            <Typography variant="h4" className={classes.heroTitle}>
-              {t("survey.dashboard.title", "Survey Solutions — Field Monitoring")}
-            </Typography>
-            <Typography variant="body1" className={classes.heroSubtitle}>
-              {t("survey.dashboard.subtitle", "A near-real-time operational view of interview progress, review backlogs, and field activity sourced from Survey Solutions HQ.")}
-            </Typography>
-            <div className={classes.heroStatusRow}>
-              <span className={classes.syncedChip}>
-                <CheckCircleOutlineIcon className={classes.syncedIcon} />
-                {t("survey.dashboard.lastPolled", "Last synced from HQ")}: {fmtDateTime(m.lastPolledAt)}
-                {fetchingDashboard ? (
-                  <CircularProgress size={12} style={{ marginLeft: 4 }} aria-label={t("survey.dashboard.syncing", "Syncing dashboard")} />
-                ) : null}
+      <div className={classes.header}>
+        <Box className={classes.heroIntro}>
+          <Typography variant="h4" className={classes.heroTitle}>
+            {t("survey.dashboard.pageTitle", "Field Monitoring")}
+          </Typography>
+          <Typography variant="body1" className={classes.heroSubtitle}>
+            {t("survey.dashboard.subtitle", "A near-real-time operational view of interview progress, review backlogs, and field activity sourced from Survey Solutions HQ.")}
+          </Typography>
+          <span className={classes.syncedChip}>
+            {fetchingDashboard ? (
+              <CircularProgress size={14} aria-label={t("survey.dashboard.syncing", "Syncing dashboard")} />
+            ) : (
+              <SyncIcon className={classes.syncedIcon} />
+            )}
+            {t("survey.dashboard.lastPolled", "Last synced from HQ")}: {fmtDateTime(m.lastPolledAt)}
+          </span>
+        </Box>
+        <div className={classes.heroControls}>
+          <FormControlLabel
+            className={classes.autoRefreshControl}
+            labelPlacement="start"
+            control={<Switch color="primary" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />}
+            label={(
+              <span className={classes.autoRefreshLabel}>
+                <SyncIcon fontSize="small" />
+                {t("survey.dashboard.autoRefresh", `Auto-refresh (${POLL_SECONDS}s)`)}
               </span>
-              <div className={classes.heroControls}>
-                <FormControlLabel
-                  control={<Switch size="small" color="primary" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />}
-                  label={t("survey.dashboard.autoRefresh", `Auto-refresh (${POLL_SECONDS}s)`)}
-                />
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={refreshing ? <CircularProgress size={16} color="inherit" /> : <RefreshIcon />}
-                  onClick={onManualRefresh}
-                  disabled={refreshing}
-                >
-                  {t("survey.dashboard.refreshNow", "Sync now")}
-                </Button>
-              </div>
-            </div>
-          </Box>
+            )}
+          />
+          <Button
+            variant="contained"
+            className={classes.syncBtn}
+            startIcon={refreshing ? <CircularProgress size={16} color="inherit" /> : <SyncIcon />}
+            onClick={onManualRefresh}
+            disabled={refreshing}
+          >
+            {t("survey.dashboard.refreshNow", "Sync now")}
+          </Button>
         </div>
-      </Paper>
-
-      {/* ── Filter bar (own card) ── */}
+      </div>
       <Paper className={`${classes.surface} ${classes.filterCard}`}>
         <div className={classes.filterBar}>
-          <span className={classes.filterPill}>
-            <FilterListIcon style={{ fontSize: 18 }} />
-            {t("survey.dashboard.filters", "Filters")}
-          </span>
-
-          <div className={classes.filterDivider} />
-
           <div className={classes.filterGroup}>
             <span className={classes.filterGroupLabel}>{t("survey.dashboard.questionnaire", "PAA / Questionnaire")}</span>
             {questionnaires.length ? (
-              <FormControl size="small" variant="outlined" className={classes.filterField}>
+              <FormControl variant="outlined" size="small" className={classes.filterField}>
                 <Select
+                  className={classes.control}
                   value={questionnaireFilter}
                   displayEmpty
                   onChange={(e) => {
-                    // Resetting status/responsible/supervisor on scope change makes the
-                    // numbers and feed unambiguous; the date filter is left in place
-                    // because "submitted since" is usually a cross-PAA intent.
                     setStatusFilter(null);
                     setResponsibleFilter(null);
                     setSupervisorFilter(null);
@@ -501,51 +486,62 @@ function SurveyMonitoringDashboardPage() {
           <div className={classes.filterDivider} />
 
           <div className={classes.filterGroup}>
-            <span className={classes.filterGroupLabel}>{t("survey.dashboard.submittedSince", "Submitted since")}</span>
-            <TextField
-              size="small"
-              variant="outlined"
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              className={classes.dateField}
-            />
-          </div>
-
-          <div className={classes.filterDivider} />
-
-          <div className={classes.filterGroup}>
-            <span className={classes.filterGroupLabel}>{t("survey.dashboard.quickRange", "Quick range")}</span>
-            <div className={classes.quickRange}>
-              {[
-                { key: "today", label: t("survey.dashboard.today", "Today"), days: 0 },
-                { key: "yesterday", label: t("survey.dashboard.yesterday", "Yesterday"), days: 1 },
-                { key: "last7", label: t("survey.dashboard.last7", "Last 7 days"), days: 7 },
-                { key: "last30", label: t("survey.dashboard.last30", "Last 30 days"), days: 30 },
-              ].map((r) => {
-                const iso = isoDaysAgo(r.days);
-                const active = fromDate === iso;
-                return (
-                  <Button
-                    key={r.key}
-                    variant="outlined"
-                    size="small"
-                    className={`${classes.quickBtn} ${active ? classes.quickBtnActive : ""}`.trim()}
-                    onClick={() => setFromDate(active ? "" : iso)}
-                  >
-                    {r.label}
-                  </Button>
-                );
-              })}
+            <span className={classes.filterGroupLabel}>{t("survey.dashboard.period", "Submitted")}</span>
+            <div className={classes.periodRow}>
+              {periods.map((p) => (
+                <Button
+                  key={p.key}
+                  variant="outlined"
+                  className={`${classes.quickBtn} ${activePeriod === p.key ? classes.quickBtnActive : ""}`.trim()}
+                  onClick={() => {
+                    setCustomPeriod(false);
+                    setFromDate(activePeriod === p.key ? "" : p.iso);
+                  }}
+                >
+                  {p.label}
+                </Button>
+              ))}
+              <Button
+                variant="outlined"
+                className={`${classes.quickBtn} ${showCustom ? classes.quickBtnActive : ""}`.trim()}
+                onClick={() => {
+                  if (showCustom) {
+                    setCustomPeriod(false);
+                    setFromDate("");
+                  } else {
+                    setCustomPeriod(true);
+                  }
+                }}
+              >
+                {t("survey.dashboard.customPeriod", "Custom…")}
+              </Button>
+              {showCustom ? (
+                <TextField
+                  variant="outlined"
+                  size="small"
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  InputProps={{ startAdornment: <span style={{ marginRight: 6, fontSize: "0.8rem", whiteSpace: "nowrap" }}>{t("survey.dashboard.since", "Since")}</span> }}
+                  className={classes.dateField}
+                  autoFocus={customPeriod && !fromDate}
+                />
+              ) : null}
             </div>
           </div>
 
-          {anyFilter ? (
-            <Button size="small" className={classes.clearBtn} onClick={clearAllFilters}>
-              {t("survey.dashboard.clearFilters", "Clear filters")}
-            </Button>
-          ) : null}
+          <div className={classes.filterStatus}>
+            {activeFilterCount ? (
+              <>
+                <span className={classes.filterCount}>
+                  {activeFilterCount} {activeFilterCount === 1 ? t("survey.dashboard.filterActive", "filter active") : t("survey.dashboard.filtersActive", "filters active")}
+                </span>
+                <Button size="small" className={classes.clearBtn} onClick={clearAllFilters}>
+                  {t("survey.dashboard.clearFilters", "Clear")}
+                </Button>
+              </>
+            ) : t("survey.dashboard.noFilters", "No filters applied")}
+          </div>
         </div>
       </Paper>
 
@@ -556,23 +552,19 @@ function SurveyMonitoringDashboardPage() {
             : `${t("survey.dashboard.loadError", "Could not load the dashboard from the backend")}: ${errorMsg}`}
         </MuiAlert>
       ) : null}
-
-      {/* ── Coverage KPIs ── */}
       <Box className={classes.rowMargin}>
         <SectionHead title={t("survey.dashboard.householdSummaryTitle", "Household summary")} />
         <Box className={classes.kpiGrid}>
           <KpiTile
             label={t("survey.dashboard.totalHouseholds", "Total households")}
             value={m.totalInterviews}
-            icon={<GroupIcon />}
-            subtitle={t("survey.dashboard.totalHouseholdsSub", "exact interview count for the current scope")}
+            subtitle={t("survey.dashboard.totalHouseholdsSub", "Exact interview count for the current scope")}
             tooltip={t("survey.dashboard.totalHouseholdsTip", "One household interview is treated as one household in the monitoring scope.")}
             loading={dashLoading}
           />
           <KpiTile
             label={t("survey.dashboard.totalMembers", "Total members")}
             value={m.householdMembersTotal}
-            icon={<PeopleIcon />}
             subtitle={m.householdMembersTotal != null
               ? `${fmtInt(m.householdSizeInterviews || 0)} ${t("survey.dashboard.responsesWord", "responses")}`
               : t("survey.dashboard.householdSizeUnavailable", "Household-size statistics are not available from this HQ API yet.")}
@@ -582,7 +574,6 @@ function SurveyMonitoringDashboardPage() {
           <KpiTile
             label={t("survey.dashboard.householdAverage", "Average hh size")}
             value={m.householdSizeAverage}
-            icon={<PeopleIcon />}
             subtitle={m.householdSizeAverage != null
               ? `${t("survey.dashboard.householdMembers", "Household members")}: ${fmtInt(m.householdMembersTotal || 0)}`
               : t("survey.dashboard.householdSizeUnavailable", "Household-size statistics are not available from this HQ API yet.")}
@@ -591,13 +582,9 @@ function SurveyMonitoringDashboardPage() {
           />
         </Box>
       </Box>
-
-      {/* ── Approval funnel ── */}
       <Box className={classes.rowMargin}>
         <PipelineStrip stages={stages} activeStatus={statusFilter} onStageClick={setStatusFilter} formatMessage={formatMessage} />
       </Box>
-
-      {/* ── Review queues & throughput KPIs ── */}
       <Box className={classes.rowMargin}>
         <SectionHead title={t("survey.dashboard.queuesTitle", "Review queues & throughput")} />
         <Box className={classes.kpiGrid}>
@@ -605,7 +592,8 @@ function SurveyMonitoringDashboardPage() {
             label={t("survey.dashboard.rejectionRate", "Rejection rate")}
             value={m.rejectionRate != null ? `${m.rejectionRate}%` : "—"}
             severity={rejectionSeverity(m.rejectionRate)}
-            icon={<ThumbDownIcon />}
+            onClick={() => setStatusFilter(isRejectedFilter(statusFilter) ? null : "rejected")}
+            active={isRejectedFilter(statusFilter)}
             subtitle={`${fmtInt(rejected)} ${t("survey.dashboard.rejectedTotal", "rejected")} (${t("survey.dashboard.supShort", "sup")} ${fmtInt(m.rejectedBySupervisor || 0)} / ${t("survey.dashboard.hqShort", "HQ")} ${fmtInt(m.rejectedByHq || 0)})`}
             tooltip={t("survey.dashboard.rejectionRateTip", "Rejected interviews ÷ interviews that reached review. High values may signal data-quality or training issues.")}
             loading={dashLoading}
@@ -613,28 +601,24 @@ function SurveyMonitoringDashboardPage() {
           <KpiTile
             label={t("survey.dashboard.awaitingSupervisor", "Awaiting supervisor review")}
             value={m.completed}
-            icon={<HourglassEmptyIcon />}
             subtitle={t("survey.dashboard.awaitingSupervisorSub", "completed, not yet reviewed")}
             tooltip={t("survey.dashboard.awaitingSupervisorTip", "Interviews sitting in the supervisor's review queue right now.")}
             loading={dashLoading}
-            onClick={() => setStatusFilter(statusFilter === "Completed" ? null : "Completed")}
-            active={statusFilter === "Completed"}
+            onClick={() => setStatusFilter(statusFilter === "awaitingSupervisor" ? null : "awaitingSupervisor")}
+            active={statusFilter === "awaitingSupervisor"}
           />
           <KpiTile
             label={t("survey.dashboard.awaitingHq", "Awaiting HQ approval")}
             value={m.hqBacklog}
-            severity={m.totalInterviews && (m.hqBacklog || 0) / m.totalInterviews > 0.5 ? "bad" : "warn"}
-            icon={<GavelIcon />}
             subtitle={t("survey.dashboard.awaitingHqSub", "approved by supervisor / sent to HQ")}
             tooltip={t("survey.dashboard.awaitingHqTip", "Interviews waiting for Headquarters approval — the main approval bottleneck.")}
             loading={dashLoading}
-            onClick={() => setStatusFilter(statusFilter === "ApprovedBySupervisor" ? null : "ApprovedBySupervisor")}
-            active={statusFilter === "ApprovedBySupervisor"}
+            onClick={() => setStatusFilter(statusFilter === "awaitingHq" ? null : "awaitingHq")}
+            active={statusFilter === "awaitingHq"}
           />
           <KpiTile
             label={t("survey.dashboard.activeEnumerators", "Active enumerators (24h)")}
             value={m.activeEnumerators}
-            icon={<GroupIcon />}
             subtitle={t("survey.dashboard.activeEnumeratorsSub", "synced recently (from sample)")}
             sparkline={dailySpark.length > 1 ? dailySpark : null}
             tooltip={t("survey.dashboard.activeEnumeratorsTip", "Enumerators whose interviews show a last-entry timestamp within the past 24 h (in the synced sample).")}
@@ -642,10 +626,6 @@ function SurveyMonitoringDashboardPage() {
           />
         </Box>
       </Box>
-
-      <SampleBanner sampleSize={m.sampleSize} totalInterviews={m.totalInterviews} formatMessage={formatMessage} className={classes.sampleNote} />
-
-      {/* ── Analytical zones — tabbed so only one shows at a time ── */}
       <div className={classes.tabsBar}>
         <Tabs
           value={analyticsTab}
@@ -659,9 +639,15 @@ function SurveyMonitoringDashboardPage() {
           <Tab disableRipple className={classes.tab} label={t("survey.dashboard.activityTitle", "Field activity & accountability")} />
           <Tab disableRipple className={classes.tab} label={t("survey.dashboard.trendsTitle", "Trends & activity patterns")} />
         </Tabs>
+        {m.sampleSize && m.totalInterviews && m.sampleSize < m.totalInterviews ? (
+          <Tooltip title={t("survey.dashboard.sampleTip", "Pipeline and KPIs are exact. The feed, leaderboards and heatmap use the interviews synced so far; the sample grows with every poll.")}>
+            <span className={classes.sampleNote}>
+              <InfoOutlinedIcon style={{ fontSize: 16 }} />
+              {t("survey.dashboard.sampleShort", "Sample")}: {fmtInt(m.sampleSize)} / {fmtInt(m.totalInterviews)}
+            </span>
+          </Tooltip>
+        ) : null}
       </div>
-
-      {/* Operational monitoring: live feed + supervisor ranking */}
       {analyticsTab === 0 && (
         <Box className={classes.rowMargin}>
           <Grid container spacing={2}>
@@ -696,9 +682,6 @@ function SurveyMonitoringDashboardPage() {
                 <Typography className={classes.panelTitle}>
                   {t("survey.dashboard.supervisorLeaderboard", "Supervisor leaderboard")}
                 </Typography>
-                <Typography className={classes.panelNote}>
-                  {t("survey.dashboard.supervisorLeaderboardNote", "Ranks supervisors by reviewed interviews and current queue volume in the synced sample.")}
-                </Typography>
                 <Box className={classes.panelBody}>
                   <SupervisorLeaderboard
                     rows={m.supervisorLeaderboard || []}
@@ -716,23 +699,16 @@ function SurveyMonitoringDashboardPage() {
           </Grid>
         </Box>
       )}
-
-      {/* Field activity: heatmap + enumerator ranking */}
       {analyticsTab === 1 && (
         <Box className={classes.rowMargin}>
           <Grid container spacing={2}>
             <Grid item xs={12} lg={6}>
               <Paper className={`${classes.surface} ${classes.panel} ${classes.uniformPanel}`}>
                 <Typography className={classes.panelTitle}>
-                  {t("survey.dashboard.heatmap", "Enumerator activity heatmap (day × hour)")}
-                </Typography>
-                <Typography className={classes.panelNote}>
-                  {m.sampleSize ? `${t("survey.dashboard.sampleNote", "Based on a sample of")} ${fmtInt(m.sampleSize)}` : ""}
+                  {t("survey.dashboard.heatmapTitle", "Field activity by day and hour")}
                 </Typography>
                 <Box className={classes.panelBody}>
-                  <Box className={classes.scrollBody}>
-                    <ActivityHeatmap cells={m.activityHeatmap || []} formatMessage={formatMessage} />
-                  </Box>
+                  <ActivityHeatmap cells={m.activityHeatmap || []} formatMessage={formatMessage} />
                 </Box>
               </Paper>
             </Grid>
@@ -740,9 +716,6 @@ function SurveyMonitoringDashboardPage() {
               <Paper className={`${classes.surface} ${classes.panel} ${classes.uniformPanel}`}>
                 <Typography className={classes.panelTitle}>
                   {t("survey.dashboard.leaderboard", "Enumerator leaderboard")}
-                </Typography>
-                <Typography className={classes.panelNote}>
-                  {t("survey.dashboard.enumeratorLeaderboardNote", "Ranks enumerators by completed interviews in the synced sample.")}
                 </Typography>
                 <Box className={classes.panelBody}>
                   <EnumeratorLeaderboard
@@ -761,8 +734,6 @@ function SurveyMonitoringDashboardPage() {
           </Grid>
         </Box>
       )}
-
-      {/* Trends */}
       {analyticsTab === 2 && (
         <Box className={classes.rowMargin}>
           <Grid container spacing={2}>

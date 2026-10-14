@@ -10,18 +10,12 @@ import {
 import { fmtInt } from "./surveyUtils";
 import { surveyPalette, severityColor } from "./surveyTheme";
 
-// Flat KPI card matching the Payment Operations dashboard: 1px-bordered surface,
-// 16px radius, a left accent strip, uppercase muted label, big themed value and a
-// caption. All colour comes from the live MUI theme (configured via fe-core), so the
-// card follows branding; only genuine signals (error/warning/success) use a 2nd hue.
 const useStyles = makeStyles((theme) => ({
   card: {
-    position: "relative",
     height: "100%",
-    borderRadius: 16,
+    borderRadius: 8,
     border: `1px solid ${theme.palette.divider}`,
     boxShadow: "none",
-    overflow: "hidden",
     transition: "transform .15s ease, box-shadow .15s ease",
   },
   clickable: {
@@ -31,34 +25,27 @@ const useStyles = makeStyles((theme) => ({
       boxShadow: `0 8px 24px ${fade(theme.palette.primary.main, 0.12)}`,
     },
   },
-  accent: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: 4,
-    height: "100%",
-  },
   content: {
-    padding: theme.spacing(2.5),
+    padding: theme.spacing(2.5, 2.75),
     "&:last-child": { paddingBottom: theme.spacing(2.5) },
   },
   label: {
     textTransform: "uppercase",
-    letterSpacing: "0.06em",
-    fontSize: "0.72rem",
+    letterSpacing: "0.02em",
+    fontSize: "0.8rem",
     fontWeight: 600,
-    color: theme.palette.grey[600],
+    color: theme.palette.text.primary,
   },
   value: {
-    fontSize: "2.4rem",
+    fontSize: "2.2rem",
     fontWeight: 700,
     lineHeight: 1,
-    marginTop: theme.spacing(1),
+    marginTop: theme.spacing(2),
   },
   caption: {
-    fontSize: "0.78rem",
+    fontSize: "0.82rem",
     color: theme.palette.grey[600],
-    marginTop: theme.spacing(0.75),
+    marginTop: theme.spacing(1.25),
     display: "block",
   },
 }));
@@ -70,7 +57,7 @@ function KpiTile({
   const classes = useStyles();
   const theme = useTheme();
   const pal = surveyPalette(theme);
-  const accent = color || (severity ? severityColor(severity, pal) : pal.primary);
+  const accent = color || (severity === "warn" || severity === "bad" ? severityColor(severity, pal) : pal.primaryDark);
   const displayValue = typeof value === "number" ? fmtInt(value) : (value ?? "—");
   const clickable = !!onClick;
   const gradId = `spark-${String(label || "").replace(/[^a-zA-Z0-9]/g, "")}`;
@@ -84,7 +71,6 @@ function KpiTile({
       onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(e); } } : undefined}
       style={active ? { background: fade(accent, 0.06), boxShadow: `0 0 0 1px ${accent}` } : undefined}
     >
-      <span className={classes.accent} style={{ backgroundColor: accent }} />
       <CardContent className={classes.content}>
         <Box display="flex" justifyContent="space-between" alignItems="flex-start">
           <Typography className={classes.label}>{label}</Typography>

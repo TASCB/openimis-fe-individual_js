@@ -1,9 +1,5 @@
 import { lighten, darken } from "@material-ui/core/styles";
 
-// openIMIS pages are predominantly one colour — the theme's primary (configured via
-// the `fe-core` ModuleConfiguration in Django admin). These helpers derive everything
-// the dashboard needs from the live MUI theme, so the whole screen follows branding;
-// only genuine signals (rejected = error, bottleneck = warning) use a second hue.
 export function surveyPalette(theme) {
   const p = (theme && theme.palette) || {};
   const primary = (p.primary && p.primary.main) || "#006273";
@@ -24,12 +20,12 @@ export function surveyPalette(theme) {
   };
 }
 
-// Interview status -> colour, kept on the primary scale (rejections are the exception).
 export function statusColor(status, pal) {
   switch (status) {
     case "ApprovedByHeadquarters":
       return pal.primaryDark;
     case "ApprovedBySupervisor":
+    case "SentToCapi":
     case "SentToCapital":
       return pal.primary;
     case "Completed":

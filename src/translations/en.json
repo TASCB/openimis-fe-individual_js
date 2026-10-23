@@ -703,5 +703,6 @@
   "pctEnrolment.task.import": "Import",
   "pctEnrolment.task.households": "Households to enrol",
   "pctEnrolment.task.members": "Members",
-  "pctEnrolment.task.plan": "Benefit plan"
+  "pctEnrolment.task.plan": "Benefit plan",
+  "individual.deduplication.truncated": "Showing the largest {shown} of {total} groups; only these become review tasks. Match on more fields to narrow it."
 }

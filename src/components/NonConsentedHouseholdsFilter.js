@@ -1,57 +1,64 @@
 import React from 'react';
-import { withStyles } from '@material-ui/core/styles';
 import { injectIntl } from 'react-intl';
+import {
+  Checkbox, FormControlLabel, Grid, withStyles, withTheme,
+} from '@material-ui/core';
+import { formatMessage, PublishedComponent, TextInput } from '@openimis/fe-core';
 
-import Filter from './Filter';
-import { CONTAINS_LOOKUP } from '../constants';
-
-const styles = (theme) => ({
-  root: {
-    padding: theme.spacing(1),
-  },
-  // Add breathing room between blocks
-  filterBlock: {
-    marginTop: theme.spacing(2),
-  },
-});
+import { useFilterChangeHandler } from './Filter';
+import { INDIVIDUAL_MODULE_NAME } from '../constants';
+import { defaultFilterStyles } from '../util/styles';
 
 function NonConsentedHouseholdsFilter({
-  intl,
-  classes,
-  filters = {},
-  onChangeFilters,
+  intl, classes, filters = {}, onChangeFilters,
 }) {
-  const safeOnChangeFilters = (next) => {
-    if (typeof onChangeFilters === 'function') {
-      onChangeFilters(next);
-    }
-  };
-
-  const filterFields = [
-    { name: 'firstName', label: 'individual.firstName', lookup: CONTAINS_LOOKUP },
-    { name: 'lastName', label: 'individual.lastName', lookup: CONTAINS_LOOKUP },
-  ];
-
-  const checkboxFields = [
-    { name: 'isTasafBeneficiary', label: 'individual.isTasafBeneficiary' },
-    { name: 'isDeleted', label: 'isDeleted' },
-  ];
+  const { onChangeStringFilter } = useFilterChangeHandler(onChangeFilters);
 
   return (
-    <div className={classes.root}>
-      {/* only spacing kept */}
-      <div className={classes.filterBlock}>
-        <Filter
-          intl={intl}
-          classes={classes}
+    <Grid container className={classes.form}>
+      <Grid item xs={12}>
+        <PublishedComponent
+          pubRef="location.DetailedLocationFilter"
+          withNull
           filters={filters}
-          onChangeFilters={safeOnChangeFilters}
-          filterFields={filterFields}
-          checkboxFields={checkboxFields}
+          onChangeFilters={onChangeFilters}
+          anchor="parentLocation"
         />
-      </div>
-    </div>
+      </Grid>
+      <Grid item xs={3} className={classes.item}>
+        <TextInput
+          module={INDIVIDUAL_MODULE_NAME}
+          label="individual.headName"
+          value={filters?.headName?.value ?? ''}
+          onChange={onChangeStringFilter('headName')}
+        />
+      </Grid>
+      <Grid item xs={3} className={classes.item}>
+        <TextInput
+          module={INDIVIDUAL_MODULE_NAME}
+          label="individual.interviewKey"
+          value={filters?.interviewKey?.value ?? ''}
+          onChange={onChangeStringFilter('interviewKey')}
+        />
+      </Grid>
+      <Grid item xs={3} className={classes.item}>
+        <FormControlLabel
+          control={(
+            <Checkbox
+              checked={filters?.isTasafBeneficiary?.value ?? false}
+              onChange={(e) => onChangeFilters([{
+                id: 'isTasafBeneficiary',
+                value: e.target.checked,
+                filter: e.target.checked ? 'isTasafBeneficiary: true' : null,
+              }])}
+              name="isTasafBeneficiary"
+            />
+          )}
+          label={formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'individual.isTasafBeneficiary')}
+        />
+      </Grid>
+    </Grid>
   );
 }
 
-export default injectIntl(withStyles(styles)(NonConsentedHouseholdsFilter));
+export default injectIntl(withTheme(withStyles(defaultFilterStyles)(NonConsentedHouseholdsFilter)));

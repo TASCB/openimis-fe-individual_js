@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -21,9 +21,11 @@ import { injectIntl } from 'react-intl';
 import {
   Autocomplete,
   ProgressOrError,
+  PublishedComponent,
   apiHeaders,
   baseApiUrl,
   formatMessage,
+  formatMessageWithValues,
 } from '@openimis/fe-core';
 import { INDIVIDUAL_MODULE_NAME } from '../../constants';
 
@@ -40,12 +42,7 @@ const useStyles = makeStyles((theme) => ({
   header: theme.table.header,
 }));
 
-const BASIC_FIELDS = [
-  { id: 'first_name', name: 'first_name' },
-  { id: 'last_name', name: 'last_name' },
-  { id: 'dob', name: 'dob' },
-  { id: 'location__name', name: 'location' },
-];
+const FIELD_NAMES = { location__name: 'location', location__code: 'location code' };
 
 const FIELD_ALIASES = {
   firstName: 'first_name',
@@ -130,7 +127,7 @@ const formatColumnLabel = (key) => String(key)
   .trim()
   .replace(/\b\w/g, (c) => c.toUpperCase());
 
-const fetchDeduplicationRows = async (selectedValues) => {
+const fetchDeduplicationRows = async (selectedValues, location) => {
   const columns = selectedValues
     .map(normalizeSelectedField)
     .filter(Boolean);
@@ -140,8 +137,10 @@ const fetchDeduplicationRows = async (selectedValues) => {
   }
 
   const query = `
-    query IndividualDeduplicationSummary($columns: [String!]!) {
-      individualDeduplicationSummary(columns: $columns) {
+    query IndividualDeduplicationSummary($columns: [String!]!, $location: UUID) {
+      individualDeduplicationSummary(columns: $columns, location: $location) {
+        total
+        limit
         rows {
           count
           ids
@@ -151,8 +150,13 @@ const fetchDeduplicationRows = async (selectedValues) => {
     }
   `;
 
-  const result = await executeGraphQLQuery(query, { columns });
-  return result.individualDeduplicationSummary?.rows || [];
+  const result = await executeGraphQLQuery(query, { columns, location: location || null });
+  return result.individualDeduplicationSummary || { rows: [], total: 0, limit: 0 };
+};
+
+const fetchDeduplicationFields = async () => {
+  const result = await executeGraphQLQuery('query { individualDeduplicationFields }');
+  return (result.individualDeduplicationFields || []).map((id) => ({ id, name: FIELD_NAMES[id] || id }));
 };
 
 /**
@@ -170,6 +174,8 @@ function IndividualFieldPicker({
   label,
 }) {
   const [searchString, setSearchString] = useState('');
+  const [options, setOptions] = useState([]);
+  useEffect(() => { fetchDeduplicationFields().then(setOptions).catch(() => setOptions([])); }, []);
 
   return (
     <Autocomplete
@@ -181,7 +187,7 @@ function IndividualFieldPicker({
       withLabel={withLabel}
       withPlaceholder={withPlaceholder}
       readOnly={readOnly}
-      options={BASIC_FIELDS}
+      options={options}
       isLoading={false}
       value={value}
       getOptionLabel={(o) => o?.name}
@@ -436,7 +442,10 @@ function IndividualDeduplicationDialog({
   onMergeComplete,
 }) {
   const [selectedValues, setSelectedValues] = useState([]);
+  const [locationFilters, setLocationFilters] = useState({});
+  const location = locationFilters.parentLocation?.value?.uuid;
   const [summary, setSummary] = useState([]);
+  const [found, setFound] = useState({ total: 0, limit: 0 });
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState(null);
   const [hasScanned, setHasScanned] = useState(false);
@@ -457,8 +466,9 @@ function IndividualDeduplicationDialog({
     setScannedFields(normalizedValues.map(normalizeSelectedField).filter(Boolean));
 
     try {
-      const rows = await fetchDeduplicationRows(normalizedValues);
+      const { rows, total, limit } = await fetchDeduplicationRows(normalizedValues, location);
       setSummary(rows);
+      setFound({ total, limit });
       setHasScanned(true);
       return rows;
     } catch (err) {
@@ -469,6 +479,18 @@ function IndividualDeduplicationDialog({
     } finally {
       setSummaryLoading(false);
     }
+  };
+
+  const clearScan = () => {
+    setSummary([]);
+    setSummaryError(null);
+    setHasScanned(false);
+    setScannedFields([]);
+  };
+
+  const handleLocationChange = (entries) => {
+    setLocationFilters((current) => entries.reduce((next, entry) => ({ ...next, [entry.id]: entry }), current));
+    clearScan();
   };
 
   const handlePickerChange = (selectedOptions) => {
@@ -520,6 +542,13 @@ function IndividualDeduplicationDialog({
         </DialogTitle>
 
         <DialogContent>
+          <PublishedComponent
+            pubRef="location.DetailedLocationFilter"
+            withNull
+            filters={locationFilters}
+            onChangeFilters={handleLocationChange}
+            anchor="parentLocation"
+          />
           <IndividualFieldPicker
             required
             value={selectedValues}
@@ -533,6 +562,13 @@ function IndividualDeduplicationDialog({
                 Scanned fields:
                 {' '}
                 {scannedFields.join(', ')}
+              </Typography>
+            )}
+            {hasScanned && found.total > summary.length && (
+              <Typography color="error" display="block">
+                {formatMessageWithValues(intl, INDIVIDUAL_MODULE_NAME, 'individual.deduplication.truncated', {
+                  shown: summary.length, total: found.total.toLocaleString(),
+                })}
               </Typography>
             )}
             {selectedValues.length > 0 && (

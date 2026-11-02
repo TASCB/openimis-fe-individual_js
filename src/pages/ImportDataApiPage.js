@@ -42,6 +42,7 @@ import {
   ProgressOrError,
   Searcher,
 } from "@openimis/fe-core";
+import { toDisplayTime } from "@openimis/fe-tasaf_common";
 import { injectIntl } from "react-intl";
 
 import {
@@ -229,7 +230,7 @@ function ImportDataApiPage({
     (item) => item.numberOfHouseholds || 0,
     (item) => item.numberOfMembers || 0,
     (item) => (item.questionnaireVersion ?? ""),
-    (item) => (item.datePulled ? new Date(item.datePulled).toLocaleDateString() : ""),
+    (item) => (item.datePulled ? new Date(toDisplayTime(item.datePulled)).toLocaleDateString() : ""),
     (item) => renderStatusBadge(item.status || "completed", item.errorMessage),
   ];
   

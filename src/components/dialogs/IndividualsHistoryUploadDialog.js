@@ -11,6 +11,7 @@ import {
   ProgressOrError,
   withModulesManager,
 } from '@openimis/fe-core';
+import { toDisplayTime } from '@openimis/fe-tasaf_common';
 import {
   TableHead,
   TableBody,
@@ -173,7 +174,7 @@ function IndividualsUploadHistoryDialog({
                         { item.workflow }
                       </TableCell>
                       <TableCell>
-                        { formatDateTimeFromISO(modulesManager, intl, item.dataUpload.dateCreated) }
+                        { formatDateTimeFromISO(modulesManager, intl, toDisplayTime(item.dataUpload.dateCreated)) }
                       </TableCell>
                       <TableCell>
                         { item.dataUpload.sourceType}

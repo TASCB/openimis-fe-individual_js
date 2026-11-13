@@ -7,9 +7,11 @@ import {
   Tab, Grid, Typography, Button, CircularProgress, Checkbox, FormControlLabel,
 } from '@material-ui/core';
 import Alert from '@material-ui/lab/Alert';
+import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 import {
-  formatMessage, PublishedComponent, TextInput, withModulesManager,
+  formatMessage, PublishedComponent, TextInput, withHistory, withModulesManager,
 } from '@openimis/fe-core';
+import PmtAuditSummaryTable from '../PmtAuditSummaryTable';
 import { adjustPmtCutoff, fetchPmtAuditSummary, fetchPmtGlobalFormula } from '../../actions';
 import PmtConfirmationDialog from '../dialogs/PmtConfirmationDialog';
 import PmtProgressDialog from '../dialogs/PmtProgressDialog';
@@ -43,7 +45,7 @@ function PmtAdjustmentTabLabel({
 }
 
 function PmtAdjustmentTabPanelComponent({
-  intl, classes, value, modulesManager,
+  intl, classes, value, modulesManager, history, cutoffSuggestion,
   submittingPmtCutoffAdjustment, pmtCutoffAdjustmentMutation, errorPmtCutoffAdjustment,
   pmtGlobalFormula, fetchingPmtGlobalFormula,
   adjustPmtCutoff: adjustAction, fetchPmtAuditSummary: fetchAuditAction, fetchPmtGlobalFormula: fetchFormula,
@@ -60,6 +62,7 @@ function PmtAdjustmentTabPanelComponent({
   const validation = useMemo(() => validatePmtCutoff(adjustmentCutoff), [adjustmentCutoff]);
   const scopeName = adjustmentDistrict?.name || adjustmentRegion?.name || null;
   const infoKey = scopeName ? 'pmt.adjustment.infoScoped' : 'pmt.adjustment.infoAll';
+  const [closedInfoKey, setClosedInfoKey] = useState(null);
 
   const formulaCutoff = useMemo(() => {
     try {
@@ -76,6 +79,15 @@ function PmtAdjustmentTabPanelComponent({
   useEffect(() => {
     if (value === PMT_ADJUSTMENT_TAB_VALUE && !pmtGlobalFormula && !fetchingPmtGlobalFormula) fetchFormula();
   }, [value]);
+
+  useEffect(() => {
+    if (!cutoffSuggestion) return;
+    setAdjustmentCutoff(String(cutoffSuggestion.cutoff));
+    const scoped = !!(cutoffSuggestion.region || cutoffSuggestion.district);
+    setShowAdvancedOptions(scoped);
+    setAdjustmentRegion(cutoffSuggestion.region || null);
+    setAdjustmentDistrict(cutoffSuggestion.district || null);
+  }, [cutoffSuggestion]);
 
   const toggleAdvanced = (checked) => {
     setShowAdvancedOptions(checked);
@@ -107,6 +119,11 @@ function PmtAdjustmentTabPanelComponent({
   };
 
   useEffect(() => {
+    const payload = pmtCutoffAdjustmentMutation?.data?.adjustPmtCutoff;
+    if (payload && payload.ok === false) {
+      setConfigError((payload.errors || []).join(' ') || 'The adjustment was not started');
+      return;
+    }
     const mutationId = pmtCutoffAdjustmentMutation?.mutationId
       || pmtCutoffAdjustmentMutation?.data?.adjustPmtCutoff?.mutationId || null;
     if (mutationId && mutationId !== progressMutationId) {
@@ -114,6 +131,13 @@ function PmtAdjustmentTabPanelComponent({
       setOpenProgress(true);
     }
   }, [pmtCutoffAdjustmentMutation]);
+
+  const onViewDistrict = (districtCode, pmtCutoffValue) => {
+    const qs = new URLSearchParams();
+    if (districtCode) qs.set('district', districtCode);
+    if (pmtCutoffValue !== undefined && pmtCutoffValue !== null) qs.set('cutoff', pmtCutoffValue);
+    history.push(`/pmt/enrollment-list?${qs.toString()}`);
+  };
 
   if (value !== PMT_ADJUSTMENT_TAB_VALUE) return null;
 
@@ -190,11 +214,13 @@ function PmtAdjustmentTabPanelComponent({
           )}
         </Grid>
 
-        <Alert severity="info" className={classes.inlineAlert}>
-          {formatMessage(intl, INDIVIDUAL_MODULE_NAME, infoKey)}
-        </Alert>
+        {closedInfoKey !== infoKey && (
+          <Alert severity="info" className={classes.inlineAlert} onClose={() => setClosedInfoKey(infoKey)}>
+            {formatMessage(intl, INDIVIDUAL_MODULE_NAME, infoKey)}
+          </Alert>
+        )}
         {differsFromFormula && (
-          <Alert severity="warning" className={classes.inlineAlert}>
+          <Alert severity="warning" icon={<ErrorOutlineIcon />} className={classes.inlineAlert}>
             {formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.adjustment.formulaWarning')
               .replace('{formulaCutoff}', formulaCutoff.toFixed(2))}
           </Alert>
@@ -211,6 +237,13 @@ function PmtAdjustmentTabPanelComponent({
           </Alert>
         )}
 
+      </div>
+
+      <div className={classes.paper}>
+        <Typography variant="h6" className={classes.sectionTitle}>
+          {formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.auditSummary.title')}
+        </Typography>
+        <PmtAuditSummaryTable onViewDistrict={onViewDistrict} />
       </div>
 
       <PmtConfirmationDialog
@@ -252,10 +285,10 @@ const mapDispatchToProps = (dispatch) => bindActionCreators(
   dispatch,
 );
 
-const PmtAdjustmentTabPanel = withModulesManager(
+const PmtAdjustmentTabPanel = withHistory(withModulesManager(
   injectIntl(withTheme(withStyles(styles)(
     connect(mapStateToProps, mapDispatchToProps)(PmtAdjustmentTabPanelComponent),
   ))),
-);
+));
 
 export { PmtAdjustmentTabLabel, PmtAdjustmentTabPanel };

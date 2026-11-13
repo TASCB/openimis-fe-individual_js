@@ -19,6 +19,7 @@ import {
   CircularProgress,
 } from "@material-ui/core";
 import Alert from "@material-ui/lab/Alert";
+import ErrorOutlineIcon from "@material-ui/icons/ErrorOutline";
 import { makeStyles } from "@material-ui/core/styles";
 import { formatMessage } from "@openimis/fe-core";
 
@@ -69,10 +70,11 @@ function PmtProgressDialog({ open, mutationId, onClose }) {
 
   const [isCompleted, setIsCompleted] = useState(false);
   const [isFailed, setIsFailed] = useState(false);
+  const [notStarted, setNotStarted] = useState(false);
 
-  // This assumes you implemented reducer state:
-  // state.individual.pmtRunProgress
-  const progress = useSelector((state) => state.individual?.pmtRunProgress);
+  const storedProgress = useSelector((state) => state.individual?.pmtRunProgress);
+  const progress = storedProgress && mutationId && String(storedProgress.mutationId) === String(mutationId)
+    ? storedProgress : null;
   const progressError = useSelector((state) => state.individual?.errorPmtRunProgress);
 
   // Reset dialog local state when reopened / mutation changes
@@ -80,7 +82,14 @@ function PmtProgressDialog({ open, mutationId, onClose }) {
     if (!open) return;
     setIsCompleted(false);
     setIsFailed(false);
+    setNotStarted(false);
   }, [open, mutationId]);
+
+  useEffect(() => {
+    if (!open || !mutationId || progress) return undefined;
+    const timer = setTimeout(() => setNotStarted(true), 30000);
+    return () => clearTimeout(timer);
+  }, [open, mutationId, !!progress]);
 
   // Polling
   useEffect(() => {
@@ -142,8 +151,24 @@ function PmtProgressDialog({ open, mutationId, onClose }) {
             </Alert>
           )}
 
+          {!progress && !isCompleted && !isFailed && (
+            <>
+              <Box width="100%">
+                <LinearProgress />
+              </Box>
+              <Typography>
+                {formatMessage(intl, INDIVIDUAL_MODULE_NAME, "pmt.progress.waiting")}
+              </Typography>
+              {notStarted && (
+                <Alert severity="warning" icon={<ErrorOutlineIcon />} className={classes.resultAlert}>
+                  {formatMessage(intl, INDIVIDUAL_MODULE_NAME, "pmt.progress.notStarted")}
+                </Alert>
+              )}
+            </>
+          )}
+
           {/* Running */}
-          {!isCompleted && !isFailed && (
+          {progress && !isCompleted && !isFailed && (
             <>
               <div className={classes.circularWrapper}>
                 <CircularProgress variant="determinate" value={percentage} size={120} />
@@ -217,6 +242,9 @@ function PmtProgressDialog({ open, mutationId, onClose }) {
           {isFailed && (
             <Alert severity="error" className={classes.resultAlert}>
               {formatMessage(intl, INDIVIDUAL_MODULE_NAME, "pmt.progress.failed")}
+              {(progress?.errors || []).length > 0 && (
+                <Typography variant="body2">{progress.errors.join("; ")}</Typography>
+              )}
             </Alert>
           )}
         </Box>

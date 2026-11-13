@@ -66,11 +66,10 @@ function PmtAuditSummaryTable({
 }) {
   const headers = () => [
     'pmt.auditSummary.paaName',
-    'pmt.auditSummary.cutoff',
-    'pmt.auditSummary.poor',
-    'pmt.auditSummary.nonPoor',
-    'pmt.auditSummary.total',
-    'pmt.auditSummary.poorShare',
+    'pmt.auditSummary.oldEligible',
+    'pmt.auditSummary.newEligible',
+    'pmt.auditSummary.eligibleDiff',
+    'pmt.auditSummary.eligibleShare',
     'pmt.auditSummary.action',
   ];
 
@@ -78,10 +77,9 @@ function PmtAuditSummaryTable({
 
   const itemFormatters = () => [
     (d) => d?.districtName || d?.districtCode || '-',
-    (d) => (d?.pmtCutoff != null ? d.pmtCutoff.toFixed(2) : '-'),
+    (d) => d?.oldEligibleCount ?? 0,
     (d) => d?.poorCount ?? 0,
-    (d) => d?.nonPoorCount ?? 0,
-    (d) => total(d),
+    (d) => (d?.oldEligibleCount ?? 0) - (d?.poorCount ?? 0),
     (d) => (total(d) ? `${((100 * (d.poorCount ?? 0)) / total(d)).toFixed(1)}%` : '-'),
     (d) => (
       <Tooltip title={formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.auditSummary.viewTooltip')}>

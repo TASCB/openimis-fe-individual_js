@@ -1521,22 +1521,9 @@ const PMT_RUN_HISTORY_PROJECTION = [
   'userUpdated {username}',
 ];
 
-const PMT_FORMULA_HISTORY_PROJECTION = [
-  'id',
-  'version',
-  'formula',
-  'dateUpdated',
-  'userUpdated {username}',
-];
-
 export function fetchPmtRunHistory(mm, params) {
   const payload = formatPageQueryWithCount('pmtRunHistory', params, PMT_RUN_HISTORY_PROJECTION);
   return graphql(payload, ACTION_TYPE.SEARCH_PMT_RUN_HISTORY);
-}
-
-export function fetchPmtFormulaHistory(mm, params) {
-  const payload = formatPageQueryWithCount('pmtGlobalFormulaHistory', params, PMT_FORMULA_HISTORY_PROJECTION);
-  return graphql(payload, ACTION_TYPE.SEARCH_PMT_FORMULA_HISTORY);
 }
 
 export function fetchPmtAuditSummary(modulesManager, params = {}) {
@@ -1561,7 +1548,7 @@ export function fetchPmtAuditSummary(modulesManager, params = {}) {
     `pmtAuditSummary(${filterArgs.join(', ')})`,
     [],
     [
-      'districts { districtCode districtName pmtCutoff poorCount nonPoorCount }',
+      'districts { districtCode districtName pmtCutoff poorCount nonPoorCount oldEligibleCount }',
       'totalCount',
       'hasNext',
       'hasPrevious',
@@ -1682,6 +1669,43 @@ export const clearPmtEnrollmentList = () => (dispatch) => {
     type: CLEAR(ACTION_TYPE.PMT_ENROLLMENT_LIST),
   });
 };
+
+export function fetchPmtCutoffPaaPreview({
+  cutoff, districtCode = null, regionCode = null, queryParams = [], exportAll = false,
+}) {
+  const args = [`cutoff: ${Number(cutoff)}`];
+  if (districtCode) args.push(`districtCode: "${districtCode}"`);
+  else if (regionCode) args.push(`regionCode: "${regionCode}"`);
+  if (!exportAll) args.push(...queryParams);
+  const payload = formatQuery(
+    `pmtCutoffPaaPreview(${args.join(', ')})`,
+    [],
+    ['items { districtCode districtName previousCutoff previousEligible newCutoff newEligible }', 'totalCount'],
+  );
+  const type = exportAll ? ACTION_TYPE.PMT_CUTOFF_PAA_PREVIEW_EXPORT : ACTION_TYPE.PMT_CUTOFF_PAA_PREVIEW;
+  return graphql(payload, [REQUEST(type), SUCCESS(type), ERROR(type)], { actionType: type });
+}
+
+export function fetchPmtCutoffForTarget({ target, districtCode = null, regionCode = null }) {
+  const query = `
+    query PmtCutoffForTarget($target: Int!, $districtCode: String, $regionCode: String) {
+      pmtCutoffForTarget(target: $target, districtCode: $districtCode, regionCode: $regionCode) {
+        target cutoff eligibleAtCutoff lowerCutoff eligibleAtLowerCutoff currentEligible
+        scoredHouseholds unscoredHouseholds targetReachable error
+      }
+    }
+  `;
+  return graphqlWithVariables(
+    query,
+    { target, districtCode, regionCode },
+    [
+      REQUEST(ACTION_TYPE.PMT_CUTOFF_FOR_TARGET),
+      SUCCESS(ACTION_TYPE.PMT_CUTOFF_FOR_TARGET),
+      ERROR(ACTION_TYPE.PMT_CUTOFF_FOR_TARGET),
+    ],
+    { actionType: ACTION_TYPE.PMT_CUTOFF_FOR_TARGET },
+  );
+}
 
 export function fetchPmtRunProgress(mutationId) {
   const query = `

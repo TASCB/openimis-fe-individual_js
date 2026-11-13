@@ -451,7 +451,7 @@
         "messageAll": "This will reclassify every household and individual in the database using the stored PMT score and cutoff {cutoff}, and auto-enrol the POOR households in PCT. Continue?"
       },
       "showAdvancedOptions": "Advanced options (limit to a region or district)",
-      "infoAll": "Applies the new cutoff to every household in the database: each household and its members are reclassified from their stored PMT score (no scores are recalculated), then newly POOR households are auto-enrolled in PCT. Suspended or graduated PCT beneficiaries are left unchanged. PMT Results by PAA is updated when it finishes.",
+      "infoAll": "Applies the new cutoff to every household in the database: each household and its members are reclassified from their stored PMT score (no scores are recalculated), then newly POOR households are auto-enrolled in PCT. Suspended or graduated PCT beneficiaries are left unchanged. PMT Adjustment Result is updated when it finishes.",
       "infoScoped": "Applies the new cutoff only to the selected region / district: households and members there are reclassified from their stored PMT score, then newly POOR households are auto-enrolled in PCT. Suspended or graduated PCT beneficiaries are left unchanged.",
       "formulaWarning": "The global PMT formula still uses cutoff {formulaCutoff}: newly imported households will be classified with it. Change it on the Formula & Parameters tab (needs approval) if this new cutoff should apply to imports too."
     },
@@ -492,22 +492,52 @@
       "deduplicate": "Deduplicate",
       "view": "View"
     },
+    "checkEligible": {
+      "tab": "Check Eligible",
+      "title": "Find the cutoff for a number of eligible households",
+      "target": "Eligible households wanted",
+      "region": "Region",
+      "paa": "PAA",
+      "button": "Check",
+      "info": "Uses the stored PMT scores: households are ranked by score and the cutoff is the score of the last household that fits the number. Leave Region and PAA empty for all households. Nothing is changed until you apply the cutoff in PMT Cutoff Adjustment.",
+      "failed": "The check could not be completed",
+      "scope": "Scope",
+      "scopeAll": "All PAAs",
+      "cutoff": "Cutoff to use",
+      "eligibleAtCutoff": "Eligible households at this cutoff",
+      "lowerCutoff": "Eligible households at the next lower cutoff ({cutoff})",
+      "currentEligible": "Eligible households now",
+      "change": "Change",
+      "scored": "Households with a PMT score",
+      "unscored": "Households without a PMT score (not counted)",
+      "notReachable": "Only {count} households in this scope have a PMT score, so every one of them would be eligible.",
+      "overMax": "This cutoff is above the maximum of {max} allowed for an adjustment.",
+      "use": "Use this cutoff",
+      "paaPreview": {
+        "searcherResultsTitle": "{count} PAAs at this cutoff",
+        "paa": "PAA",
+        "previousCutoff": "Previous Cutoff",
+        "previousEligible": "Previous Eligible Count",
+        "newCutoff": "New Cutoff",
+        "newEligible": "New Eligible Count",
+        "downloadCsv": "Download CSV",
+        "exportFailed": "The CSV could not be downloaded"
+      }
+    },
     "auditSummary": {
       "paaName": "PAA",
-      "cutoff": "PMT Cutoff",
-      "poor": "Poor",
-      "nonPoor": "Non-Poor",
       "action": "",
       "searcherResultsTitle": "{count} PAAs",
-      "title": "PMT Results by PAA",
-      "tab": "PMT Results by PAA",
+      "title": "PMT Adjustment Result",
       "region": "Region",
       "date": "PMT Date",
       "source": "Cutoff Source",
       "source.FORMULA": "Formula",
       "source.RUN": "Rerun / Adjustment",
-      "total": "Total",
-      "poorShare": "% Poor",
+      "oldEligible": "Old Cutoff Eligible Count",
+      "newEligible": "New Cutoff Eligible Count",
+      "eligibleDiff": "OCEC - NCEC",
+      "eligibleShare": "% Eligible",
       "viewTooltip": "View households"
     },
     "enrollment": {
@@ -534,15 +564,19 @@
       "district": "Select a district to recalculate PMT for all households in that district"
     },
     "progress": {
-      "title": "PMT Recalculation in Progress",
+      "title": "PMT Run in Progress",
       "starting": "Initializing...",
+      "waiting": "Waiting for the run to start...",
+      "notStarted": "The run has not started yet. The background worker may be busy or unavailable. You can close this window; the run will appear in the Audit tab once it starts.",
       "statistics": "Progress Statistics",
       "households": "Households Processed",
       "individuals": "Individuals Processed",
       "enrolled": "Enrollments Created",
-      "success": "PMT Recalculation Completed",
+      "titleCompleted": "PMT Run Completed",
+      "titleFailed": "PMT Run Failed",
+      "success": "PMT Run Completed",
       "successMessage": "Successfully completed! {count} households have been enrolled in the PMT program.",
-      "failed": "PMT Recalculation Failed",
+      "failed": "PMT Run Failed",
       "close": "Close",
       "runInBackground": "Run In Background",
       "viewActive": "View Active Progress"
@@ -572,16 +606,6 @@
         "date": "Date",
         "user": "User",
         "allPaas": "All PAAs"
-      },
-      "formula": {
-        "searcherResultsTitle": "{count} PMT formula versions found",
-        "version": "Version",
-        "cutoff": "Cutoff",
-        "dateUpdated": "Date Updated",
-        "formula": "Formula",
-        "dateFrom": "Date Updated From",
-        "dateTo": "Date Updated To",
-        "userUpdated": "User Updated"
       }
     }
   },

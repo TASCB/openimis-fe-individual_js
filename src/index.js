@@ -85,8 +85,8 @@ import PmtConfigurationPage from './pages/PmtConfigurationPage';
 import PmtEnrollmentListPage from './pages/PmtEnrollmentListPage';
 import SurveyMonitoringDashboardPage from './pages/SurveyMonitoringDashboardPage';
 import { PmtAdjustmentTabLabel, PmtAdjustmentTabPanel } from './components/pmt/PmtAdjustmentTab';
+import { PmtCheckEligibleTabLabel, PmtCheckEligibleTabPanel } from './components/pmt/PmtCheckEligibleTab';
 import { PmtFormulaTabLabel, PmtFormulaTabPanel } from './components/pmt/PmtFormulaTab';
-import { PmtResultsTabLabel, PmtResultsTabPanel } from './components/pmt/PmtResultsTab';
 import { PmtAuditTabLabel, PmtAuditTabPanel } from './components/pmt/PmtAuditTab';
 import { PmtFormulaTaskTableHeaders, PmtFormulaTaskItemFormatters } from './components/tasks/PmtFormulaTasks';
 import { PctEnrolmentTaskTableHeaders, PctEnrolmentTaskItemFormatters } from './components/tasks/PctEnrolmentTasks';
@@ -250,15 +250,15 @@ const DEFAULT_CONFIG = {
   'individual.BenefitPlansListTabLabel': [BENEFIT_PLAN_TABS_LABEL_REF_KEY],
   'individual.BenefitPlansListTabPanel': [BENEFIT_PLAN_TABS_PANEL_REF_KEY],
   [PMT_CONFIG_TABS_LABEL_CONTRIBUTION_KEY]: [
+    PmtCheckEligibleTabLabel,
     PmtAdjustmentTabLabel,
     PmtFormulaTabLabel,
-    PmtResultsTabLabel,
     PmtAuditTabLabel,
   ],
   [PMT_CONFIG_TABS_PANEL_CONTRIBUTION_KEY]: [
+    PmtCheckEligibleTabPanel,
     PmtAdjustmentTabPanel,
     PmtFormulaTabPanel,
-    PmtResultsTabPanel,
     PmtAuditTabPanel,
   ],
   'tasksManagement.tasks': [{

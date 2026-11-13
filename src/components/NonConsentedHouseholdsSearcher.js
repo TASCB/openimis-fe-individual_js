@@ -17,7 +17,6 @@ import {
   DialogContent,
   Button,
 } from "@material-ui/core";
-import GetAppIcon from "@material-ui/icons/GetApp";
 
 import {
   fetchNonConsentedHouseholds,
@@ -335,12 +334,11 @@ class NonConsentedHouseholdsSearcher extends Component {
     } = this.props;
     const { exportError, isExporting } = this.state;
 
-    const searcherActions = [
+    const actions = [
       {
-        icon: <GetAppIcon />,
-        label: formatMessage(intl, INDIVIDUAL_MODULE_NAME, "pmt.button.downloadPdf"),
-        onClick: this.handlePdfExport,
-        authorized: !(!nonConsentedHouseholds || nonConsentedHouseholds.length === 0 || fetchingNonConsentedHouseholds || isExporting),
+        label: "pmt.button.downloadPdf",
+        action: () => this.handlePdfExport(),
+        enabled: () => !(!nonConsentedHouseholds || nonConsentedHouseholds.length === 0 || fetchingNonConsentedHouseholds || isExporting),
       },
     ];
 
@@ -370,9 +368,7 @@ class NonConsentedHouseholdsSearcher extends Component {
           rowIdentifier={this.rowIdentifier}
           FilterPane={NonConsentedHouseholdsFilter}
           resetFiltersOnUnmount
-          searcherActionsPosition="header-right"
-          searcherActions={searcherActions}
-          enableActionButtons
+          actions={actions}
         />
         {exportError && (
           <Dialog open={!!exportError} fullWidth maxWidth="sm">

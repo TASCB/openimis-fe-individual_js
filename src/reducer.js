@@ -57,9 +57,11 @@ export const ACTION_TYPE = {
   ADJUST_PMT_CUTOFF: "ADJUST_PMT_CUTOFF",
   PMT_AUDIT_SUMMARY: "PMT_AUDIT_SUMMARY",
   SEARCH_PMT_RUN_HISTORY: "SEARCH_PMT_RUN_HISTORY",
-  SEARCH_PMT_FORMULA_HISTORY: "SEARCH_PMT_FORMULA_HISTORY",
   PMT_ENROLLMENT_LIST: "PMT_ENROLLMENT_LIST",
   PMT_RUN_PROGRESS: "PMT_RUN_PROGRESS",
+  PMT_CUTOFF_FOR_TARGET: "PMT_CUTOFF_FOR_TARGET",
+  PMT_CUTOFF_PAA_PREVIEW: "PMT_CUTOFF_PAA_PREVIEW",
+  PMT_CUTOFF_PAA_PREVIEW_EXPORT: "PMT_CUTOFF_PAA_PREVIEW_EXPORT",
   PMT_GLOBAL_FORMULA: "PMT_GLOBAL_FORMULA",
   UPDATE_PMT_GLOBAL_FORMULA: "UPDATE_PMT_GLOBAL_FORMULA",
   FETCH_ELIGIBLE_HOUSEHOLDS: "FETCH_ELIGIBLE_HOUSEHOLDS",
@@ -235,12 +237,6 @@ function reducer(
     pmtRunHistoryPageInfo: {},
     pmtRunHistoryTotalCount: 0,
     errorPmtRunHistory: null,
-    fetchingPmtFormulaHistory: false,
-    fetchedPmtFormulaHistory: false,
-    pmtFormulaHistory: [],
-    pmtFormulaHistoryPageInfo: {},
-    pmtFormulaHistoryTotalCount: 0,
-    errorPmtFormulaHistory: null,
 
     // PMT Enrollment List State
     fetchingPmtEnrollmentList: false,
@@ -1294,32 +1290,6 @@ function reducer(
         fetchingPmtRunHistory: false,
         errorPmtRunHistory: formatServerError(action.payload),
       };
-    case REQUEST(ACTION_TYPE.SEARCH_PMT_FORMULA_HISTORY):
-      return {
-        ...state,
-        fetchingPmtFormulaHistory: true,
-        fetchedPmtFormulaHistory: false,
-        pmtFormulaHistory: [],
-        pmtFormulaHistoryPageInfo: {},
-        pmtFormulaHistoryTotalCount: 0,
-        errorPmtFormulaHistory: null,
-      };
-    case SUCCESS(ACTION_TYPE.SEARCH_PMT_FORMULA_HISTORY):
-      return {
-        ...state,
-        fetchingPmtFormulaHistory: false,
-        fetchedPmtFormulaHistory: true,
-        pmtFormulaHistory: parseData(action.payload.data.pmtGlobalFormulaHistory),
-        pmtFormulaHistoryPageInfo: pageInfo(action.payload.data.pmtGlobalFormulaHistory),
-        pmtFormulaHistoryTotalCount: action.payload.data.pmtGlobalFormulaHistory?.totalCount ?? 0,
-        errorPmtFormulaHistory: formatGraphQLError(action.payload),
-      };
-    case ERROR(ACTION_TYPE.SEARCH_PMT_FORMULA_HISTORY):
-      return {
-        ...state,
-        fetchingPmtFormulaHistory: false,
-        errorPmtFormulaHistory: formatServerError(action.payload),
-      };
     case REQUEST(ACTION_TYPE.PMT_AUDIT_SUMMARY):
       return {
         ...state,
@@ -1429,6 +1399,51 @@ function reducer(
         ...state,
         fetchingPmtRunProgress: false,
         errorPmtRunProgress: action.payload || action.error || action,
+      };
+
+    case REQUEST(ACTION_TYPE.PMT_CUTOFF_PAA_PREVIEW):
+      return {
+        ...state,
+        fetchingPmtCutoffPaaPreview: true,
+        fetchedPmtCutoffPaaPreview: false,
+        pmtCutoffPaaPreview: [],
+        pmtCutoffPaaPreviewTotalCount: 0,
+        errorPmtCutoffPaaPreview: null,
+      };
+
+    case SUCCESS(ACTION_TYPE.PMT_CUTOFF_PAA_PREVIEW): {
+      const data = action.payload?.data?.pmtCutoffPaaPreview || {};
+      return {
+        ...state,
+        fetchingPmtCutoffPaaPreview: false,
+        fetchedPmtCutoffPaaPreview: true,
+        pmtCutoffPaaPreview: data.items || [],
+        pmtCutoffPaaPreviewTotalCount: data.totalCount || 0,
+      };
+    }
+
+    case ERROR(ACTION_TYPE.PMT_CUTOFF_PAA_PREVIEW):
+      return {
+        ...state,
+        fetchingPmtCutoffPaaPreview: false,
+        errorPmtCutoffPaaPreview: action.payload || action.error || action,
+      };
+
+    case REQUEST(ACTION_TYPE.PMT_CUTOFF_FOR_TARGET):
+      return { ...state, fetchingPmtCutoffForTarget: true, pmtCutoffForTarget: null, errorPmtCutoffForTarget: null };
+
+    case SUCCESS(ACTION_TYPE.PMT_CUTOFF_FOR_TARGET):
+      return {
+        ...state,
+        fetchingPmtCutoffForTarget: false,
+        pmtCutoffForTarget: action.payload?.data?.pmtCutoffForTarget || null,
+      };
+
+    case ERROR(ACTION_TYPE.PMT_CUTOFF_FOR_TARGET):
+      return {
+        ...state,
+        fetchingPmtCutoffForTarget: false,
+        errorPmtCutoffForTarget: action.payload || action.error || action,
       };
 
     case CLEAR(ACTION_TYPE.PMT_RUN_PROGRESS):

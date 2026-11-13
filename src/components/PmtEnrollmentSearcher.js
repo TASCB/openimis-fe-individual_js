@@ -16,7 +16,6 @@ import {
   DialogContent,
   Button,
 } from '@material-ui/core';
-import GetAppIcon from '@material-ui/icons/GetApp';
 
 import {
   fetchPmtEnrollmentList,
@@ -233,12 +232,11 @@ function PmtEnrollmentSearcher({
     }
   };
 
-  const searcherActions = [
+  const actions = [
     {
-      icon: <GetAppIcon />,
-      label: formatMessage(intl, INDIVIDUAL_MODULE_NAME, 'pmt.button.downloadPdf'),
-      onClick: handlePdfExport,
-      authorized: !(!pmtEnrollmentList || pmtEnrollmentList.length === 0 || fetchingPmtEnrollmentList),
+      label: 'pmt.button.downloadPdf',
+      action: () => handlePdfExport(),
+      enabled: () => !(!pmtEnrollmentList || pmtEnrollmentList.length === 0 || fetchingPmtEnrollmentList || isExporting),
     },
   ];
 
@@ -270,9 +268,7 @@ function PmtEnrollmentSearcher({
         defaultFilters={defaultFilters()}
         cacheFiltersKey={cacheFiltersKey}
         resetFiltersOnUnmount
-        searcherActionsPosition="header-right"
-        searcherActions={searcherActions}
-        enableActionButtons
+        actions={actions}
       />
       {exportError && (
         <Dialog open={!!exportError} fullWidth maxWidth="sm">

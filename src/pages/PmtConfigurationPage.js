@@ -17,6 +17,7 @@ import {
   RIGHT_PMT_RERUN,
   INDIVIDUAL_MODULE_NAME,
   PMT_ADJUSTMENT_TAB_VALUE,
+  PMT_CHECK_ELIGIBLE_TAB_VALUE,
   PMT_CONFIG_TABS_LABEL_CONTRIBUTION_KEY,
   PMT_CONFIG_TABS_PANEL_CONTRIBUTION_KEY,
 } from '../constants';
@@ -33,7 +34,12 @@ const styles = (theme) => ({
 function PmtConfigurationPage({
   classes, intl, rights,
 }) {
-  const [activeTab, setActiveTab] = useState(PMT_ADJUSTMENT_TAB_VALUE);
+  const [activeTab, setActiveTab] = useState(PMT_CHECK_ELIGIBLE_TAB_VALUE);
+  const [cutoffSuggestion, setCutoffSuggestion] = useState(null);
+  const onUseCutoff = (suggestion) => {
+    setCutoffSuggestion({ ...suggestion, at: Date.now() });
+    setActiveTab(PMT_ADJUSTMENT_TAB_VALUE);
+  };
 
   const isSelected = (tab) => tab === activeTab;
   const tabStyle = (tab) => (isSelected(tab) ? classes.selectedTab : classes.unselectedTab);
@@ -76,6 +82,8 @@ function PmtConfigurationPage({
                 contributionKey={PMT_CONFIG_TABS_PANEL_CONTRIBUTION_KEY}
                 rights={rights}
                 value={activeTab}
+                cutoffSuggestion={cutoffSuggestion}
+                onUseCutoff={onUseCutoff}
               />
             </Paper>
           </Grid>

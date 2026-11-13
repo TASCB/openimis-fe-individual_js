@@ -2,7 +2,6 @@ import React from 'react';
 import { Tab } from '@material-ui/core';
 import { formatMessage, PublishedComponent } from '@openimis/fe-core';
 import PmtRunHistorySearcher from './PmtRunHistorySearcher';
-import PmtFormulaHistorySearcher from './PmtFormulaHistorySearcher';
 import { INDIVIDUAL_MODULE_NAME, PMT_AUDIT_TAB_VALUE } from '../../constants';
 
 function PmtAuditTabLabel({
@@ -30,7 +29,6 @@ function PmtAuditTabPanel({ value }) {
       value={value}
     >
       <PmtRunHistorySearcher />
-      <PmtFormulaHistorySearcher />
     </PublishedComponent>
   );
 }

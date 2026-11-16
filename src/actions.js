@@ -1745,10 +1745,11 @@ export function fetchPmtRunProgress(mutationId) {
 // Real-time Survey Monitoring Dashboard
 // ---------------------------------------------------------------------------
 const SURVEY_DASHBOARD_PROJECTION = `
-  totalInterviews inProgress completed approvedBySupervisor approvedByHq sentToCapital
-  rejectedBySupervisor rejectedByHq rejectionRate supervisorBacklog hqBacklog pendingReviewBacklog
-  avgInterviewDurationMinutes householdMembersTotal householdSizeAverage householdSizeInterviews householdSizeVariable
-  activeEnumerators targetTotal sampleSize hqBaseUrl lastPolledAt
+  totalInterviews inProgress completed approvedBySupervisor approvedByHq
+  rejectedBySupervisor rejectedByHq rejectionRate hqBacklog
+  householdMembersTotal householdSizeAverage householdSizeInterviews
+  householdSizeCoverage householdSizePending householdSizeInScope householdSizeSource
+  activeEnumerators sampleSize hqBaseUrl lastPolledAt lastFailedAt syncRunning
   questionnaires { identity id title version count }
   dailyProductivity { date count cumulative }
   statusHistory { date inProgress completed approvedBySupervisor sentToCapi approvedByHq rejectedBySupervisor rejectedByHq cumulativeCompleted }
@@ -1787,7 +1788,7 @@ export function fetchSurveyInterviews({
 
 export function refreshSurveyDashboard(questionnaireId) {
   const arg = questionnaireId ? `(questionnaireId: "${formatGQLString(questionnaireId)}")` : "";
-  const payload = `mutation { refreshSurveyDashboard${arg} { success seen created changed totalCount polledAt message } }`;
+  const payload = `mutation { refreshSurveyDashboard${arg} { success queued alreadyRunning message } }`;
   return graphql(payload, ACTION_TYPE.REFRESH_SURVEY_DASHBOARD);
 }
 

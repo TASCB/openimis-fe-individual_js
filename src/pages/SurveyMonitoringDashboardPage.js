@@ -2,13 +2,14 @@ import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Paper, Grid, Typography, Box, Button, FormControlLabel, Switch, CircularProgress,
-  Select, MenuItem, FormControl, TextField, Tabs, Tab, Tooltip,
+  Select, MenuItem, FormControl, TextField, Tab, Tooltip,
 } from "@material-ui/core";
 import MuiAlert from "@material-ui/lab/Alert";
 import { makeStyles, fade } from "@material-ui/core/styles";
 import SyncIcon from "@material-ui/icons/Sync";
 import LockOutlinedIcon from "@material-ui/icons/LockOutlined";
 import InfoOutlinedIcon from "@material-ui/icons/InfoOutlined";
+import ErrorOutlineIcon from "@material-ui/icons/ErrorOutline";
 import {
   Helmet, useModulesManager, useTranslations, useToast,
 } from "@openimis/fe-core";
@@ -32,6 +33,8 @@ import { fmtInt, fmtDateTime, paaLabel } from "../components/survey/surveyUtils"
 import { statusesForFilter, isRejectedFilter } from "../components/survey/surveyStatus";
 
 const POLL_SECONDS = 30;
+const SYNC_WATCH_SECONDS = 10;
+const SYNC_WATCH_MAX_MS = 15 * 60 * 1000;
 
 const useStyles = makeStyles((theme) => ({
   page: theme.page,
@@ -64,6 +67,7 @@ const useStyles = makeStyles((theme) => ({
     color: theme.palette.grey[600],
   },
   syncedIcon: { fontSize: 18, color: theme.palette.grey[700] },
+  syncFailed: { color: theme.palette.error.main },
   heroControls: {
     display: "flex",
     alignItems: "center",
@@ -174,29 +178,19 @@ const useStyles = makeStyles((theme) => ({
   sectionTitle: { fontWeight: 700, color: theme.palette.text.primary, fontSize: "1.15rem" },
   sectionHint: { color: theme.palette.grey[600], fontSize: "0.8rem" },
 
-  tabsBar: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: theme.spacing(2),
-    flexWrap: "wrap",
-    borderBottom: `1px solid ${theme.palette.divider}`,
-    marginBottom: theme.spacing(2.5),
-  },
+  tabsPaper: { ...theme.paper.paper, margin: 0, marginBottom: theme.spacing(2.5) },
+  tableTitle: theme.table.title,
+  tabs: { display: "flex", alignItems: "center" },
+  selectedTab: { borderBottom: "4px solid white" },
+  unselectedTab: { borderBottom: "4px solid transparent" },
   sampleNote: {
     display: "inline-flex",
     alignItems: "center",
     gap: theme.spacing(0.5),
     fontSize: "0.78rem",
-    color: theme.palette.grey[600],
+    marginLeft: "auto",
+    padding: theme.spacing(0, 2),
     cursor: "help",
-  },
-  tab: {
-    textTransform: "none",
-    fontWeight: 600,
-    fontSize: "0.95rem",
-    minWidth: 0,
-    minHeight: 48,
   },
 
   panel: {
@@ -285,6 +279,7 @@ function SurveyMonitoringDashboardPage() {
   const [feedView, setFeedView] = useState("table");
   const [analyticsTab, setAnalyticsTab] = useState(0);
   const [trendPeriod, setTrendPeriod] = useState(0);
+  const [syncWatch, setSyncWatch] = useState(null);
   const intervalRef = useRef(null);
   const didMount = useRef(false);
 
@@ -345,23 +340,42 @@ function SurveyMonitoringDashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canView, autoRefresh, statusFilter, responsibleFilter, supervisorFilter, fromDate, questionnaireFilter]);
 
+  // Sync now runs on the worker: refetch until lastPolledAt moves (or HQ fails).
+  useEffect(() => {
+    if (!syncWatch) return undefined;
+    if (m.lastPolledAt && m.lastPolledAt !== syncWatch.lastPolledAt) {
+      toast.showSuccess(t("survey.dashboard.syncDone", "Synced from Survey Solutions HQ"));
+      setSyncWatch(null);
+      return undefined;
+    }
+    if (m.lastFailedAt && m.lastFailedAt !== syncWatch.lastFailedAt) {
+      toast.showError(t("survey.dashboard.syncHqDown", "Survey Solutions HQ did not answer. Try again later."));
+      setSyncWatch(null);
+      return undefined;
+    }
+    if (Date.now() - syncWatch.startedAt > SYNC_WATCH_MAX_MS) {
+      setSyncWatch(null);
+      return undefined;
+    }
+    const timer = setTimeout(reloadAll, SYNC_WATCH_SECONDS * 1000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncWatch, dashboard, fetchingDashboard]);
+
   const onManualRefresh = async () => {
     const resp = await dispatch(refreshSurveyDashboard(qid));
     const r = resp?.payload?.data?.refreshSurveyDashboard;
     const gqlErr = resp?.payload?.errors?.[0]?.message;
-    if (gqlErr) {
-      toast.showError(`${t("survey.dashboard.syncFailed", "Sync failed")}: ${gqlErr}`);
-    } else if (r && r.success === false) {
-      toast.showError(`${t("survey.dashboard.syncFailed", "Sync failed")}: ${r.message || "?"}`);
-    } else if (r) {
-      const parts = [];
-      if (r.totalCount != null) parts.push(`${t("survey.dashboard.hqReports", "HQ reports")} ${fmtInt(r.totalCount)} ${t("survey.dashboard.interviewsWord", "interviews")}`);
-      parts.push(`${t("survey.dashboard.syncOk", "synced sample of")} ${fmtInt(r.seen ?? 0)}`);
-      if (r.changed) parts.push(`${r.changed} ${t("survey.dashboard.statusChanges", "status changes")}`);
-      toast.showSuccess(parts.join(" · "));
+    if (gqlErr || !r || r.success === false) {
+      toast.showError(`${t("survey.dashboard.syncFailed", "Sync failed")}: ${gqlErr || r?.message || "?"}`);
+      return;
     }
-    reloadAll();
+    toast.showSuccess(r.alreadyRunning
+      ? t("survey.dashboard.syncAlreadyRunning", "A sync is already running. The figures update when it finishes.")
+      : t("survey.dashboard.syncStarted", "Sync started. The figures update when it finishes."));
+    setSyncWatch({ lastPolledAt: m.lastPolledAt, lastFailedAt: m.lastFailedAt, startedAt: Date.now() });
   };
+  const syncBusy = refreshing || !!syncWatch || !!m.syncRunning;
 
   const clearAllFilters = () => {
     setQuestionnaireFilter("");
@@ -374,7 +388,6 @@ function SurveyMonitoringDashboardPage() {
 
   const dashLoading = fetchingDashboard && !dashboard;
   const rejected = (m.rejectedBySupervisor || 0) + (m.rejectedByHq || 0);
-  const dailySpark = (m.dailyProductivity || []).map((d) => ({ count: d.count || 0 }));
   const stages = m.approvalFunnel || [];
   const history = m.statusHistory || [];
   const trend = trendStatus(history);
@@ -394,6 +407,21 @@ function SurveyMonitoringDashboardPage() {
     return errorDashboard.message || errorDashboard.detail || JSON.stringify(errorDashboard);
   })();
   const isPermError = errorMsg && /unauthor|permission|forbidden/i.test(errorMsg);
+  // Coverage < 100 % only when /statistics failed and the figures come from the
+  // per-interview fallback: say so instead of showing a partial total as complete.
+  const householdSubtitle = (complete) => {
+    const cov = m.householdSizeCoverage;
+    if (m.householdMembersTotal == null) {
+      return m.householdSizePending
+        ? t("survey.dashboard.householdSizeReading", "Reading household sizes from HQ…")
+        : t("survey.dashboard.householdSizeNone", "No household-size answers yet");
+    }
+    if (cov != null && cov < 100) {
+      const read = (m.householdSizeInScope || 0) - (m.householdSizePending || 0);
+      return `${t("survey.dashboard.householdPartial", "Partial")}: ${fmtInt(read)} / ${fmtInt(m.householdSizeInScope || 0)} ${t("survey.dashboard.householdsRead", "households read")} (${cov}%)`;
+    }
+    return complete;
+  };
 
   const SectionHead = ({ title, hint }) => (
     <div className={classes.sectionHead}>
@@ -435,13 +463,19 @@ function SurveyMonitoringDashboardPage() {
           <Typography variant="body1" className={classes.heroSubtitle}>
             {t("survey.dashboard.subtitle", "A near-real-time operational view of interview progress, review backlogs, and field activity sourced from Survey Solutions HQ.")}
           </Typography>
-          <span className={classes.syncedChip}>
-            {fetchingDashboard ? (
+          <span className={`${classes.syncedChip} ${m.lastFailedAt ? classes.syncFailed : ""}`.trim()}>
+            {fetchingDashboard || syncBusy ? (
               <CircularProgress size={14} aria-label={t("survey.dashboard.syncing", "Syncing dashboard")} />
             ) : (
               <SyncIcon className={classes.syncedIcon} />
             )}
             {t("survey.dashboard.lastPolled", "Last synced from HQ")}: {fmtDateTime(m.lastPolledAt)}
+            {m.lastFailedAt ? (
+              <>
+                <ErrorOutlineIcon fontSize="small" />
+                {t("survey.dashboard.hqUnreachableSince", "HQ not answering since")} {fmtDateTime(m.lastFailedAt)}
+              </>
+            ) : null}
           </span>
         </Box>
         <div className={classes.heroControls}>
@@ -459,9 +493,9 @@ function SurveyMonitoringDashboardPage() {
           <Button
             variant="contained"
             className={classes.syncBtn}
-            startIcon={refreshing ? <CircularProgress size={16} color="inherit" /> : <SyncIcon />}
+            startIcon={syncBusy ? <CircularProgress size={16} color="inherit" /> : <SyncIcon />}
             onClick={onManualRefresh}
-            disabled={refreshing}
+            disabled={syncBusy}
           >
             {t("survey.dashboard.refreshNow", "Sync now")}
           </Button>
@@ -583,19 +617,15 @@ function SurveyMonitoringDashboardPage() {
           <KpiTile
             label={t("survey.dashboard.totalMembers", "Total members")}
             value={m.householdMembersTotal}
-            subtitle={m.householdMembersTotal != null
-              ? `${fmtInt(m.householdSizeInterviews || 0)} ${t("survey.dashboard.responsesWord", "responses")}`
-              : t("survey.dashboard.householdSizeUnavailable", "Household-size statistics are not available from this HQ API yet.")}
-            tooltip={t("survey.dashboard.totalMembersTip", "Running total of the hh_size numeric question for the selected questionnaire scope.")}
+            subtitle={householdSubtitle(`${fmtInt(m.householdSizeInterviews || 0)} ${t("survey.dashboard.responsesWord", "responses")}`)}
+            tooltip={t("survey.dashboard.totalMembersTip", "Sum of the hh_size answers in completed and later interviews, from the Survey Solutions HQ statistics report.")}
             loading={dashLoading}
           />
           <KpiTile
             label={t("survey.dashboard.householdAverage", "Average hh size")}
             value={m.householdSizeAverage}
-            subtitle={m.householdSizeAverage != null
-              ? `${t("survey.dashboard.householdMembers", "Household members")}: ${fmtInt(m.householdMembersTotal || 0)}`
-              : t("survey.dashboard.householdSizeUnavailable", "Household-size statistics are not available from this HQ API yet.")}
-            tooltip={t("survey.dashboard.householdAverageTip", "Average value of hh_size for the current questionnaire scope.")}
+            subtitle={householdSubtitle(`${t("survey.dashboard.householdMembers", "Household members")}: ${fmtInt(m.householdMembersTotal || 0)}`)}
+            tooltip={t("survey.dashboard.householdAverageTip", "Average hh_size over completed and later interviews in the current scope.")}
             loading={dashLoading}
           />
         </Box>
@@ -644,34 +674,37 @@ function SurveyMonitoringDashboardPage() {
             label={t("survey.dashboard.activeEnumerators", "Active enumerators (24h)")}
             value={m.activeEnumerators}
             subtitle={t("survey.dashboard.activeEnumeratorsSub", "synced recently (from sample)")}
-            sparkline={dailySpark.length > 1 ? dailySpark : null}
             tooltip={t("survey.dashboard.activeEnumeratorsTip", "Enumerators whose interviews show a last-entry timestamp within the past 24 h (in the synced sample).")}
             loading={dashLoading}
           />
         </Box>
       </Box>
-      <div className={classes.tabsBar}>
-        <Tabs
-          value={analyticsTab}
-          onChange={(e, v) => setAnalyticsTab(v)}
-          indicatorColor="primary"
-          textColor="primary"
-          variant="scrollable"
-          scrollButtons="auto"
-        >
-          <Tab disableRipple className={classes.tab} label={t("survey.dashboard.operationalTitle", "Operational monitoring")} />
-          <Tab disableRipple className={classes.tab} label={t("survey.dashboard.activityTitle", "Field activity & accountability")} />
-          <Tab disableRipple className={classes.tab} label={t("survey.dashboard.trendsTitle", "Trends & activity patterns")} />
-        </Tabs>
-        {m.sampleSize && m.totalInterviews && m.sampleSize < m.totalInterviews ? (
-          <Tooltip title={t("survey.dashboard.sampleTip", "Pipeline and KPIs are exact. The feed, leaderboards and heatmap use the interviews synced so far; the sample grows with every poll.")}>
-            <span className={classes.sampleNote}>
-              <InfoOutlinedIcon style={{ fontSize: 16 }} />
-              {t("survey.dashboard.sampleShort", "Sample")}: {fmtInt(m.sampleSize)} / {fmtInt(m.totalInterviews)}
-            </span>
-          </Tooltip>
-        ) : null}
-      </div>
+      <Paper className={classes.tabsPaper}>
+        <Grid container className={`${classes.tableTitle} ${classes.tabs}`}>
+          {[
+            t("survey.dashboard.operationalTitle", "Operational monitoring"),
+            t("survey.dashboard.activityTitle", "Field activity & accountability"),
+            t("survey.dashboard.trendsTitle", "Trends & activity patterns"),
+          ].map((label, i) => (
+            <Tab
+              key={label}
+              value={i}
+              selected={analyticsTab === i}
+              onChange={(_, v) => setAnalyticsTab(v)}
+              className={analyticsTab === i ? classes.selectedTab : classes.unselectedTab}
+              label={label}
+            />
+          ))}
+          {m.sampleSize && m.totalInterviews && m.sampleSize < m.totalInterviews ? (
+            <Tooltip title={t("survey.dashboard.sampleTip", "Pipeline and KPIs are exact. The feed, leaderboards and heatmap use the interviews synced so far; the sample grows with every poll.")}>
+              <span className={classes.sampleNote}>
+                <InfoOutlinedIcon style={{ fontSize: 16 }} />
+                {t("survey.dashboard.sampleShort", "Sample")}: {fmtInt(m.sampleSize)} / {fmtInt(m.totalInterviews)}
+              </span>
+            </Tooltip>
+          ) : null}
+        </Grid>
+      </Paper>
       {analyticsTab === 0 && (
         <Box className={classes.rowMargin}>
           <Grid container spacing={2}>

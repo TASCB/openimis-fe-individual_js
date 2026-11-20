@@ -445,14 +445,14 @@
       "info": "This will reuse each household's stored PMT score, update the household classification, and push the adjusted PMT status to each individual without recalculating scores",
       "confirm": {
         "title": "Apply PMT Cutoff Adjustment?",
-        "message": "This will reclassify households and individuals in {districtName} using the stored PMT score and cutoff {cutoff}, and auto-enrol the POOR households in PCT. Continue?",
+        "message": "This will reclassify households and individuals in {districtName} using the stored PMT score and cutoff {cutoff}, and send newly POOR households to the PCT enrolment task for approval. Continue?",
         "yes": "Adjust",
         "no": "Cancel",
-        "messageAll": "This will reclassify every household and individual in the database using the stored PMT score and cutoff {cutoff}, and auto-enrol the POOR households in PCT. Continue?"
+        "messageAll": "This will reclassify every household and individual in the database using the stored PMT score and cutoff {cutoff}, and send newly POOR households to the PCT enrolment task for approval. Continue?"
       },
       "showAdvancedOptions": "Advanced options (limit to a region or district)",
-      "infoAll": "Applies the new cutoff to every household in the database: each household and its members are reclassified from their stored PMT score (no scores are recalculated), then newly POOR households are auto-enrolled in PCT. Suspended or graduated PCT beneficiaries are left unchanged. PMT Adjustment Result is updated when it finishes.",
-      "infoScoped": "Applies the new cutoff only to the selected region / district: households and members there are reclassified from their stored PMT score, then newly POOR households are auto-enrolled in PCT. Suspended or graduated PCT beneficiaries are left unchanged.",
+      "infoAll": "Applies the new cutoff to every household in the database: each household and its members are reclassified from their stored PMT score (no scores are recalculated), then newly POOR households are sent to the PCT enrolment task: they join PCT only after a PCT officer approves it. Households already in PCT are not removed. PMT Adjustment Result is updated when it finishes.",
+      "infoScoped": "Applies the new cutoff only to the selected region / district: households and members there are reclassified from their stored PMT score, then newly POOR households are sent to the PCT enrolment task: they join PCT only after a PCT officer approves it. Households already in PCT are not removed.",
       "formulaWarning": "The global PMT formula still uses cutoff {formulaCutoff}: newly imported households will be classified with it. Change it on the Formula & Parameters tab (needs approval) if this new cutoff should apply to imports too."
     },
     "results": {
@@ -571,11 +571,11 @@
       "statistics": "Progress Statistics",
       "households": "Households Processed",
       "individuals": "Individuals Processed",
-      "enrolled": "Enrollments Created",
+      "enrolled": "Sent for enrolment approval",
       "titleCompleted": "PMT Run Completed",
       "titleFailed": "PMT Run Failed",
       "success": "PMT Run Completed",
-      "successMessage": "Successfully completed! {count} households have been enrolled in the PMT program.",
+      "successMessage": "Completed. {count} households were sent to the PCT enrolment task for approval.",
       "failed": "PMT Run Failed",
       "close": "Close",
       "runInBackground": "Run In Background",
@@ -597,7 +597,7 @@
         "status": "Status",
         "status.STARTED": "Started",
         "status.CALCULATING": "Calculating",
-        "status.ENROLLING": "Enrolling",
+        "status.ENROLLING": "Sending for enrolment approval",
         "status.COMPLETED": "Completed",
         "status.FAILED": "Failed",
         "status.null": "Any",
